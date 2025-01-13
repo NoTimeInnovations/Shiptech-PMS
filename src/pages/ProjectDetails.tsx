@@ -1,20 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useProjectStore } from '../store/projectStore';
-import { Loader2, Pencil, FileDown, ArrowLeft } from 'lucide-react';
+import { 
+  Loader2, 
+  Pencil, 
+  FileDown, 
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Calendar,
+  User
+} from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import html2pdf from 'html2pdf.js';
 import toast from 'react-hot-toast';
+import DeliverableModal from '../components/DeliverableModal';
 
 export default function ProjectDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fetchProject } = useProjectStore();
+  const { fetchProject, addDeliverable, updateDeliverable, deleteDeliverable } = useProjectStore();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDeliverable, setEditingDeliverable] = useState<any>(null);
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -43,10 +55,55 @@ export default function ProjectDetails() {
     checkUserRole();
   }, [id, user, fetchProject, navigate]);
 
+  const handleAddDeliverable = async (data: any) => {
+    if (!id) return;
+    try {
+      await addDeliverable(id, data);
+      const updatedProject = await fetchProject(id);
+      if (updatedProject) {
+        setProject(updatedProject);
+        toast.success('Deliverable added successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to add deliverable');
+    }
+  };
+
+  const handleEditDeliverable = async (data: any) => {
+    if (!id || !editingDeliverable) return;
+    try {
+      await updateDeliverable(id, editingDeliverable.id, data);
+      const updatedProject = await fetchProject(id);
+      if (updatedProject) {
+        setProject(updatedProject);
+        toast.success('Deliverable updated successfully');
+      }
+    } catch (error) {
+      toast.error('Failed to update deliverable');
+    }
+  };
+
+  const handleDeleteDeliverable = async (deliverableId: string) => {
+    if (!id) return;
+    if (window.confirm('Are you sure you want to delete this deliverable?')) {
+      try {
+        await deleteDeliverable(id, deliverableId);
+        const updatedProject = await fetchProject(id);
+        if (updatedProject) {
+          setProject(updatedProject);
+          toast.success('Deliverable deleted successfully');
+        }
+      } catch (error) {
+        toast.error('Failed to delete deliverable');
+      }
+    }
+  };
+
   const downloadInvoice = () => {
     if (!project) return;
 
-    const totalAmount = project.deliverables.reduce((sum: number, d: any) => sum + d.total, 0);
+    const totalAmount = project.deliverables.reduce((sum: number, d: any) => 
+      sum + (d.hours || 0) * (d.costPerHour || 0), 0);
 
     const content = `
       <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
@@ -62,7 +119,13 @@ export default function ProjectDetails() {
         </div>
 
         <div style="margin-bottom: 30px;">
-          <h3>Bill To:</h3>
+          <h3>Project Information</h3>
+          <p><strong>Name:</strong> ${project.name}</p>
+          <p><strong>Description:</strong> ${project.description}</p>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <h3>Customer Details:</h3>
           <p><strong>${project.customer.name}</strong></p>
           <p>${project.customer.address}</p>
           <p>Phone: ${project.customer.phone}</p>
@@ -71,32 +134,30 @@ export default function ProjectDetails() {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
           <thead>
             <tr style="background-color: #f3f4f6;">
-              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Item</th>
+              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Deliverable</th>
+              <th style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">Hours</th>
+              <th style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">Rate/Hour</th>
               <th style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">Amount</th>
             </tr>
           </thead>
           <tbody>
             ${project.deliverables.map((d: any) => `
               <tr>
-                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">${d.name}</td>
-                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">₹${d.total}</td>
+                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+                  <strong>${d.name}</strong>
+                  ${d.description ? `<br><span style="color: #666; font-size: 0.9em;">${d.description}</span>` : ''}
+                </td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">${d.hours || 0}</td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">₹${d.costPerHour || 0}</td>
+                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">₹${(d.hours || 0) * (d.costPerHour || 0)}</td>
               </tr>
             `).join('')}
             <tr style="background-color: #f3f4f6;">
-              <td style="padding: 12px; text-align: right; font-weight: bold;">Total Amount:</td>
+              <td colspan="3" style="padding: 12px; text-align: right; font-weight: bold;">Total Amount:</td>
               <td style="padding: 12px; text-align: right; font-weight: bold;">₹${totalAmount}</td>
             </tr>
           </tbody>
         </table>
-
-        <div style="margin-top: 30px;">
-          <h3>Project Requirements:</h3>
-          <ul>
-            ${project.requirements.map((r: any) => `
-              <li style="margin-bottom: 8px;">${r.text}</li>
-            `).join('')}
-          </ul>
-        </div>
       </div>
     `;
 
@@ -134,7 +195,7 @@ export default function ProjectDetails() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
           <button
@@ -160,17 +221,17 @@ export default function ProjectDetails() {
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
               <Pencil className="mr-2 h-4 w-4" />
-              Edit
+              Edit Project
             </button>
           )}
         </div>
       </div>
 
       <div className="space-y-6">
-        {/* Basic Information Section */}
+        {/* Project Information */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Basic Information</h3>
+            <h3 className="text-lg font-medium text-gray-900">Project Information</h3>
           </div>
           <div className="px-6 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -190,19 +251,8 @@ export default function ProjectDetails() {
                 <p className="text-sm font-medium text-gray-500">Description</p>
                 <p className="mt-1">{project.description}</p>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Customer Details Section */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Customer Details</h3>
-          </div>
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-500">Name</p>
+                <p className="text-sm font-medium text-gray-500">Customer Name</p>
                 <p className="mt-1">{project.customer.name}</p>
               </div>
               <div>
@@ -220,73 +270,97 @@ export default function ProjectDetails() {
         {/* Deliverables Section */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Deliverables</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">Deliverables</h3>
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setEditingDeliverable(null);
+                    setIsModalOpen(true);
+                  }}
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Deliverable
+                </button>
+              )}
+            </div>
           </div>
           <div className="px-6 py-4">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hours
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cost/Hour
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {project.deliverables.map((deliverable: any) => (
-                  <tr key={deliverable.id}>
-                    <td className="px-3 py-4 text-sm text-gray-900">
-                      {deliverable.name}
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-500">
-                      {deliverable.hours}
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-500">
-                      ₹{deliverable.costPerHour}
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-900 text-right">
-                      ₹{deliverable.total}
-                    </td>
-                  </tr>
-                ))}
-                <tr className="bg-gray-50">
-                  <td colSpan={3} className="px-3 py-4 text-sm font-medium text-gray-900 text-right">
-                    Grand Total
-                  </td>
-                  <td className="px-3 py-4 text-sm font-medium text-gray-900 text-right">
-                    ₹{project.deliverables.reduce((sum: number, d: any) => sum + d.total, 0)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Project Requirements Section */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Project Requirements</h3>
-          </div>
-          <div className="px-6 py-4">
-            <ul className="space-y-2">
-              {project.requirements.map((requirement: any) => (
-                <li key={requirement.id} className="text-gray-700 flex items-start">
-                  <span className="text-gray-400 mr-2">•</span>
-                  <span>{requirement.text}</span>
-                </li>
+            <div className="space-y-4">
+              {project.deliverables.map((deliverable: any) => (
+                <div 
+                  key={deliverable.id}
+                  className="border rounded-lg hover:border-blue-500 transition-colors duration-200"
+                >
+                  <div className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => navigate(`/dashboard/projects/${id}/deliverable/deliverable:${deliverable.id}`)}
+                      >
+                        <h4 className="text-lg font-medium">{deliverable.name}</h4>
+                        {deliverable.description && (
+                          <p className="mt-1 text-gray-600">{deliverable.description}</p>
+                        )}
+                        <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+                          {deliverable.hours && (
+                            <span>Hours: {deliverable.hours}</span>
+                          )}
+                          {deliverable.costPerHour && (
+                            <span>Rate: ₹{deliverable.costPerHour}/hr</span>
+                          )}
+                          {deliverable.assignedTo && (
+                            <div className="flex items-center">
+                              <User className="h-4 w-4 mr-1" />
+                              <span>{deliverable.assignedTo.fullName}</span>
+                            </div>
+                          )}
+                          {deliverable.deadline && (
+                            <div className="flex items-center">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              <span>{new Date(deliverable.deadline).toLocaleDateString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {isAdmin && (
+                        <div className="flex space-x-2 ml-4">
+                          <button
+                            onClick={() => {
+                              setEditingDeliverable(deliverable);
+                              setIsModalOpen(true);
+                            }}
+                            className="p-1 text-gray-400 hover:text-blue-500"
+                          >
+                            <Pencil className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDeliverable(deliverable.id)}
+                            className="p-1 text-gray-400 hover:text-red-500"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
       </div>
+
+      <DeliverableModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingDeliverable(null);
+        }}
+        onSubmit={editingDeliverable ? handleEditDeliverable : handleAddDeliverable}
+        initialData={editingDeliverable}
+      />
     </div>
   );
 }

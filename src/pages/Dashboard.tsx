@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
-import { useAuthStore } from '../store/authStore';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { 
   Calendar, 
-  Mail, 
-  Briefcase, 
   ChevronRight, 
   ChevronLeft,
   LayoutDashboard,
   FileQuestion,
-  Plus
+  Briefcase
 } from 'lucide-react';
 import Enquiries from './Enquiries';
 import Projects from './Projects';
 import ProjectDetails from './ProjectDetails';
 import ProjectForm from './ProjectForm';
+import DeliverableDetails from './DeliverableDetails';
 
 const Basics = () => (
   <div className="p-6">
@@ -39,7 +37,6 @@ const Basics = () => (
 );
 
 export default function Dashboard() {
-  const { user } = useAuthStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
@@ -106,6 +103,7 @@ export default function Dashboard() {
           <Route path="/enquiries/*" element={<Enquiries />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/projects/:id" element={<ProjectDetails />} />
+          <Route path="/projects/:projectId/deliverable/:path" element={<DeliverableDetails />} />
           <Route path="/projects/:id/edit" element={<ProjectForm />} />
           <Route path="/projects/new" element={<ProjectForm />} />
         </Routes>
