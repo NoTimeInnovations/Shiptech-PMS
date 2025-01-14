@@ -6,39 +6,54 @@ import {
   Pencil, 
   FileDown, 
   ArrowLeft,
-  Plus,
-  Trash2,
-  Calendar,
-  User
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import html2pdf from 'html2pdf.js';
 import toast from 'react-hot-toast';
-import DeliverableModal from '../components/DeliverableModal';
+import TaskModal from '../components/TaskModal';
+import TaskList from '../components/TaskList';
+import { Task } from '../store/projectStore';
 
 export default function ProjectDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fetchProject, addDeliverable, updateDeliverable, deleteDeliverable } = useProjectStore();
+  const { 
+    fetchProject, 
+    addTask, 
+    updateTask, 
+    deleteTask,
+    currentPath,
+    setCurrentPath
+  } = useProjectStore();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDeliverable, setEditingDeliverable] = useState<any>(null);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const { user } = useAuthStore();
 
   useEffect(() => {
     const loadProject = async () => {
-      if (id) {
+      if (!id) return;
+
+      try {
         const data = await fetchProject(id);
         if (data) {
-          setProject(data);
+          setProject({
+            ...data,
+            tasks: data.tasks || [] // Ensure tasks array exists
+          });
         } else {
           toast.error('Project not found');
           navigate('/dashboard/projects');
         }
+      } catch (error) {
+        console.error('Error loading project:', error);
+        toast.error('Failed to load project');
+        navigate('/dashboard/projects');
+      } finally {
         setLoading(false);
       }
     };
@@ -55,55 +70,94 @@ export default function ProjectDetails() {
     checkUserRole();
   }, [id, user, fetchProject, navigate]);
 
-  const handleAddDeliverable = async (data: any) => {
+  const handleAddTask = async (data: any) => {
     if (!id) return;
     try {
-      await addDeliverable(id, data);
+      await addTask(id, currentPath, data);
       const updatedProject = await fetchProject(id);
       if (updatedProject) {
-        setProject(updatedProject);
-        toast.success('Deliverable added successfully');
+        setProject({
+          ...updatedProject,
+          tasks: updatedProject.tasks || [] // Ensure tasks array exists
+        });
+        toast.success('Task added successfully');
       }
     } catch (error) {
-      toast.error('Failed to add deliverable');
+      console.error('Failed to add task:', error);
+      toast.error('Failed to add task');
     }
   };
 
-  const handleEditDeliverable = async (data: any) => {
-    if (!id || !editingDeliverable) return;
+  const handleEditTask = async (data: any) => {
+    if (!id || !editingTask) return;
     try {
-      await updateDeliverable(id, editingDeliverable.id, data);
+      await updateTask(id, currentPath, editingTask.id, data);
       const updatedProject = await fetchProject(id);
       if (updatedProject) {
-        setProject(updatedProject);
-        toast.success('Deliverable updated successfully');
+        setProject({
+          ...updatedProject,
+          tasks: updatedProject.tasks || [] // Ensure tasks array exists
+        });
+        toast.success('Task updated successfully');
       }
     } catch (error) {
-      toast.error('Failed to update deliverable');
+      console.error('Failed to update task:', error);
+      toast.error('Failed to update task');
     }
   };
 
-  const handleDeleteDeliverable = async (deliverableId: string) => {
+  const handleDeleteTask = async (taskId: string) => {
     if (!id) return;
-    if (window.confirm('Are you sure you want to delete this deliverable?')) {
+    if (window.confirm('Are you sure you want to delete this task?')) {
       try {
-        await deleteDeliverable(id, deliverableId);
+        await deleteTask(id, currentPath, taskId);
         const updatedProject = await fetchProject(id);
         if (updatedProject) {
-          setProject(updatedProject);
-          toast.success('Deliverable deleted successfully');
+          setProject({
+            ...updatedProject,
+            tasks: updatedProject.tasks || [] // Ensure tasks array exists
+          });
+          toast.success('Task deleted successfully');
         }
       } catch (error) {
-        toast.error('Failed to delete deliverable');
+        console.error('Failed to delete task:', error);
+        toast.error('Failed to delete task');
       }
     }
+  };
+
+  const handleTaskClick = (task: Task) => {
+    const newPath = [...currentPath, { id: task.id }];
+    setCurrentPath(newPath);
+    navigate(`/dashboard/projects/${id}/task/${newPath.map(p => p.id).join('/')}`);
   };
 
   const downloadInvoice = () => {
     if (!project) return;
 
-    const totalAmount = project.deliverables.reduce((sum: number, d: any) => 
-      sum + (d.hours || 0) * (d.costPerHour || 0), 0);
+    const calculateTaskTotal = (task: Task): number => {
+      const taskTotal = (task.hours || 0) * (task.costPerHour || 0);
+      const childrenTotal = task.children.reduce((sum, child) => sum + calculateTaskTotal(child), 0);
+      return taskTotal + childrenTotal;
+    };
+
+    const totalAmount = project.tasks.reduce((sum: number, task: Task) => 
+      sum + calculateTaskTotal(task), 0);
+
+    const renderTasksRecursively = (tasks: Task[], level = 0): string => {
+      return tasks.map(task => `
+        <tr>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+            ${'&nbsp;'.repeat(level * 4)}${task.name}
+            ${task.description ? `<br><span style="color: #666; font-size: 0.9em;">${task.description}</span>` : ''}
+          </td>
+          <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">${task.hours || 0}</td>
+          <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">₹${task.costPerHour || 0}</td>
+          <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">₹${(task.hours || 0) * (task.costPerHour || 0)}</td>
+        </tr>
+        ${renderTasksRecursively(task.children, level + 1)}
+      `).join('');
+    };
 
     const content = `
       <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
@@ -134,24 +188,14 @@ export default function ProjectDetails() {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
           <thead>
             <tr style="background-color: #f3f4f6;">
-              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Deliverable</th>
+              <th style="padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb;">Task</th>
               <th style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">Hours</th>
               <th style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">Rate/Hour</th>
               <th style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">Amount</th>
             </tr>
           </thead>
           <tbody>
-            ${project.deliverables.map((d: any) => `
-              <tr>
-                <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
-                  <strong>${d.name}</strong>
-                  ${d.description ? `<br><span style="color: #666; font-size: 0.9em;">${d.description}</span>` : ''}
-                </td>
-                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">${d.hours || 0}</td>
-                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">₹${d.costPerHour || 0}</td>
-                <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">₹${(d.hours || 0) * (d.costPerHour || 0)}</td>
-              </tr>
-            `).join('')}
+            ${renderTasksRecursively(project.tasks)}
             <tr style="background-color: #f3f4f6;">
               <td colspan="3" style="padding: 12px; text-align: right; font-weight: bold;">Total Amount:</td>
               <td style="padding: 12px; text-align: right; font-weight: bold;">₹${totalAmount}</td>
@@ -267,99 +311,31 @@ export default function ProjectDetails() {
           </div>
         </div>
 
-        {/* Deliverables Section */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Deliverables</h3>
-              {isAdmin && (
-                <button
-                  onClick={() => {
-                    setEditingDeliverable(null);
-                    setIsModalOpen(true);
-                  }}
-                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Deliverable
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="px-6 py-4">
-            <div className="space-y-4">
-              {project.deliverables.map((deliverable: any) => (
-                <div 
-                  key={deliverable.id}
-                  className="border rounded-lg hover:border-blue-500 transition-colors duration-200"
-                >
-                  <div className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div 
-                        className="flex-1 cursor-pointer"
-                        onClick={() => navigate(`/dashboard/projects/${id}/deliverable/deliverable:${deliverable.id}`)}
-                      >
-                        <h4 className="text-lg font-medium">{deliverable.name}</h4>
-                        {deliverable.description && (
-                          <p className="mt-1 text-gray-600">{deliverable.description}</p>
-                        )}
-                        <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
-                          {deliverable.hours && (
-                            <span>Hours: {deliverable.hours}</span>
-                          )}
-                          {deliverable.costPerHour && (
-                            <span>Rate: ₹{deliverable.costPerHour}/hr</span>
-                          )}
-                          {deliverable.assignedTo && (
-                            <div className="flex items-center">
-                              <User className="h-4 w-4 mr-1" />
-                              <span>{deliverable.assignedTo.fullName}</span>
-                            </div>
-                          )}
-                          {deliverable.deadline && (
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              <span>{new Date(deliverable.deadline).toLocaleDateString()}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {isAdmin && (
-                        <div className="flex space-x-2 ml-4">
-                          <button
-                            onClick={() => {
-                              setEditingDeliverable(deliverable);
-                              setIsModalOpen(true);
-                            }}
-                            className="p-1 text-gray-400 hover:text-blue-500"
-                          >
-                            <Pencil className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteDeliverable(deliverable.id)}
-                            className="p-1 text-gray-400 hover:text-red-500"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Tasks Section */}
+        <TaskList
+          tasks={project.tasks}
+          onAddClick={() => {
+            setEditingTask(null);
+            setIsModalOpen(true);
+          }}
+          onEditClick={(task) => {
+            setEditingTask(task);
+            setIsModalOpen(true);
+          }}
+          onDeleteClick={handleDeleteTask}
+          onTaskClick={handleTaskClick}
+          isAdmin={isAdmin}
+        />
       </div>
 
-      <DeliverableModal
+      <TaskModal
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
-          setEditingDeliverable(null);
+          setEditingTask(null);
         }}
-        onSubmit={editingDeliverable ? handleEditDeliverable : handleAddDeliverable}
-        initialData={editingDeliverable}
+        onSubmit={editingTask ? handleEditTask : handleAddTask}
+        initialData={editingTask}
       />
     </div>
   );
