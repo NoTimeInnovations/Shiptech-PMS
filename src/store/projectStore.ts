@@ -15,7 +15,7 @@ interface SubTask {
   assignedTo?: User;
   deadline?: string;
   completed: boolean;
-  subTasks: SubTask[];
+  subTasks: SubTask[]; // Ensure subTasks is always an array
 }
 
 interface Deliverable {
@@ -27,7 +27,7 @@ interface Deliverable {
   assignedTo?: User;
   deadline?: string;
   completed: boolean;
-  subTasks: SubTask[];
+  subTasks: SubTask[]; // Ensure subTasks is always an array
 }
 
 export interface Project {
@@ -164,12 +164,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         ...deliverable,
         id: crypto.randomUUID(),
         completed: false,
-        subTasks: []
+        subTasks: [] // Initialize subTasks as an empty array
       };
 
       const updatedDeliverables = [...project.deliverables, newDeliverable];
       await get().updateProject(projectId, { ...project, deliverables: updatedDeliverables });
-      
+
       set({ loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
@@ -203,7 +203,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
       const updatedDeliverables = project.deliverables.filter(d => d.id !== deliverableId);
       await get().updateProject(projectId, { ...project, deliverables: updatedDeliverables });
-      
+
       set({ loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
@@ -217,51 +217,36 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const project = await get().fetchProject(projectId);
       if (!project) throw new Error('Project not found');
 
+      // Ensure subTasks is initialized as an empty array
       const newTask: SubTask = {
         ...task,
         id: crypto.randomUUID(),
         completed: false,
-        subTasks: []
+        subTasks: [] // Initialize subTasks as an empty array
       };
 
       const updateNestedTasks = (items: (Deliverable | SubTask)[], currentPath: PathItem[]): (Deliverable | SubTask)[] => {
-        if (currentPath.length === 0) {
-          return [...items, newTask];
-        }
-
         return items.map(item => {
           if (item.id === currentPath[0].id) {
             if (currentPath.length === 1) {
               return {
                 ...item,
-                subTasks: [...item.subTasks, newTask]
+                subTasks: [...(item.subTasks || []), newTask] // Use fallback empty array
               };
             }
             return {
               ...item,
-              subTasks: updateNestedTasks(item.subTasks, currentPath.slice(1))
+              subTasks: updateNestedTasks(item.subTasks || [], currentPath.slice(1)) // Use fallback empty array
             };
           }
           return item;
         });
       };
 
-      const updatedDeliverables = path.length === 0 
-        ? [...project.deliverables, newTask]
-        : project.deliverables.map(deliverable => {
-            if (deliverable.id === path[0].id) {
-              return {
-                ...deliverable,
-                subTasks: updateNestedTasks(deliverable.subTasks, path.slice(1))
-              };
-            }
-            return deliverable;
-          });
-
+      const updatedDeliverables = updateNestedTasks(project.deliverables, path);
       await get().updateProject(projectId, { ...project, deliverables: updatedDeliverables });
       set({ loading: false });
     } catch (error) {
-      console.error('Error adding subtask:', error);
       set({ error: (error as Error).message, loading: false });
       throw error;
     }
@@ -273,24 +258,24 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const project = await get().fetchProject(projectId);
       if (!project) throw new Error('Project not found');
 
-      const updateNestedTasks = (items: (Deliverable | SubTask)[]): (Deliverable | SubTask)[] => {
+      const updateNestedTasks = (items: (Deliverable | SubTask)[], currentPath: PathItem[]): (Deliverable | SubTask)[] => {
         return items.map(item => {
-          if (item.id === taskId) {
-            return { ...item, ...data };
-          }
-          if (item.subTasks.length > 0) {
+          if (item.id === currentPath[0].id) {
+            if (currentPath.length === 1) {
+              return { ...item, ...data };
+            }
             return {
               ...item,
-              subTasks: updateNestedTasks(item.subTasks)
+              subTasks: updateNestedTasks(item.subTasks || [], currentPath.slice(1)) // Use fallback empty array
             };
           }
           return item;
         });
       };
 
-      const updatedDeliverables = updateNestedTasks(project.deliverables);
+      const updatedDeliverables = updateNestedTasks(project.deliverables, path);
       await get().updateProject(projectId, { ...project, deliverables: updatedDeliverables });
-      
+
       set({ loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
@@ -304,21 +289,27 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const project = await get().fetchProject(projectId);
       if (!project) throw new Error('Project not found');
 
-      const deleteNestedTask = (items: (Deliverable | SubTask)[]): (Deliverable | SubTask)[] => {
-        return items.map(item => ({
-          ...item,
-          subTasks: item.subTasks
-            .filter(t => t.id !== taskId)
-            .map(t => ({
-              ...t,
-              subTasks: deleteNestedTask(t.subTasks)
-            }))
-        }));
+      const deleteNestedTask = (items: (Deliverable | SubTask)[], currentPath: PathItem[]): (Deliverable | SubTask)[] => {
+        return items.map(item => {
+          if (item.id === currentPath[0].id) {
+            if (currentPath.length === 1) {
+              return {
+                ...item,
+                subTasks: item.subTasks.filter(t => t.id !== taskId)
+              };
+            }
+            return {
+              ...item,
+              subTasks: deleteNestedTask(item.subTasks || [], currentPath.slice(1)) // Use fallback empty array
+            };
+          }
+          return item;
+        });
       };
 
-      const updatedDeliverables = deleteNestedTask(project.deliverables);
+      const updatedDeliverables = deleteNestedTask(project.deliverables, path);
       await get().updateProject(projectId, { ...project, deliverables: updatedDeliverables });
-      
+
       set({ loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
@@ -327,26 +318,26 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   getItemByPath: async (projectId, path) => {
-    try {
-      const project = await get().fetchProject(projectId);
-      if (!project) return null;
+  try {
+    const project = await get().fetchProject(projectId);
+    if (!project) return null;
 
-      let current: Deliverable | SubTask | null = null;
-      let items = project.deliverables;
+    let current: Deliverable | SubTask | null = null;
+    let items = project.deliverables;
 
-      for (const pathItem of path) {
-        const found = items.find(item => item.id === pathItem.id);
-        if (!found) return null;
-        current = found;
-        items = found.subTasks;
-      }
-
-      return current;
-    } catch (error) {
-      console.error('Error getting item by path:', error);
-      return null;
+    for (const pathItem of path) {
+      const found = items.find((item) => item.id === pathItem.id);
+      if (!found) return null;
+      current = found;
+      items = found.subTasks || []; // Use fallback empty array
     }
-  },
+
+    return current;
+  } catch (error) {
+    console.error('Error getting item by path:', error);
+    return null;
+  }
+},
 
   toggleTaskCompletion: async (projectId, path) => {
     try {

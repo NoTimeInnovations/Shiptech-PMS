@@ -70,6 +70,7 @@ export default function DeliverableDetails() {
         toast.success('Task added successfully');
       }
     } catch (error) {
+      console.error('Failed to add task:', error);
       toast.error('Failed to add task');
     }
   };
@@ -90,6 +91,7 @@ export default function DeliverableDetails() {
         toast.success('Task updated successfully');
       }
     } catch (error) {
+      console.error('Failed to update task:', error);
       toast.error('Failed to update task');
     }
   };
@@ -111,6 +113,7 @@ export default function DeliverableDetails() {
           toast.success('Task deleted successfully');
         }
       } catch (error) {
+        console.error('Failed to delete task:', error);
         toast.error('Failed to delete task');
       }
     }
@@ -148,7 +151,7 @@ export default function DeliverableDetails() {
       <ItemDetails item={item} />
 
       <SubTaskList
-        tasks={item.subTasks}
+        tasks={item.subTasks || []} // Use fallback empty array
         onAddClick={() => {
           setEditingTask(null);
           setIsModalOpen(true);

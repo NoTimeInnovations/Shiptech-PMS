@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface DeliverableModalProps {
@@ -25,11 +25,30 @@ export default function DeliverableModal({
   initialData
 }: DeliverableModalProps) {
   const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    description: initialData?.description || '',
-    hours: initialData?.hours || undefined,
-    costPerHour: initialData?.costPerHour || undefined
+    name: '',
+    description: '',
+    hours: undefined as number | undefined,
+    costPerHour: undefined as number | undefined
   });
+
+  // Reset form when modal opens/closes or initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        description: initialData.description || '',
+        hours: initialData.hours,
+        costPerHour: initialData.costPerHour
+      });
+    } else {
+      setFormData({
+        name: '',
+        description: '',
+        hours: undefined,
+        costPerHour: undefined
+      });
+    }
+  }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
@@ -81,7 +100,10 @@ export default function DeliverableModal({
                 min="0"
                 step="0.5"
                 value={formData.hours || ''}
-                onChange={e => setFormData(prev => ({ ...prev, hours: e.target.value ? Number(e.target.value) : undefined }))}
+                onChange={e => setFormData(prev => ({ 
+                  ...prev, 
+                  hours: e.target.value ? Number(e.target.value) : undefined 
+                }))}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
@@ -93,7 +115,10 @@ export default function DeliverableModal({
                 min="0"
                 step="0.01"
                 value={formData.costPerHour || ''}
-                onChange={e => setFormData(prev => ({ ...prev, costPerHour: e.target.value ? Number(e.target.value) : undefined }))}
+                onChange={e => setFormData(prev => ({ 
+                  ...prev, 
+                  costPerHour: e.target.value ? Number(e.target.value) : undefined 
+                }))}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>

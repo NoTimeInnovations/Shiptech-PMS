@@ -30,34 +30,78 @@ export default function TaskDetailsModal({
   isOpen,
   onClose,
   onSubmit,
-  initialData
+  initialData,
 }: TaskDetailsModalProps) {
+  // State for form data
   const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    description: initialData?.description || '',
-    assignedTo: initialData?.assignedTo,
-    deadline: initialData?.deadline || ''
+    name: '',
+    description: '',
+    assignedTo: undefined as User | undefined,
+    deadline: '',
   });
+
+  // State for list of users
   const [users, setUsers] = useState<User[]>([]);
 
+  // Reset form when modal opens/closes or initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        description: initialData.description || '',
+        assignedTo: initialData.assignedTo,
+        deadline: initialData.deadline || '',
+      });
+    } else {
+      setFormData({
+        name: '',
+        description: '',
+        assignedTo: undefined,
+        deadline: '',
+      });
+    }
+  }, [initialData, isOpen]);
+
+  // Fetch users from Firestore when modal opens
   useEffect(() => {
     const fetchUsers = async () => {
       const querySnapshot = await getDocs(collection(db, 'users'));
       const verifiedUsers = querySnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(user => user.verified) as User[];
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((user) => user.verified) as User[];
       setUsers(verifiedUsers);
     };
-    fetchUsers();
-  }, []);
+    if (isOpen) {
+      fetchUsers();
+    }
+  }, [isOpen]);
 
-  if (!isOpen) return null;
-
+  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
     onClose();
   };
+
+  // Handle input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle user assignment change
+  const handleAssignedToChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const user = users.find((u) => u.id === e.target.value);
+    setFormData((prev) => ({ ...prev, assignedTo: user }));
+  };
+
+  // Handle deadline change
+  const handleDeadlineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev) => ({ ...prev, deadline: e.target.value }));
+  };
+
+  // Don't render the modal if it's not open
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -72,39 +116,41 @@ export default function TaskDetailsModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name Field */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Name</label>
             <input
               type="text"
+              name="name"
               required
               value={formData.name}
-              onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 
+          {/* Description Field */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Description</label>
             <textarea
+              name="description"
               value={formData.description}
-              onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               rows={3}
             />
           </div>
 
+          {/* Assign To Field */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Assign To</label>
             <select
               value={formData.assignedTo?.id || ''}
-              onChange={e => {
-                const user = users.find(u => u.id === e.target.value);
-                setFormData(prev => ({ ...prev, assignedTo: user }));
-              }}
+              onChange={handleAssignedToChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             >
               <option value="">Select user...</option>
-              {users.map(user => (
+              {users.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.fullName}
                 </option>
@@ -112,16 +158,18 @@ export default function TaskDetailsModal({
             </select>
           </div>
 
+          {/* Deadline Field */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Deadline</label>
             <input
               type="datetime-local"
               value={formData.deadline}
-              onChange={e => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
+              onChange={handleDeadlineChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
 
+          {/* Form Actions */}
           <div className="flex justify-end space-x-3 mt-6">
             <button
               type="button"
