@@ -31,6 +31,7 @@ interface FormData {
     address: string;
   };
   tasks: Task[];
+  status: "completed" | "ongoing" | "not-started"; // Add status property
 }
 
 export default function ProjectForm() {
@@ -46,6 +47,7 @@ export default function ProjectForm() {
       phone: "",
       address: "",
     },
+    status: "not-started", // Initialize status property
     tasks: [],
   });
 
@@ -56,6 +58,7 @@ export default function ProjectForm() {
         if (project) {
           setFormData({
             name: project.name,
+            status: project.status || "",
             description: project.description,
             customer: project.customer,
             tasks: project.tasks || [],

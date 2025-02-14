@@ -84,6 +84,7 @@ interface ProjectState {
   getTaskTimeEntries: (projectId: string, taskId: string) => Promise<TimeEntry[]>;
   checkActiveTimer: () => Promise<void>;
   updateProjectStatus: (status: 'completed' | 'ongoing' | 'not-started', projectId: string) => Promise<void>;
+  getItemByPath: (projectId: string, pathArray: { type: 'deliverable' | 'subtask'; id: string }[]) => Promise<any>;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -682,5 +683,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       set({ error: (error as Error).message, loading: false });
       throw error;
     }
+  },
+
+  getItemByPath: async (projectId, pathArray) => {
+    const response = await fetch(`/api/projects/${projectId}/items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ pathArray }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to fetch item by path');
+    }
+    return response.json();
   },
 }));

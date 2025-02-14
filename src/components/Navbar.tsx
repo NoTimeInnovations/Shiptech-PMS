@@ -14,11 +14,14 @@ export default function Navbar() {
 
   React.useEffect(() => {
     const checkUserRole = async () => {
+      try{
       if (user) {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const userData = userDoc.data();
         setIsAdmin(userData?.role === 'admin');
         setIsCustomer(userData?.role === 'customer');
+      }}catch(e){
+        console.log(e);
       }
     };
     checkUserRole();

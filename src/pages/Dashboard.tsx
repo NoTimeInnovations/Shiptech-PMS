@@ -7,6 +7,7 @@ import {
   FileQuestion,
   Briefcase,
   UserCheck,
+  MessageSquare,
 } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -22,6 +23,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useLeaveStore } from "@/store/leaveStore";
 import { useWorkFromStore } from "@/store/workfromhomestore";
 import AttendanceModal from "@/components/AttendanceModal";
+import Chats from "./Chats";
 
 export default function Dashboard() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -186,6 +188,20 @@ export default function Dashboard() {
               <UserCheck size={20} />
               {!isCollapsed && <span>Attendance</span>}
             </NavLink>
+            {/* New Chats NavLink for both admin and non-admin users */}
+            <NavLink
+              to="/dashboard/chats"
+              className={({ isActive }) =>
+                `flex items-center space-x-3 transition-all duration-500 rounded-xl mt-2 ${
+                  isActive
+                    ? "bg-black/90 text-white"
+                    : "text-gray-700 hover:bg-gray-50"
+                } ${isCollapsed ? "justify-center p-2" : " p-4"}`
+              }
+            >
+              <MessageSquare size={20} /> {/* Use the correct icon */}
+              {!isCollapsed && <span>Chats</span>}
+            </NavLink>
           </nav>
         </div>
 
@@ -199,6 +215,7 @@ export default function Dashboard() {
             <Route path="/projects/:id/edit" element={<ProjectForm />} />
             <Route path="/projects/new" element={<ProjectForm />} />
             <Route path="/attendance" element={<Attendance />} />
+            <Route path="/chats" element={<Chats />} />
           </Routes>
         </div>
 

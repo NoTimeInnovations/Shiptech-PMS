@@ -43,20 +43,21 @@ export const useAuthStore = create<AuthState>((set) => ({
         if (user) {
           // User is signed in
           try {
-            // Query users collection by email
-            const usersRef = collection(db, 'users');
-            const q = query(usersRef, where('email', '==', user.email));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-              const userData = querySnapshot.docs[0].data() as UserData;
+            // Fetch user data by user ID
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+              const userData = userDoc.data() as UserData;
               set({ user, userData, initialized: true });
             } else {
               set({ user, userData: null, initialized: true });
             }
           } catch (error) {
-            console.error('Error fetching user data:', error);
-            set({ user, userData: null, initialized: true });
+            if ((error as any).code === 'permission-denied') {
+              console.error('Error fetching user data: Missing or insufficient permissions');
+            } else {
+              console.error('Error fetching user data:', error);
+            }
+            set({ user: null, userData: null, initialized: true });
           }
         } else {
           // User is signed out
@@ -114,6 +115,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       return user;
     } catch (error) {
+      if ((error as any).code === 'permission-denied') {
+        console.error('Error signing in: Missing or insufficient permissions');
+      } else {
+        console.error('Error signing in:', error);
+      }
       set({ error: (error as Error).message, loading: false });
       throw error;
     }
