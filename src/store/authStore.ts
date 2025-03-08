@@ -101,6 +101,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   signUpCustomer: async (email: string, password: string, fullName: string) => {
     try {
       set({ loading: true, error: null });
+      
+      // Store current user's auth
+      const currentUser = auth.currentUser;
+      
+      // Create new customer account
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       
       const userData: UserData = {
@@ -114,8 +119,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Store user data in Firestore
       await setDoc(doc(db, 'users', user.uid), userData);
-
-      set({loading: false});
+      
+      // Delete the new customer's auth session
+      await auth.updateCurrentUser(currentUser);
+      
+      set({ loading: false });
       return user;
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
