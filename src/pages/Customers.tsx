@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Plus, Loader2, Trash2, ExternalLink, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCustomerStore } from '@/store/customerStore';
 import CustomerForm from './CustomerForm';
 import CustomerDetails from './CustomerDetails';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 // Customer list component
 const CustomersList = () => {
@@ -15,15 +17,46 @@ const CustomersList = () => {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this customer?')) {
-      try {
-        await deleteCustomer(id);
-        toast.success('Customer deleted successfully');
-      } catch (error) {
-        toast.error('Failed to delete customer');
+  const handleDelete = async (email: string, id: string) => {
+
+    // find the curresponding user based on this id from users collection and pass that id
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', email));
+    const querySnapshot = await getDocs(q);
+    
+    if (!querySnapshot.empty) {
+      const userId = querySnapshot.docs[0].id;
+      // Now you can use the userId for deletion
+      if (window.confirm('Are you sure you want to delete this customer?')) {
+        try {
+          
+          // post request to backend to delete customer
+          const response = await fetch(`https://ship-backend-black.vercel.app/api/deleteUser`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              uid: userId
+             }),
+          });
+          if (response.status === 200) {
+            await deleteCustomer(id);
+            toast.success('Customer deleted successfully');
+          } else {
+            toast.error('Failed to delete customer');
+          }
+          
+        } catch (error) {
+          toast.error('Failed to delete customer');
+          console.error(error);
+        }
       }
+    } else {
+      console.log('No user found with email:', email);
+      deleteCustomer(id);
     }
+    
   };
 
   return (
@@ -103,7 +136,7 @@ const CustomersList = () => {
                         <Edit size={18} />
                       </button>
                       <button
-                        onClick={() => handleDelete(customer.id!)}
+                        onClick={() => handleDelete(customer.email, customer.id!)}
                         className="text-red-600 hover:text-red-900"
                       >
                         <Trash2 size={18} />
