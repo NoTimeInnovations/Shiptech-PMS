@@ -1,4 +1,4 @@
-import  { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { Loader2 } from "lucide-react";
@@ -8,7 +8,6 @@ import { Project } from "@/store/projectStore";
 import ProjectStatusSelect from "@/components/ProjectStatusSelect";
 import { Task, useTaskStore } from "@/store/taskStore";
 import { Customer, useCustomerStore } from "@/store/customerStore";
-
 
 export default function CustomerProject() {
   const { fetchCustomerProjects, fetchCustomerByUserId } = useCustomerStore();
@@ -65,7 +64,7 @@ export default function CustomerProject() {
     };
 
     loadCustomerProject();
-  },[customer])
+  }, [customer]);
 
   useEffect(() => {
     if (customerProject) {
@@ -78,16 +77,18 @@ export default function CustomerProject() {
       return task.completed ? 100 : 0;
     }
 
-    const totalAssignedToChildren = task.children.reduce((sum, child) => 
-      sum + (child.percentage || 0), 0);
+    const totalAssignedToChildren = task.children.reduce(
+      (sum, child) => sum + (child.percentage || 0),
+      0
+    );
 
     if (totalAssignedToChildren === 0) return 0;
 
     const completedSum = task.children.reduce((sum, subtask) => {
-      return sum + (subtask.completed ? (subtask.percentage || 0) : 0);
+      return sum + (subtask.completed ? subtask.percentage || 0 : 0);
     }, 0);
 
-    const comp =  Math.round((completedSum / totalAssignedToChildren) * 100);
+    const comp = Math.round((completedSum / totalAssignedToChildren) * 100);
     return Number(((comp * task.percentage) / 100).toFixed(1));
   };
 
@@ -105,10 +106,10 @@ export default function CustomerProject() {
     return sum;
   };
 
-  useEffect(()=>{
+  useEffect(() => {
     const progressPercentage = calculateProjectCompletion();
     setProgress(progressPercentage);
-  },[tasks])
+  }, [tasks]);
 
   if (loading) {
     return (
@@ -120,12 +121,11 @@ export default function CustomerProject() {
 
   if (!customerProject) {
     return (
-      <div className="p-6">
-        <p className="text-red-500">Project not found</p>
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
-
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -150,7 +150,8 @@ export default function CustomerProject() {
               />
             </div>
             <p className="text-sm text-gray-600">
-              {tasks.filter(task => task.completed).length} of {tasks.length} main tasks completed
+              {tasks.filter((task) => task.completed).length} of {tasks.length}{" "}
+              main tasks completed
             </p>
           </div>
         </div>

@@ -35,13 +35,22 @@ export default function Navbar() {
   }, [user]);
 
   // Don't show navbar on login or signup pages
-  if (location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/login/customer") {
+  if (
+    location.pathname === "/login" ||
+    location.pathname === "/signup" ||
+    location.pathname === "/customer_login"
+  ) {
     return null;
   }
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/login");
+
+    if (location.pathname === "/customer") {
+      navigate("/customer_login");
+    } else {
+      navigate("/login");
+    }
   };
 
   return (

@@ -104,7 +104,7 @@ function App() {
       <Navbar />
       <Routes>
         <Route path="/login" element={<><AuthenticatedRedirect /><Login /></>} />
-        <Route path="/login/customer" element={<><AuthenticatedRedirect /><CustomerLogin /></>} />
+        <Route path="/customer_login" element={<><AuthenticatedRedirect /><CustomerLogin /></>} />
         <Route path="/signup" element={<><AuthenticatedRedirect /><Signup /></>} />
         <Route path="/dashboard/*" element={<PrivateRoute allowedRoles={["admin", "member"]}><Dashboard /></PrivateRoute>} />
         <Route path="/admin" element={<PrivateRoute allowedRoles={["admin"]}><AdminPanel /></PrivateRoute>} />
