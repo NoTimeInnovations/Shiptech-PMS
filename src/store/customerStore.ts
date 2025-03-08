@@ -251,8 +251,11 @@ export const useCustomerStore = create<CustomerState>((set) => ({
         await deleteDoc(doc(db, 'users', userDoc.id));
       }
 
+      
+
       // Finally, delete the customer document
       await deleteDoc(doc(db, 'customers', id));
+      
       
       set(state => ({
         customers: state.customers.filter(customer => customer.id !== id),

@@ -36,13 +36,21 @@ export default function TeamDetails() {
 
   return (
     <div className="p-6">
-      <Link
-        to="/dashboard/outsource-teams"
-        className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-4"
-      >
-        <ArrowLeft size={20} className="mr-2" />
-        Back to Teams
-      </Link>
+      <div className="flex justify-between items-center mb-6">
+        <Link
+          to="/dashboard/outsource-teams"
+          className="inline-flex items-center text-gray-600 hover:text-gray-900"
+        >
+          <ArrowLeft size={20} className="mr-2" />
+          Back to Teams
+        </Link>
+        <Link
+          to={`/dashboard/outsource-teams/${id}/edit`}
+          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-black/80"
+        >
+          Update Team
+        </Link>
+      </div>
 
       <h1 className="text-2xl font-bold mb-6">{team.name}</h1>
 

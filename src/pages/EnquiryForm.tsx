@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, Loader2, Trash2, ArrowLeft, UserPlus } from "lucide-react";
-import { useEnquiryStore } from "../store/enquiryStore";
+import { useEnquiryStore, CurrencyDetails } from "../store/enquiryStore";
 import { useCustomerStore, Customer } from "@/store/customerStore";
 import toast from "react-hot-toast";
 import RichTextEditor, { ToolbarConfig } from "react-rte";
+import Currency from "../components/Currency";
 
 interface Deliverable {
   id: string;
@@ -12,6 +13,20 @@ interface Deliverable {
   hours: number;
   costPerHour: number;
   total: number;
+}
+
+interface EnquiryFormData {
+  enquiryNumber: string;
+  name: string;
+  description: string;
+  customer_id: string;
+  deliverables: Deliverable[];
+  exclusions: string[];
+  charges: string[];
+  scopeOfWork: any;
+  inputsRequired: string[];
+  status: string;
+  currency?: CurrencyDetails;
 }
 
 const toolbarConfig: ToolbarConfig = {
@@ -64,7 +79,7 @@ export default function EnquiryForm() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<EnquiryFormData>({
     enquiryNumber: "",
     name: "",
     description: "",
@@ -74,6 +89,8 @@ export default function EnquiryForm() {
     charges: [] as string[],
     scopeOfWork: RichTextEditor.createEmptyValue(),
     inputsRequired: [] as string[],
+    status: "draft",
+    currency: undefined
   });
 
   useEffect(() => {
@@ -94,6 +111,8 @@ export default function EnquiryForm() {
             exclusions: enquiry.exclusions ?? [],
             inputsRequired: enquiry.inputsRequired ?? [],
             charges: enquiry.charges ?? [],
+            status: enquiry.status ?? "draft",
+            currency: enquiry.currency
           });
 
           if (enquiry.customer_id) {
@@ -151,6 +170,13 @@ export default function EnquiryForm() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleCurrencyChange = (currency: CurrencyDetails | undefined) => {
+    setFormData(prev => ({
+      ...prev,
+      currency
+    }));
   };
 
   // Filter customers based on search term
@@ -449,6 +475,13 @@ export default function EnquiryForm() {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="bg-white border-[1px] rounded-xl px-6 py-10">
+          <Currency 
+            addCurrency={handleCurrencyChange} 
+            initialCurrency={formData.currency}
+          />
         </div>
 
         <div className="bg-white border-[1px] rounded-xl px-6 py-10">

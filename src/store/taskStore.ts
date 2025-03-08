@@ -58,7 +58,7 @@ interface TaskState {
   addTask: (task: Omit<Task, "id">) => Promise<void>;
   updateTask: (
     id: string,
-    updates: Omit<Partial<Task>, "id" | "children">,
+    updates: Omit<Partial<Task>, "children"> & { id?: string },
     isParent?: boolean
   ) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
@@ -263,11 +263,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
-  updateTask: async (id, updates, isParent = false) => {
+  updateTask: async (
+    id: string,
+    updates: Omit<Partial<Task>, "children"> & { id?: string },
+    isParent?: boolean
+  ) => {
     try {
       set({ loading: true, error: null });
       const taskRef = doc(db, "tasks", id);
-      await updateDoc(taskRef, updates);
+      const { id: _, ...updatesWithoutId } = updates;
+      await updateDoc(taskRef, updatesWithoutId);
       set({
         taskNodes: get().taskNodes.map((task) =>
           task.id === id ? { ...task, ...updates } : task

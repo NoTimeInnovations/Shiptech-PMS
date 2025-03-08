@@ -8,6 +8,7 @@ import AdminPanel from "./pages/AdminPanel";
 import CustomerProject from "./pages/CustomerProject";
 import Navbar from "./components/Navbar";
 import { useAuthStore } from "./store/authStore";
+import CustomerLogin from "./pages/CustomerLogin";
 
 function PrivateRoute({
   children,
@@ -103,6 +104,7 @@ function App() {
       <Navbar />
       <Routes>
         <Route path="/login" element={<><AuthenticatedRedirect /><Login /></>} />
+        <Route path="/login/customer" element={<><AuthenticatedRedirect /><CustomerLogin /></>} />
         <Route path="/signup" element={<><AuthenticatedRedirect /><Signup /></>} />
         <Route path="/dashboard/*" element={<PrivateRoute allowedRoles={["admin", "member"]}><Dashboard /></PrivateRoute>} />
         <Route path="/admin" element={<PrivateRoute allowedRoles={["admin"]}><AdminPanel /></PrivateRoute>} />

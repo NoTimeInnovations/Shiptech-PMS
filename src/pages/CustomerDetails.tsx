@@ -242,22 +242,16 @@ export default function CustomerDetails() {
         {/* Created/Updated info */}
         <div className="bg-gray-50 px-6 py-4 text-sm text-gray-500 border-t">
           <div className="flex flex-col sm:flex-row sm:justify-between">
-            <p>
-              Created:{" "}
-              {customer.createdAt
-                ? typeof customer.createdAt.toDate === "function"
-                  ? new Date(customer.createdAt.toDate()).toLocaleString()
-                  : new Date(customer.createdAt.toDate()).toLocaleString()
-                : "Unknown"}
-            </p>
-            <p>
-              Last Updated:{" "}
-              {customer.updatedAt
-                ? typeof customer.updatedAt.toDate === "function"
-                  ? new Date(customer.updatedAt.toDate()).toLocaleString()
-                  : new Date(customer.updatedAt.toDate()).toLocaleString()
-                : "Unknown"}
-            </p>
+            <p>Created: {customer.createdAt ? (
+              typeof customer.createdAt.toDate === 'function' ? 
+                new Date(customer.createdAt.toDate()).toLocaleString() : 
+                new Date(customer.createdAt.toDate()).toLocaleString()
+            ) : 'Unknown'}</p>
+            <p>Last Updated: {customer.updatedAt ? (
+              typeof customer.updatedAt.toDate === 'function' ? 
+                new Date(customer.updatedAt.toDate()).toLocaleString() : 
+                new Date(customer.updatedAt.toDate()).toLocaleString()
+            ) : 'Unknown'}</p>
           </div>
         </div>
       </div>

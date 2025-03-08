@@ -13,6 +13,13 @@ export interface Deliverable {
   total: number;
 }
 
+export interface CurrencyDetails {
+  id: string;
+  name: string;
+  symbol: string;
+  mandatory: boolean;
+}
+
 export interface Enquiry {
   id?: string;
   __id: string;
@@ -28,6 +35,7 @@ export interface Enquiry {
   exclusions: string[];
   charges: string[];
   status: string;
+  currency?: CurrencyDetails;
 }
 
 interface TaskWithEnquiryId extends Task {
@@ -98,7 +106,6 @@ export const useEnquiryStore = create<EnquiryState>((set, get) => ({
       };
       const docRef = await addDoc(collection(db, 'enquiries'), newEnquiry);
       const enquiryWithId = { ...newEnquiry, id: docRef.id };
-      console.log("Creating enquiry with data:", newEnquiry);
       set({ enquiries: [...get().enquiries, enquiryWithId], loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });

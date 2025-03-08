@@ -3,6 +3,7 @@ import { Link, Routes, Route } from "react-router-dom";
 import { useOutsourceTeamStore } from "@/store/outsourceTeamStore";
 import NewTeam from "./NewTeam";
 import TeamDetails from "./TeamDetails";
+import EditTeam from "./EditTeam";
 
 function TeamsList() {
   const { teams, loading, fetchTeams } = useOutsourceTeamStore();
@@ -77,6 +78,7 @@ export default function OutsourceTeams() {
       <Route path="/" element={<TeamsList />} />
       <Route path="/new" element={<NewTeam />} />
       <Route path="/:id" element={<TeamDetails />} />
+      <Route path="/:id/edit" element={<EditTeam />} />
     </Routes>
   );
 }
