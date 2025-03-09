@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import ProjectComments from "../components/ProjectComments";
 import { Project } from "@/store/projectStore";
 import ProjectStatusSelect from "@/components/ProjectStatusSelect";
 import { Task, useTaskStore } from "@/store/taskStore";
 import { Customer, useCustomerStore } from "@/store/customerStore";
+import { useProjectStore } from "@/store/projectStore";
 
-export default function CustomerProject() {
+interface CustomerProjectProps {
+  projectId: string; // Accept projectId as a prop
+}
+
+export default function CustomerProject({ projectId }: CustomerProjectProps) {
   const { fetchCustomerProjects, fetchCustomerByUserId } = useCustomerStore();
   const { tasks, fetchAllTasksWithChildren } = useTaskStore();
   const [loading, setLoading] = useState(true);
@@ -18,6 +23,8 @@ export default function CustomerProject() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const navigate = useNavigate();
   const [progressPercentage, setProgress] = useState(0);
+  const { fetchProject, project } = useProjectStore();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCustomer = async () => {
@@ -72,6 +79,21 @@ export default function CustomerProject() {
     }
   }, [customerProject]);
 
+  useEffect(() => {
+    const loadProjectData = async () => {
+      try {
+        await fetchProject(projectId); // Fetch project using the passed projectId
+      } catch (err) {
+        setError("Failed to load project details");
+        toast.error("Failed to load project details");
+        console.log(err);
+        
+      }
+    };
+
+    loadProjectData();
+  }, [projectId, fetchProject]);
+
   const calculateCompletedPercentage = (task: Task): number => {
     if (!task.children || task.children.length === 0) {
       return task.completed ? 100 : 0;
@@ -100,7 +122,7 @@ export default function CustomerProject() {
     let sum = 0;
 
     rootTasks.forEach((task) => {
-      let value = calculateCompletedPercentage(task);
+      const value = calculateCompletedPercentage(task);
       sum += value;
     });
     return sum;
@@ -119,10 +141,16 @@ export default function CustomerProject() {
     );
   }
 
-  if (!customerProject) {
+  if (error || !project) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      <div className="p-6">
+        <h2 className="text-xl font-semibold text-gray-700">Project not found</h2>
+        <button
+          onClick={() => navigate("/customer")}
+          className="mt-4 px-4 py-2 bg-black/90 text-white rounded-md hover:bg-black/80"
+        >
+          Back to Customers
+        </button>
       </div>
     );
   }
@@ -130,12 +158,20 @@ export default function CustomerProject() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-5xl mx-auto space-y-6">
+        {/* Back Button and Heading */}
+        <div className="flex items-center mb-4">
+          <Link to="/customer" className="flex items-center text-black">
+            <ArrowLeft className="h-7 w-7 mr-2" />
+          </Link>
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Project Details</h2>
+        
         {/* Project Header */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h1 className="text-2xl font-bold mb-2 capitalize">
-            {customerProject.name}
+            {project.name}
           </h1>
-          <p className="text-gray-600 mb-4">{customerProject.description}</p>
+          <p className="text-gray-600 mb-4">{project.description}</p>
 
           {/* Progress Bar */}
           <div className="space-y-2">
@@ -165,36 +201,36 @@ export default function CustomerProject() {
                 <td className="px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100">
                   Project ID
                 </td>
-                <td className="px-4 py-2">{customerProject.__id}</td>
+                <td className="px-4 py-2">{project.__id}</td>
               </tr>
               <tr className="border-b">
                 <td className="px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100">
                   Created At
                 </td>
                 <td className="px-4 py-2">
-                  {new Date(customerProject.createdAt).toLocaleDateString()}
+                  {new Date(project.createdAt).toLocaleDateString()}
                 </td>
               </tr>
-              {customerProject.project_start_date && (
+              {project.project_start_date && (
                 <tr className="border-b">
                   <td className="px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100">
                     Start Date
                   </td>
                   <td className="px-4 py-2">
                     {new Date(
-                      customerProject.project_start_date
+                      project.project_start_date
                     ).toLocaleDateString()}
                   </td>
                 </tr>
               )}
-              {customerProject.project_due_date && (
+              {project.project_due_date && (
                 <tr className="border-b">
                   <td className="px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100">
                     Due Date
                   </td>
                   <td className="px-4 py-2">
                     {new Date(
-                      customerProject.project_due_date
+                      project.project_due_date
                     ).toLocaleDateString()}
                   </td>
                 </tr>
@@ -206,8 +242,8 @@ export default function CustomerProject() {
                 <td className="px-4 py-2">
                   <ProjectStatusSelect
                     project={{
-                      id: customerProject.id as string,
-                      status: customerProject.status,
+                      id: project.id as string,
+                      status: project.status,
                     }}
                   />
                 </td>
@@ -249,7 +285,7 @@ export default function CustomerProject() {
 
         {/* Comments Section */}
         <div className="mt-6">
-          <ProjectComments projectId={customerProject.id as string} />
+          <ProjectComments projectId={project.id as string} />
         </div>
       </div>
     </div>

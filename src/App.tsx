@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useParams } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
-import CustomerProject from "./pages/CustomerProject";
 import Navbar from "./components/Navbar";
 import { useAuthStore } from "./store/authStore";
 import CustomerLogin from "./pages/CustomerLogin";
+import CustomerViewingDetails from "./pages/customerViewingDetails";
+import CustomerProject from "./pages/CustomerProject";
 
 function PrivateRoute({
   children,
@@ -79,6 +80,16 @@ function AuthenticatedRedirect() {
   return null;
 }
 
+function CustomerProjectWrapper() {
+  const { projectId } = useParams<{ projectId: string }>();
+
+  if (!projectId) {
+    return <Navigate to="/customer" />;
+  }
+
+  return <CustomerProject projectId={projectId} />;
+}
+
 function App() {
   const { initialize, userData } = useAuthStore();
   const [initializing, setInitializing] = useState(true);
@@ -108,7 +119,8 @@ function App() {
         <Route path="/signup" element={<><AuthenticatedRedirect /><Signup /></>} />
         <Route path="/dashboard/*" element={<PrivateRoute allowedRoles={["admin", "member"]}><Dashboard /></PrivateRoute>} />
         <Route path="/admin" element={<PrivateRoute allowedRoles={["admin"]}><AdminPanel /></PrivateRoute>} />
-        <Route path="/customer" element={<PrivateRoute allowedRoles={["customer"]}><CustomerProject /></PrivateRoute>} />
+        <Route path="/customer" element={<PrivateRoute allowedRoles={["customer"]}><CustomerViewingDetails /></PrivateRoute>} />
+        <Route path="/customer/projects/:projectId" element={<CustomerProjectWrapper />} />
         <Route path="/" element={<Navigate to={userData?.role === "customer" ? "/customer" : "/dashboard"} />} />
         <Route path="*" element={<Navigate to={userData?.role === "customer" ? "/customer" : "/dashboard"} />} />
       </Routes>
