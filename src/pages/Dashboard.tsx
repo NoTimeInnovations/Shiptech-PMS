@@ -27,6 +27,7 @@ import AttendanceModal from "@/components/AttendanceModal";
 import Todos from './Todos';
 import Customers from "./Customers";
 import OutsourceTeams from "./OutsourceTeams";
+import Documents from "./Documents";
 // Remove NewTeam and TeamDetails imports as they'll be handled in index.tsx
 
 export default function Dashboard() {
@@ -225,7 +226,7 @@ export default function Dashboard() {
               {!isCollapsed && <span>Todos</span>}
             </NavLink>
             <NavLink
-              to="/dashboard/outsource-teams/"
+              to="/dashboard/outsource-teams/*"
               className={({ isActive }) =>
                 `flex items-center space-x-3 transition-all duration-500 rounded-xl mt-2 ${
                   isActive
@@ -253,6 +254,7 @@ export default function Dashboard() {
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/todos" element={<Todos />} />
             <Route path="/outsource-teams/*" element={<OutsourceTeams />} />
+            <Route path="/projects/:projectId/documents/*" element={<Documents />} />
           </Routes>
         </div>
 
