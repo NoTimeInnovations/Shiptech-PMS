@@ -1,6 +1,7 @@
 import { UserData } from "@/store/authStore";
+import { Customer } from "@/store/customerStore";
 import { Enquiry } from "@/store/enquiryStore";
-import { User } from "@/store/projectStore";
+
 import {
   Document,
   Paragraph,
@@ -67,6 +68,9 @@ function titleAndValue(title: string, value: string | string[]) {
   const isValueArray = Array.isArray(value);
 
   return new Paragraph({
+    indent: {
+      left: 600,
+    },
     children: [
       new Paragraph({
         children: [
@@ -96,7 +100,7 @@ function titleAndValue(title: string, value: string | string[]) {
   });
 }
 
-export const createQuotation = async (enquiry: Enquiry , userData : UserData) => {
+export const createQuotation = async (enquiry: Enquiry , userData : UserData , customer : Customer) => {
   try {
     // Load image dynamically from public folder
     const imageUrl = "/images/doc/doc-header.png";
@@ -110,7 +114,7 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData) =>
         year: "numeric",
       }
     );
-    const address = breakLineBy(enquiry.customer.address, ",");
+    const address = breakLineBy(customer.address, ",");
     const totalDuration = enquiry.deliverables.reduce(
       (acc, deliverable) => acc + (deliverable.hours ?? 0),
       0
@@ -157,6 +161,7 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData) =>
               children: [
                 new Table({
                   columnWidths: [50, 50],
+                  
                   borders: {
                     top: {
                       size: 0,
@@ -177,9 +182,22 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData) =>
                   },
                   rows: [
                     new TableRow({
+                      
                       children: [
                         new TableCell({
                           borders: {
+                            top: {
+                              size: 0,
+                              style: "none",
+                            },
+                            bottom: {
+                              size: 0,
+                              style: "none",
+                            },
+                            left: {
+                              size: 0,
+                              style: "none",
+                            },
                             right: {
                               size: 0,
                               style: "none",
@@ -203,7 +221,19 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData) =>
                         }),
                         new TableCell({
                           borders: {
+                            top: {
+                              size: 0,
+                              style: "none",
+                            },
+                            bottom: {
+                              size: 0,
+                              style: "none",
+                            },
                             left: {
+                              size: 0,
+                              style: "none",
+                            },
+                            right: {
                               size: 0,
                               style: "none",
                             },
@@ -271,7 +301,7 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData) =>
                     new Paragraph({
                       children: [
                         new TextRun({
-                          text: `Kind Attn: ${enquiry.customer.name}`,
+                          text: `Kind Attn: ${customer.name}`,
                         }),
                       ],
                       spacing: {
@@ -371,6 +401,7 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData) =>
               ],
             }),
 
+            // terms and conditions
             new Paragraph({
               children: [
                 new TextRun({
@@ -386,10 +417,8 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData) =>
               },
             }),
 
-            new Paragraph({
-              indent : {
-                left : 1000
-              },
+            // inputs required
+            new Paragraph({  
               children: [
                 titleAndValue("Inputs Required", enquiry.inputsRequired),
                 titleAndValue(
@@ -398,6 +427,9 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData) =>
                 ),
                 // scoper of work
                 new Paragraph({
+                  indent: {
+                    left: 600,
+                  },
                   children: [
                     new Paragraph({
                       children: [

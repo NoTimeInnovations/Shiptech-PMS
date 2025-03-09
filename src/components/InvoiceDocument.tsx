@@ -13,6 +13,8 @@ import { FileDown } from "lucide-react";
 import { createQuotation } from "../lib/docxCreation";
 import { Enquiry } from "@/store/enquiryStore";
 import { useAuthStore, UserData } from "@/store/authStore";
+import { Customer, useCustomerStore } from "@/store/customerStore";
+
 Font.register({
   family: "Poppins",
   fonts: [
@@ -271,14 +273,15 @@ const InvoiceDocument = ({ enquiry }: { enquiry: any }) => {
 
 const InvoiceDownloader = ({ enquiry }: { enquiry: Enquiry }) => {
   const { userData } = useAuthStore();
+  const { fetchCustomer } = useCustomerStore();
 
   const downloadInvoice = async () => {
     if (!enquiry) return;
 
-    console.log(enquiry);
-    
+    const customer = await fetchCustomer(enquiry.customer_id);
 
-   await createQuotation(enquiry , userData as UserData);
+
+   await createQuotation(enquiry , userData as UserData , customer as Customer);
 
     // const doc = <InvoiceDocument enquiry={enquiry} />;
     // const blob = await pdf(doc).toBlob();

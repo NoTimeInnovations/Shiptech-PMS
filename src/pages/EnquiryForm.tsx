@@ -13,6 +13,7 @@ interface Deliverable {
   hours: number;
   costPerHour: number;
   total: number;
+  description: any;
 }
 
 interface EnquiryFormData {
@@ -31,53 +32,60 @@ interface EnquiryFormData {
 
 const toolbarConfig: ToolbarConfig = {
   display: [
-    'INLINE_STYLE_BUTTONS',
-    'BLOCK_TYPE_BUTTONS',
-    'BLOCK_TYPE_DROPDOWN',
-    'HISTORY_BUTTONS',
-    'BLOCK_ALIGNMENT_BUTTONS',
-    'LINK_BUTTONS'
+    "INLINE_STYLE_BUTTONS",
+    "BLOCK_TYPE_BUTTONS",
+    "BLOCK_TYPE_DROPDOWN",
+    "HISTORY_BUTTONS",
+    "BLOCK_ALIGNMENT_BUTTONS",
+    "LINK_BUTTONS",
   ],
   INLINE_STYLE_BUTTONS: [
-    {label: 'Bold', style: 'BOLD'},
-    {label: 'Italic', style: 'ITALIC'},
-    {label: 'Underline', style: 'UNDERLINE'}
+    { label: "Bold", style: "BOLD" },
+    { label: "Italic", style: "ITALIC" },
+    { label: "Underline", style: "UNDERLINE" },
   ],
   BLOCK_TYPE_DROPDOWN: [
-    {label: 'Normal', style: 'unstyled'},
-    {label: 'Heading 1', style: 'header-one'},
-    {label: 'Heading 2', style: 'header-two'},
-    {label: 'Heading 3', style: 'header-three'}
+    { label: "Normal", style: "unstyled" },
+    { label: "Heading 1", style: "header-one" },
+    { label: "Heading 2", style: "header-two" },
+    { label: "Heading 3", style: "header-three" },
   ],
   BLOCK_TYPE_BUTTONS: [
-    {label: 'UL', style: 'unordered-list-item'},
-    {label: 'OL', style: 'ordered-list-item'}
+    { label: "UL", style: "unordered-list-item" },
+    { label: "OL", style: "ordered-list-item" },
   ],
   BLOCK_ALIGNMENT_BUTTONS: [
-    {label: 'Align Left', style: 'ALIGN_LEFT'},
-    {label: 'Align Center', style: 'ALIGN_CENTER'},
-    {label: 'Align Right', style: 'ALIGN_RIGHT'}
-  ]
+    { label: "Align Left", style: "ALIGN_LEFT" },
+    { label: "Align Center", style: "ALIGN_CENTER" },
+    { label: "Align Right", style: "ALIGN_RIGHT" },
+  ],
 };
 
 const editorStyle = {
   editor: {
-    border: '1px solid #ccc',
-    padding: '10px',
-    minHeight: '200px',
-    borderRadius: '6px',
-    fontSize: '14px'
-  }
+    border: "1px solid #ccc",
+    padding: "10px",
+    minHeight: "200px",
+    borderRadius: "6px",
+    fontSize: "14px",
+  },
 };
 
 export default function EnquiryForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { createEnquiry, updateEnquiry, fetchEnquiry, loading: storeLoading } = useEnquiryStore();
+  const {
+    createEnquiry,
+    updateEnquiry,
+    fetchEnquiry,
+    loading: storeLoading,
+  } = useEnquiryStore();
   const { fetchCustomers, customers } = useCustomerStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    null
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<EnquiryFormData>({
     enquiryNumber: "",
@@ -90,33 +98,41 @@ export default function EnquiryForm() {
     scopeOfWork: RichTextEditor.createEmptyValue(),
     inputsRequired: [] as string[],
     status: "draft",
-    currency: undefined
+    currency: undefined,
   });
 
   useEffect(() => {
     const loadData = async () => {
       await fetchCustomers();
-      
+
       if (id) {
         const enquiry = await fetchEnquiry(id);
         if (enquiry) {
           setFormData({
             ...enquiry,
-            scopeOfWork: RichTextEditor.createValueFromString(enquiry.scopeOfWork, 'html'),
+            scopeOfWork: RichTextEditor.createValueFromString(
+              enquiry.scopeOfWork,
+              "html"
+            ),
             deliverables: enquiry.deliverables.map((d) => ({
               ...d,
               hours: d.hours ?? 0,
               costPerHour: d.costPerHour ?? 0,
+              description: d.description
+                ? RichTextEditor.createValueFromString(d.description, "html")
+                : RichTextEditor.createEmptyValue(),
             })),
             exclusions: enquiry.exclusions ?? [],
             inputsRequired: enquiry.inputsRequired ?? [],
             charges: enquiry.charges ?? [],
             status: enquiry.status ?? "draft",
-            currency: enquiry.currency
+            currency: enquiry.currency,
           });
 
           if (enquiry.customer_id) {
-            const customer = customers.find(c => c.id === enquiry.customer_id);
+            const customer = customers.find(
+              (c) => c.id === enquiry.customer_id
+            );
             if (customer) {
               setSelectedCustomer(customer);
             }
@@ -130,9 +146,9 @@ export default function EnquiryForm() {
 
   const handleCustomerSelect = (customer: Customer) => {
     setSelectedCustomer(customer);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      customer_id: customer.id || '',
+      customer_id: customer.id || "",
     }));
     setShowCustomerDropdown(false);
     setSearchTerm("");
@@ -141,10 +157,10 @@ export default function EnquiryForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    
+
     try {
       setIsSubmitting(true);
-      
+
       if (!selectedCustomer?.id) {
         toast.error("Please select a customer");
         return;
@@ -153,7 +169,11 @@ export default function EnquiryForm() {
       const submitData = {
         ...formData,
         customer_id: selectedCustomer.id,
-        scopeOfWork: formData.scopeOfWork.toString('html'),
+        scopeOfWork: formData.scopeOfWork.toString("html"),
+        deliverables: formData.deliverables.map((d) => ({
+          ...d,
+          description: d.description.toString("html"),
+        })),
       };
 
       if (id) {
@@ -173,21 +193,21 @@ export default function EnquiryForm() {
   };
 
   const handleCurrencyChange = (currency: CurrencyDetails | undefined) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      currency
+      currency,
     }));
   };
 
   // Filter customers based on search term
-  const filteredCustomers = customers.filter((customer: Customer) => 
+  const filteredCustomers = customers.filter((customer: Customer) =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAddNewCustomer = () => {
     // Save current path to localStorage
-    localStorage.setItem('last_visited', window.location.pathname);
-    navigate('/dashboard/customers/new');
+    localStorage.setItem("last_visited", window.location.pathname);
+    navigate("/dashboard/customers/new");
   };
 
   const addDeliverable = () => {
@@ -201,6 +221,7 @@ export default function EnquiryForm() {
           hours: 0,
           costPerHour: 0,
           total: 0,
+          description: RichTextEditor.createEmptyValue(),
         },
       ],
     }));
@@ -298,14 +319,23 @@ export default function EnquiryForm() {
     });
   };
 
+  const handleDeliverableDescriptionChange = (id: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      deliverables: prev.deliverables.map((d) => {
+        if (d.id === id) {
+          return { ...d, description: value };
+        }
+        return d;
+      }),
+    }));
+  };
+
   return (
     <form onSubmit={handleSubmit} className=" p-6 space-y-8 ">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-4">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-          >
+          <button type="button" onClick={() => navigate(-1)}>
             <ArrowLeft className=" h-7 w-7" />
           </button>
           <h2 className="text-2xl font-bold">
@@ -351,7 +381,10 @@ export default function EnquiryForm() {
                 required
                 value={formData.enquiryNumber}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, enquiryNumber: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    enquiryNumber: e.target.value,
+                  }))
                 }
                 className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
@@ -388,10 +421,15 @@ export default function EnquiryForm() {
               />
             </div>
             <div>
-              <label className="block font-medium text-gray-700">Scope of Work</label>
+              {/* changed scope of work label to deliverables */}
+              <label className="block font-medium text-gray-700">
+                Deliverables
+              </label>
               <RichTextEditor
                 value={formData.scopeOfWork}
-                onChange={(value) => setFormData((prev) => ({ ...prev, scopeOfWork: value }))}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, scopeOfWork: value }))
+                }
                 toolbarConfig={toolbarConfig}
                 editorStyle={editorStyle}
                 className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700"
@@ -422,7 +460,7 @@ export default function EnquiryForm() {
                 <UserPlus size={20} />
               </button>
             </div>
-            
+
             {showCustomerDropdown && (
               <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-300">
                 {filteredCustomers.map((customer) => (
@@ -478,31 +516,32 @@ export default function EnquiryForm() {
         </div>
 
         <div className="bg-white border-[1px] rounded-xl px-6 py-10">
-          <Currency 
-            addCurrency={handleCurrencyChange} 
+          <Currency
+            addCurrency={handleCurrencyChange}
             initialCurrency={formData.currency}
           />
         </div>
 
         <div className="bg-white border-[1px] rounded-xl px-6 py-10">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Deliverables</h3>
+            {/* changed deliverables title to scope of work  */}
+            <h3 className="text-lg font-medium text-gray-900">Scope of Work</h3>
             <button
               type="button"
               onClick={addDeliverable}
               className="inline-flex items-center px-3 border border-transparent text-sm font-medium rounded-md text-white bg-black/90 hover:bg-black/80 py-2"
             >
               <Plus size={16} className="mr-1" />
-              Add Deliverable
+              Add Scope of Work
             </button>
           </div>
           <div className="space-y-4">
             {formData.deliverables.map((deliverable) => (
               <div
                 key={deliverable.id}
-                className="grid grid-cols-1 gap-4 sm:grid-cols-5 items-end border-b pb-4"
+                className="grid grid-cols-1 gap-4 border-b pb-4"
               >
-                <div className="sm:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700">
                     Name
                   </label>
@@ -516,63 +555,80 @@ export default function EnquiryForm() {
                     className="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Hours
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={deliverable.hours}
-                    onChange={(e) =>
-                      updateDeliverable(
-                        deliverable.id,
-                        "hours",
-                        parseFloat(e.target.value)
-                      )
-                    }
-                    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Cost/Hour
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={deliverable.costPerHour}
-                    onChange={(e) =>
-                      updateDeliverable(
-                        deliverable.id,
-                        "costPerHour",
-                        parseFloat(e.target.value)
-                      )
-                    }
-                    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="flex items-end space-x-2">
-                  <div className="flex-1">
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700">
-                      Total
+                      Hours
                     </label>
                     <input
                       type="number"
-                      readOnly
-                      value={deliverable.total}
-                      className="mt-1 p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                      required
+                      min="0"
+                      value={deliverable.hours}
+                      onChange={(e) =>
+                        updateDeliverable(
+                          deliverable.id,
+                          "hours",
+                          parseFloat(e.target.value)
+                        )
+                      }
+                      className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeDeliverable(deliverable.id)}
-                    className="mb-1 p-2 text-red-600 hover:text-red-900"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Cost/Hour
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={deliverable.costPerHour}
+                      onChange={(e) =>
+                        updateDeliverable(
+                          deliverable.id,
+                          "costPerHour",
+                          parseFloat(e.target.value)
+                        )
+                      }
+                      className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-end space-x-2">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Total
+                      </label>
+                      <input
+                        type="number"
+                        readOnly
+                        value={deliverable.total}
+                        className="mt-1 p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeDeliverable(deliverable.id)}
+                      className="mb-1 p-2 text-red-600 hover:text-red-900"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <RichTextEditor
+                    value={deliverable.description}
+                    onChange={(value) =>
+                      handleDeliverableDescriptionChange(deliverable.id, value)
+                    }
+                    toolbarConfig={toolbarConfig}
+                    className="min-h-[100px] w-full"
+                  />
                 </div>
               </div>
             ))}
@@ -616,7 +672,9 @@ export default function EnquiryForm() {
         {/* New Inputs Required Section */}
         <div className="bg-white border-[1px] rounded-xl px-6 py-10">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Inputs Required</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              Inputs Required
+            </h3>
             <button
               type="button"
               onClick={addInputRequired}
