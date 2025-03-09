@@ -11,11 +11,11 @@ import {
   Check,
   X,
   Key,
+  FileText,
 } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import html2pdf from "html2pdf.js";
 import toast from "react-hot-toast";
 import TaskModal from "../components/TaskModal";
 import TaskList from "../components/TaskList";
@@ -99,7 +99,7 @@ export default function ProjectDetails() {
 
     rootTasks.forEach((task) => {
       console.log(task, "task");
-      let value = calculateCompletedPercentage(task);
+      const value = calculateCompletedPercentage(task);
       console.log(value, "value");
       sum += value;
     });
@@ -537,6 +537,13 @@ export default function ProjectDetails() {
               Edit Project
             </button>
           )}
+          <button
+            onClick={() => navigate(`/dashboard/projects/${id}/documents`)}
+            className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Documents
+          </button>
         </div>
       </div>
 

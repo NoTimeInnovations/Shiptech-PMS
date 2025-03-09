@@ -5,13 +5,25 @@ const OWNER = import.meta.env.VITE_GITHUB_OWNER as string;
 const REPO = import.meta.env.VITE_GITHUB_REPO as string;
 const BRANCH = import.meta.env.VITE_GITHUB_BRANCH as string;
 
-const octokit = new Octokit({ auth: GITHUB_TOKEN });
+const octokit = new Octokit({ 
+  auth: GITHUB_TOKEN,
+  request: {
+    fetch: (url, options) => {
+      // Replace encoded forward slashes in the URL
+      const decodedUrl = url.toString().replace(/%2F/g, '/');
+      return fetch(decodedUrl, options);
+    }
+  }
+});
 
 export const uploadToGitHub = async (
   file: File,
   path: string
 ): Promise<string> => {
   try {
+    // Ensure path uses forward slashes and remove any leading/trailing slashes
+    const cleanPath = path.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+
     // Convert file to Base64 using FileReader
     const fileContent = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -31,7 +43,7 @@ export const uploadToGitHub = async (
       const { data } = await octokit.repos.getContent({
         owner: OWNER,
         repo: REPO,
-        path,
+        path: cleanPath,
         ref: BRANCH,
       });
 
@@ -54,7 +66,7 @@ export const uploadToGitHub = async (
     const { data } = await octokit.repos.createOrUpdateFileContents({
       owner: OWNER,
       repo: REPO,
-      path,
+      path: cleanPath,
       message: `Upload file: ${file.name}`,
       content: fileContent,
       branch: BRANCH,

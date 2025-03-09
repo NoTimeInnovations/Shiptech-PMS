@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Plus, Loader2, Trash2, ExternalLink } from 'lucide-react';
 import { useEnquiryStore, Enquiry } from '../store/enquiryStore';
@@ -41,6 +41,8 @@ const EnquiriesList = () => {
         toast.success("Enquiry deleted successfully");
       } catch (error) {
         toast.error("Failed to delete enquiry");
+        console.log(error);
+        
       }
     }
   };

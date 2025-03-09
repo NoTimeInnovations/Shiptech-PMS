@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { Loader2, Ship } from "lucide-react";
+import { Loader2} from "lucide-react";
 import toast from "react-hot-toast";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -34,6 +34,7 @@ export default function CustomerLogin() {
       }
     } catch (err) {
       toast.error("Failed to login. Please try again.");
+      console.log(err);
     }
   };
 

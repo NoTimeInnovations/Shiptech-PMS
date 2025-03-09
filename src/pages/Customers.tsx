@@ -6,7 +6,7 @@ import { useCustomerStore } from '@/store/customerStore';
 import CustomerForm from './CustomerForm';
 import CustomerDetails from './CustomerDetails';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 // Customer list component
 const CustomersList = () => {
