@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -6,15 +6,18 @@ import {
   Trash2,
   Building,
   Mail,
-  Phone,
   User,
   MapPin,
   FileText,
   Briefcase,
+  FileQuestion,
+  ArrowRight,
 } from "lucide-react";
 import { useCustomerStore, Customer } from "@/store/customerStore";
 import toast from "react-hot-toast";
 import { Image } from "lucide-react";
+import { useProjectStore } from "@/store/projectStore";
+import { useEnquiryStore } from "@/store/enquiryStore";
 
 export default function CustomerDetails() {
   const { id } = useParams<{ id: string }>();
@@ -22,19 +25,39 @@ export default function CustomerDetails() {
   const { fetchCustomer, deleteCustomer, loading } =
     useCustomerStore();
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const { projects, fetchProjects } = useProjectStore();
+  const { enquiries, fetchEnquiries } = useEnquiryStore();
 
   useEffect(() => {
-    const loadCustomer = async () => {
+    const loadCustomerData = async () => {
       if (id) {
         const customerData = await fetchCustomer(id);
-
         setCustomer(customerData);
+        
+        // Fetch all projects and enquiries
+        await fetchProjects();
+        await fetchEnquiries();
       }
     };
 
-    loadCustomer();
-  }, [id, fetchCustomer]);
+    loadCustomerData();
+  }, [id, fetchCustomer, fetchProjects, fetchEnquiries]);
 
+  // Filter projects and enquiries for this customer
+  const customerProjects = projects.filter(
+    project => project.customer?.id === id
+  );
+
+  const customerEnquiries = enquiries.filter(
+    enquiry => enquiry.customer_id === id
+  );
+
+  // Calculate statistics
+  const totalProjects = customerProjects.length;
+  const totalEnquiries = customerEnquiries.length;
+  const enquiriesMovedToProjects = customerEnquiries.filter(
+    enquiry => enquiry.status === 'moved to projects'
+  ).length;
 
   const handleDelete = async () => {
     if (!customer?.id) return;
@@ -46,6 +69,7 @@ export default function CustomerDetails() {
         navigate("/dashboard/customers");
       } catch (error) {
         toast.error("Failed to delete customer");
+        console.error("Error deleting customer:", error);
       }
     }
   };
@@ -78,7 +102,7 @@ export default function CustomerDetails() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header with actions */}
+      {/* Header with back button and actions */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center space-x-4">
           <button
@@ -104,6 +128,63 @@ export default function CustomerDetails() {
             <Trash2 size={18} className="mr-2" />
             Delete
           </button>
+        </div>
+      </div>
+
+      {/* Analytics Dashboard */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Total Projects Card */}
+        <div className="bg-gradient-to-br from-blue-300 to-blue-400 rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-black">Total Projects</p>
+              <p className="mt-2 text-3xl font-semibold text-black">{totalProjects}</p>
+            </div>
+            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-full">
+              <Briefcase className="h-6 w-6 text-black" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="text-sm text-black">
+              Active projects with this customer
+            </div>
+          </div>
+        </div>
+
+        {/* Total Enquiries Card */}
+        <div className="bg-yellow-300 rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-black">Total Enquiries</p>
+              <p className="mt-2 text-3xl font-semibold text-black">{totalEnquiries}</p>
+            </div>
+            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-full">
+              <FileQuestion className="h-6 w-6 text-black" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="text-sm text-black">
+              All enquiries from this customer
+            </div>
+          </div>
+        </div>
+
+        {/* Converted Enquiries Card */}
+        <div className="bg-gradient-to-br from-green-300 to-green-400 rounded-xl shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-black">Converted to Projects</p>
+              <p className="mt-2 text-3xl font-semibold text-black">{enquiriesMovedToProjects}</p>
+            </div>
+            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-full">
+              <ArrowRight className="h-6 w-6 text-black" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <div className="text-sm text-black">
+              Enquiries converted to projects
+            </div>
+          </div>
         </div>
       </div>
 
@@ -239,19 +320,122 @@ export default function CustomerDetails() {
           </div>
         </div>
 
-        {/* Created/Updated info */}
-        <div className="bg-gray-50 px-6 py-4 text-sm text-gray-500 border-t">
-          <div className="flex flex-col sm:flex-row sm:justify-between">
-            <p>Created: {customer.createdAt ? (
-              typeof customer.createdAt.toDate === 'function' ? 
-                new Date(customer.createdAt.toDate()).toLocaleString() : 
-                new Date(customer.createdAt.toDate()).toLocaleString()
-            ) : 'Unknown'}</p>
-            <p>Last Updated: {customer.updatedAt ? (
-              typeof customer.updatedAt.toDate === 'function' ? 
-                new Date(customer.updatedAt.toDate()).toLocaleString() : 
-                new Date(customer.updatedAt.toDate()).toLocaleString()
-            ) : 'Unknown'}</p>
+        {/* Projects Section */}
+        <div className="mt-8">
+          <div className="bg-white rounded-xl border-[1px] overflow-hidden">
+            <div className="border-b border-gray-200 px-6 py-3">
+              <h3 className="text-lg font-medium text-gray-900">Projects</h3>
+            </div>
+            <div className="px-6 py-4">
+              {customerProjects.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No projects found for this customer
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Number</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {customerProjects.map((project) => (
+                        <tr 
+                          key={project.id}
+                          onClick={() => navigate(`/dashboard/projects/${project.id}`)}
+                          className="hover:bg-gray-50 cursor-pointer"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            p-{project.projectNumber}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                              ${project.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                              project.status === 'ongoing' ? 'bg-blue-100 text-blue-800' : 
+                              'bg-gray-100 text-gray-800'}`}>
+                              {project.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {project.project_start_date ? new Date(project.project_start_date).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {project.project_due_date ? new Date(project.project_due_date).toLocaleDateString() : '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Enquiries Section */}
+        <div className="mt-8 mb-6">
+          <div className="bg-white rounded-xl border-[1px] overflow-hidden">
+            <div className="border-b border-gray-200 px-6 py-3">
+              <h3 className="text-lg font-medium text-gray-900">Enquiries</h3>
+            </div>
+            <div className="px-6 py-4">
+              {customerEnquiries.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">
+                  No enquiries found for this customer
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enquiry Number</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {customerEnquiries.map((enquiry) => (
+                        <tr 
+                          key={enquiry.id}
+                          onClick={() => navigate(`/dashboard/enquiries/${enquiry.id}`)}
+                          className="hover:bg-gray-50 cursor-pointer"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            e-{enquiry.enquiryNumber}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{enquiry.name}</td>
+                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{enquiry.description}</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                              ${enquiry.status === 'moved to projects' ? 'bg-green-100 text-green-800' : 
+                              enquiry.status === 'on hold' ? 'bg-yellow-100 text-yellow-800' : 
+                              enquiry.status === 'cancelled' ? 'bg-red-100 text-red-800' : 
+                              'bg-blue-100 text-blue-800'}`}>
+                              {enquiry.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(enquiry.createdAt).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                            ₹{enquiry.deliverables.reduce((sum, d) => sum + d.total, 0)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
