@@ -41,6 +41,7 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   children?: Task[];
+  outsource_team_id: string;
 }
 
 interface TaskState {
@@ -85,6 +86,7 @@ interface TaskState {
     projectId: string
   ) => Promise<Task[]>;
   getTaskPath: (taskId: string, projectId: string) => Promise<string>;
+  fetchTasksByOutsourceTeam: (teamId: string) => Promise<Task[]>;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -232,6 +234,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         costPerHour: task.costPerHour,
         createdAt: task.createdAt,
         updatedAt: task.updatedAt,
+        outsource_team_id: task.outsource_team_id || "",
       });
 
       set({
@@ -251,6 +254,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             costPerHour: task.costPerHour,
             createdAt: task.createdAt,
             updatedAt: task.updatedAt,
+            outsource_team_id: task.outsource_team_id || "",
           },
         ],
       });
@@ -433,5 +437,26 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
     buildPath(task);
     return `${path.join("/")}`;
+  },
+
+  fetchTasksByOutsourceTeam: async (teamId: string) => {
+    try {
+      set({ loading: true, error: null });
+      const q = query(
+        collection(db, "tasks"),
+        where("outsource_team_id", "==", teamId)
+      );
+      const querySnapshot = await getDocs(q);
+      const tasks = querySnapshot.docs.map(
+        (doc) => ({ id: doc.id, ...doc.data() } as Task)
+      );
+      return tasks;
+    } catch (error) {
+      console.error("Error fetching outsourced tasks:", error);
+      set({ error: (error as Error).message });
+      return [];
+    } finally {
+      set({ loading: false });
+    }
   },
 }));

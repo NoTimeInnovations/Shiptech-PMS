@@ -4,6 +4,12 @@ import { MonthlyAttendance } from "@/pages/Attendance";
 import { useLeaveStore } from "@/store/leaveStore";
 import { useWorkFromStore } from "@/store/workfromhomestore";
 import { useAuthStore } from "@/store/authStore";
+import { getDoc, doc } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { useOOOStore } from "@/store/oooStore";
+import { useAttendanceStore } from "../store/attendanceStore";
+import { toast } from "react-hot-toast";
+import { auth } from '../lib/firebase'; // Import auth from firebase
 
 interface CalendarDay {
   date: Date;
@@ -13,9 +19,11 @@ interface CalendarDay {
 export default function AttendanceCalendar({
   monthlyAttendance,
   selectedUser,
+  isAdmin
 }: {
   monthlyAttendance: MonthlyAttendance[];
   selectedUser?: string | null;
+  isAdmin: boolean;
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
@@ -35,11 +43,22 @@ export default function AttendanceCalendar({
   const [showDialog, setShowDialog] = useState(false);
   const [showAdminDialog, setShowAdminDialog] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [requestUserName, setRequestUserName] = useState<string>("");
+  const {
+    oooRequests,
+    fetchUserOOORequests,
+    cancelOOORequest,
+    updateOOOStatus,
+  } = useOOOStore();
+  const [showUpdateAttendanceModal, setShowUpdateAttendanceModal] = useState(false);
+  const [selectedAttendanceDate, setSelectedAttendanceDate] = useState<Date | null>(null);
+  const [selectedAttendanceType, setSelectedAttendanceType] = useState<'full' | 'half'>('full');
+  const { updateAttendance, removeAttendance } = useAttendanceStore();
 
   // Generate calendar days for the current month
   useEffect(() => {
+    // console.log("monthlyAttendance",monthlyAttendance)
     const generateCalendar = () => {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
@@ -128,20 +147,28 @@ export default function AttendanceCalendar({
   };
 
   const getDateStatuses = (date: Date) => {
-    const userId = selectedUser || user?.uid;
+    const userId = selectedUser || auth.currentUser?.uid;
     const statuses = [];
 
     // Check attendance
-    const hasAttendance = monthlyAttendance.some((month) =>
-      month.records.some(
-        (record) =>
-          new Date(record.date).toLocaleDateString() ===
-          date.toLocaleDateString()
-      )
+    const attendance = monthlyAttendance.some((month) =>
+      month.records.some((record) => {
+        const recordDate = new Date(record.date).toLocaleDateString();
+        const compareDate = date.toLocaleDateString();
+        return recordDate === compareDate;
+      })
     );
-    if (hasAttendance) {
+
+    if (attendance) {
+      const record = monthlyAttendance
+        .flatMap(month => month.records)
+        .find(record => new Date(record.date).toLocaleDateString() === date.toLocaleDateString());
+
       statuses.push({
-        type: "attendance"
+        type: "attendance",
+        userId: userId,
+        date: date.toISOString(),
+        attendanceType: record?.type || 'full'
       });
     }
 
@@ -160,7 +187,8 @@ export default function AttendanceCalendar({
         type: "leave",
         status: leave.status,
         id: leave.id,
-        reason: leave.reason
+        reason: leave.reason,
+        leaveType: leave.leaveType
       });
     }
 
@@ -178,16 +206,47 @@ export default function AttendanceCalendar({
         type: "workfrom",
         status: workFrom.status,
         id: workFrom.id,
+        reason: workFrom.reason
+      });
+    }
+
+    // Check OOO
+    const ooo = oooRequests.find((o) => {
+      const start = new Date(o.startDate);
+      const end = new Date(o.endDate);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+      date.setHours(0, 0, 0, 0);
+      return date >= start && date <= end && o.userId === userId;
+    });
+    if (ooo) {
+      statuses.push({
+        type: "ooo",
+        status: ooo.status,
+        id: ooo.id,
+        reason: ooo.reason
       });
     }
 
     return statuses;
   };
 
-  const handleClick = (e: React.MouseEvent, status: any) => {
+  const handleClick = async (e: React.MouseEvent, status: any) => {
     e.preventDefault();
-    if (status?.status === "pending") {
+    if (status?.type === "attendance" && isAdmin) {
+        setSelectedAttendanceDate(new Date(status.date));
+        setSelectedAttendanceType(status.attendanceType);
+        setShowUpdateAttendanceModal(true);
+    } else if (status?.status === "pending") {
       setSelectedStatus(status);
+      
+      // Get user's full name
+      const userId = selectedUser || user?.uid;
+      if (userId) {
+        const fullName = await getUserFullName(userId);
+        setRequestUserName(fullName);
+      }
+
       if (selectedUser && selectedUser !== user?.uid) {
         setShowAdminDialog(true);
       } else if (!selectedUser) {
@@ -201,6 +260,8 @@ export default function AttendanceCalendar({
       cancelWorkFromHome(selectedStatus.id);
     } else if (selectedStatus.type === "leave") {
       cancelLeaveRequest(selectedStatus.id);
+    } else if (selectedStatus.type === "ooo") {
+      cancelOOORequest(selectedStatus.id);
     }
     setShowDialog(false);
     setSelectedStatus(null);
@@ -226,6 +287,13 @@ export default function AttendanceCalendar({
           await updateWorkFromStatus(selectedStatus.id, "rejected");
         }
         await fetchUserWorkFromRequests(selectedUser as string);
+      } else if (selectedStatus.type === "ooo") {
+        if (action === "approve") {
+          await updateOOOStatus(selectedStatus.id, "approved");
+        } else {
+          await updateOOOStatus(selectedStatus.id, "rejected");
+        }
+        await fetchUserOOORequests(selectedUser as string);
       }
     } finally {
       setIsApproving(false);
@@ -238,25 +306,26 @@ export default function AttendanceCalendar({
   const getStatusStyle = (status: any) => {
     if (status.type === "attendance") {
       return {
-        bg: "bg-green-200",
-        text: "Present"
+        bg: status.attendanceType === 'half' ? "bg-green-100" : "bg-green-200",
+        text: status.attendanceType === 'half' ? "Present (Half)" : "Present"
       };
     }
     if (status.type === "leave") {
+      const leaveTypeText = status.leaveType === 'half' ? ' (Half)' : '';
       if (status.status === "pending") {
         return {
           bg: "bg-red-200 animate-pulse",
-          text: "Leave Pending"
+          text: `Leave${leaveTypeText} Pending`
         };
       } else if (status.status === "approved") {
         return {
           bg: "bg-red-200",
-          text: "Leave Approved"
+          text: `Leave${leaveTypeText} Approved`
         };
       } else {
         return {
           bg: "bg-red-100",
-          text: "Leave Rejected"
+          text: `Leave${leaveTypeText} Rejected`
         };
       }
     }
@@ -278,10 +347,56 @@ export default function AttendanceCalendar({
         };
       }
     }
+    if (status.type === "ooo") {
+      if (status.status === "pending") {
+        return {
+          bg: "bg-purple-200 animate-pulse",
+          text: "OOO Pending"
+        };
+      } else if (status.status === "approved") {
+        return {
+          bg: "bg-purple-200",
+          text: "OOO Approved"
+        };
+      } else {
+        return {
+          bg: "bg-purple-100",
+          text: "OOO Rejected"
+        };
+      }
+    }
     return {
       bg: "bg-white",
       text: ""
     };
+  };
+
+  // Add this function to get user's full name
+  const getUserFullName = async (userId: string) => {
+    const userDoc = await getDoc(doc(db, "users", userId));
+    const userData = userDoc.data();
+    return userData?.fullName || "Unknown User";
+  };
+
+  const handleUpdateAttendance = async (action: 'update' | 'remove') => {
+    try {
+      const userId = selectedUser || user?.uid;
+      if (!userId || !selectedAttendanceDate) return;
+
+      console.log("before update :",userId, selectedAttendanceDate, selectedAttendanceType)
+
+      if (action === 'update') {
+        await updateAttendance(userId, selectedAttendanceDate, selectedAttendanceType);
+        toast.success('Attendance updated successfully');
+      } else {
+        await removeAttendance(userId, selectedAttendanceDate);
+        toast.success('Attendance removed successfully');
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update attendance');
+    } finally {
+      setShowUpdateAttendanceModal(false);
+    }
   };
 
   return (
@@ -354,6 +469,7 @@ export default function AttendanceCalendar({
               <div className="flex flex-col gap-1">
                 {statuses.map((status, idx) => {
                   const style = getStatusStyle(status);
+                  // console.log(typeof day.date)
                   return (
                     <div
                       key={idx}
@@ -372,11 +488,34 @@ export default function AttendanceCalendar({
 
       {showDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
             <h3 className="text-lg font-medium mb-4">Cancel Request</h3>
-            <p className="mb-6">
-              Are you sure you want to cancel this request?
-            </p>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                <span className="font-medium">Employee:</span> {requestUserName}
+              </p>
+              {selectedStatus?.type === "leave" && (
+                <>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-medium">Leave Type:</span> {selectedStatus.leaveType === 'half' ? 'Half Day' : 'Full Day'}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-medium">Reason for Leave:</span> {selectedStatus.reason}
+                  </p>
+                </>
+              )}
+              {selectedStatus?.type === "workfrom" && (
+                <p className="text-sm text-gray-600 mb-2">
+                  <span className="font-medium">Reason for WFH:</span> {selectedStatus.reason}
+                </p>
+              )}
+              {selectedStatus?.type === "ooo" && (
+                <p className="text-sm text-gray-600 mb-2">
+                  <span className="font-medium">Reason for OOO:</span> {selectedStatus.reason}
+                </p>
+              )}
+            </div>
+            <p className="mb-6">Are you sure you want to cancel this request?</p>
             <div className="flex justify-end space-x-4">
               <button
                 onClick={() => setShowDialog(false)}
@@ -410,13 +549,33 @@ export default function AttendanceCalendar({
 
       {showAdminDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
             <h3 className="text-lg font-medium mb-4">Review Request</h3>
-            {selectedStatus.type === "leave" && (
-              <p className="mb-4 text-gray-600">
-                Reason: {selectedStatus.reason}
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-2">
+                <span className="font-medium">Employee:</span> {requestUserName}
               </p>
-            )}
+              {selectedStatus?.type === "leave" && (
+                <>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-medium">Leave Type:</span> {selectedStatus.leaveType === 'half' ? 'Half Day' : 'Full Day'}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-medium">Reason for Leave:</span> {selectedStatus.reason}
+                  </p>
+                </>
+              )}
+              {selectedStatus?.type === "workfrom" && (
+                <p className="text-sm text-gray-600 mb-2">
+                  <span className="font-medium">Reason for WFH:</span> {selectedStatus.reason}
+                </p>
+              )}
+              {selectedStatus?.type === "ooo" && (
+                <p className="text-sm text-gray-600 mb-2">
+                  <span className="font-medium">Reason for OOO:</span> {selectedStatus.reason}
+                </p>
+              )}
+            </div>
             <p className="mb-6">What would you like to do with this request?</p>
             <div className="flex justify-end space-x-4">
               <button
@@ -442,6 +601,48 @@ export default function AttendanceCalendar({
                 ) : (
                   "Approve"
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Attendance Modal */}
+      {showUpdateAttendanceModal && (
+        <div className="fixed z-[100] inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-96">
+            <h2 className="text-xl font-bold mb-4">Update Attendance</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">
+                Attendance Type
+              </label>
+              <select
+                value={selectedAttendanceType}
+                onChange={(e) => setSelectedAttendanceType(e.target.value as 'full' | 'half')}
+                className="w-full p-2 border rounded"
+              >
+                <option value="full">Full Day</option>
+                <option value="half">Half Day</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowUpdateAttendanceModal(false)}
+                className="px-4 py-2 text-gray-800 bg-transparent rounded border border-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleUpdateAttendance('remove')}
+                className="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700"
+              >
+                Remove Attendance
+              </button>
+              <button
+                onClick={() => handleUpdateAttendance('update')}
+                className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+              >
+                Update
               </button>
             </div>
           </div>

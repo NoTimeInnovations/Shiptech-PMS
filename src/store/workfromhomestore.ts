@@ -8,6 +8,7 @@ interface WorkFromRequest {
   userId: string;
   startDate: string;
   endDate: string;
+  reason: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
@@ -17,7 +18,7 @@ interface WorkFromState {
   error: string | null;
   workFromRequests: WorkFromRequest[];
   allWorkFromRequests: WorkFromRequest[];
-  requestWorkFrom: (startDate: string, endDate: string) => Promise<void>;
+  requestWorkFrom: (startDate: string, endDate: string, reason: string) => Promise<void>;
   fetchUserWorkFromRequests: (userId?: string) => Promise<void>;
   fetchAllWorkFromRequests: () => Promise<void>;
   updateWorkFromStatus: (requestId: string, status: 'approved' | 'rejected') => Promise<void>;
@@ -30,10 +31,9 @@ export const useWorkFromStore = create<WorkFromState>((set, get) => ({
   workFromRequests: [],
   allWorkFromRequests: [],
 
-  requestWorkFrom: async (startDate: string, endDate: string) => {
+  requestWorkFrom: async (startDate: string, endDate: string, reason: string) => {
     try {
       set({ loading: true, error: null });
-      // Fix: Use getState() instead of hook
       const user = useAuthStore.getState().user;
       if (!user) throw new Error('User not authenticated');
       const workFromRef = collection(db, 'workfrom');
@@ -44,6 +44,7 @@ export const useWorkFromStore = create<WorkFromState>((set, get) => ({
         userId: user.uid,
         startDate,
         endDate,
+        reason,
         status: 'pending',
         createdAt: new Date().toISOString()
       };

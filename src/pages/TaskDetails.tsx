@@ -19,6 +19,9 @@ import TaskModal from "../components/TaskModal";
 import TaskList from "../components/TaskList";
 import ItemDetails from "../components/ItemDetails";
 import { Task, useTaskStore, TimeEntry } from "../store/taskStore";
+import { useOutsourceTeamStore } from "../store/outsourceTeamStore";
+import { useSettlementStore } from "../store/settlementStore";
+
 export default function TaskDetails() {
   const { id: projectId, "*": taskPath } = useParams();
   const taskId = taskPath?.split("/")[taskPath.split("/").length - 1];
@@ -48,6 +51,12 @@ export default function TaskDetails() {
   const [manualHours, setManualHours] = useState(0);
   const [manualMinutes, setManualMinutes] = useState(0);
   const [exceptionCase, setExceptionCase] = useState(false);
+  const [showOutsourceModal, setShowOutsourceModal] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<string>("");
+  const [outsourceAmount, setOutsourceAmount] = useState<string>("");
+  const { teams, fetchTeams, fetchTeamById } = useOutsourceTeamStore();
+  const { createSettlement } = useSettlementStore();
+  const [outsourcedTeam, setOutsourcedTeam] = useState<{ name: string } | null>(null);
 
   const formatTimeDisplay = (totalSeconds: number) => {
     const hours = Math.floor(totalSeconds / 3600);
@@ -401,6 +410,59 @@ export default function TaskDetails() {
     }
   };
 
+  useEffect(() => {
+    fetchTeams();
+  }, [fetchTeams]);
+
+  const handleOutsourceSubmit = async () => {
+    try {
+      if (!selectedTeam || !outsourceAmount || !task) {
+        toast.error("Please select a team and enter amount");
+        return;
+      }
+
+      // Update task with outsource team id
+      await updateTask(task.id, {
+        outsource_team_id: selectedTeam
+      });
+
+      // Create settlement
+      await createSettlement({
+        task_id: task.id,
+        team_id: selectedTeam,
+        total_amount: outsourceAmount,
+        amounts_paid: []
+      });
+
+      setShowOutsourceModal(false);
+      setSelectedTeam("");
+      setOutsourceAmount("");
+      toast.success("Task outsourced successfully");
+    } catch (error) {
+      console.error("Error outsourcing task:", error);
+      toast.error("Failed to outsource task");
+    }
+  };
+
+  useEffect(() => {
+    const fetchOutsourcedTeam = async () => {
+      if (task?.outsource_team_id) {
+        try {
+          const team = await fetchTeamById(task.outsource_team_id);
+          if (team) {
+            setOutsourcedTeam(team);
+          }
+        } catch (error) {
+          console.error("Error fetching outsourced team:", error);
+        }
+      } else {
+        setOutsourcedTeam(null);
+      }
+    };
+
+    fetchOutsourcedTeam();
+  }, [task?.outsource_team_id, fetchTeamById]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -424,7 +486,17 @@ export default function TaskDetails() {
           <button onClick={() => navigate(-1)}>
             <ArrowLeft className=" h-7 w-7" />
           </button>
-          <h1 className="text-2xl font-bold">{task.name}</h1>
+          <div>
+            <h1 className="text-2xl font-bold">{task.name}</h1>
+            {task.outsource_team_id && outsourcedTeam && (
+              <div className="mt-1 flex items-center text-sm text-gray-600">
+                <span className="font-medium">Outsourced to:</span>
+                <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                  {outsourcedTeam.name}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
         {exceptionCase && (
           <div className="flex items-center space-x-4">
@@ -462,6 +534,16 @@ export default function TaskDetails() {
               <Plus className="mr-2 h-4 w-4" />
               Add Time
             </button>
+
+            {!task?.outsource_team_id && (
+              <button
+                onClick={() => setShowOutsourceModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Outsource Task
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -638,6 +720,60 @@ export default function TaskDetails() {
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 Add Time
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showOutsourceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96">
+            <h3 className="text-lg font-medium mb-4">Outsource Task</h3>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Select Team
+              </label>
+              <select
+                value={selectedTeam}
+                onChange={(e) => setSelectedTeam(e.target.value)}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="">Select a team...</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Amount
+              </label>
+              <input
+                type="text"
+                value={outsourceAmount}
+                onChange={(e) => setOutsourceAmount(e.target.value)}
+                placeholder="Enter amount"
+                className="w-full p-2 border rounded-md"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowOutsourceModal(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleOutsourceSubmit}
+                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+              >
+                Submit
               </button>
             </div>
           </div>

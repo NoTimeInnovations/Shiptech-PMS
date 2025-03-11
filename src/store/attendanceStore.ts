@@ -1,11 +1,16 @@
 import { create } from 'zustand';
-import { collection, doc, getDoc, setDoc, updateDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, updateDoc, getDocs, query, orderBy, deleteField } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+
+interface AttendanceEntry {
+  time: string;
+  type: 'full' | 'half';
+}
 
 interface AttendanceRecord {
   date: string;
   attendance: {
-    [key: string]: string; // userId: timestamp
+    [key: string]: AttendanceEntry;
   };
 }
 
@@ -14,10 +19,12 @@ interface AttendanceState {
   error: string | null;
   records: AttendanceRecord[];
   checkAttendance: () => Promise<boolean>;
-  markAttendance: () => Promise<void>;
+  markAttendance: (type?: 'full' | 'half') => Promise<void>;
   fetchAttendanceRecords: () => Promise<void>;
   fetchAllUsersAttendance: () => Promise<void>;
-  markAttendanceForUser: (userId: string, date: string) => Promise<string>;
+  markAttendanceForUser: (userId: string, date: string, type: 'full' | 'half') => Promise<string>;
+  updateAttendance: (userId: string, date: Date, type: 'full' | 'half') => Promise<string>;
+  removeAttendance: (userId: string, date: Date) => Promise<string>;
 }
 
 export const useAttendanceStore = create<AttendanceState>((set, get) => ({
@@ -48,7 +55,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     }
   },
 
-  markAttendance: async () => {
+  markAttendance: async (type: 'full' | 'half' = 'full') => {
     try {
       set({ loading: true, error: null });
       const currentUser = auth.currentUser;
@@ -63,12 +70,18 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         await setDoc(attendanceRef, {
           date: today,
           attendance: {
-            [currentUser.uid]: now
+            [currentUser.uid]: {
+              time: now,
+              type
+            }
           }
         });
       } else {
         await updateDoc(attendanceRef, {
-          [`attendance.${currentUser.uid}`]: now
+          [`attendance.${currentUser.uid}`]: {
+            time: now,
+            type
+          }
         });
       }
 
@@ -123,7 +136,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     }
   },
 
-  markAttendanceForUser: async (userId: string, date: string) => {
+  markAttendanceForUser: async (userId: string, date: string, type: 'full' | 'half' = 'full') => {
     try {
       set({ loading: true, error: null });
       const currentUser = auth.currentUser;
@@ -140,12 +153,18 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         await setDoc(attendanceRef, {
           date: formattedDate,
           attendance: {
-            [userId]: timestamp
+            [userId]: {
+              time: timestamp,
+              type
+            }
           }
         });
       } else {
         await updateDoc(attendanceRef, {
-          [`attendance.${userId}`]: timestamp
+          [`attendance.${userId}`]: {
+            time: timestamp,
+            type
+          }
         });
       }
 
@@ -154,6 +173,82 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       return 'Attendance marked successfully';
     } catch (error) {
       console.error('Error marking attendance for user:', error);
+      set({ error: (error as Error).message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  updateAttendance: async (userId: string, date: Date, type: 'full' | 'half') => {
+    try {
+      set({ loading: true, error: null });
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error('Admin not authenticated');
+
+      // console.log("before formattedDate", date);
+      const dateObj = new Date(date);
+      const formattedDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+      // console.log("formattedDate", formattedDate);
+      const attendanceRef = doc(db, 'attendance', formattedDate);
+      const attendanceDoc = await getDoc(attendanceRef);
+
+      if (!attendanceDoc.exists()) {
+        throw new Error('Attendance record not found');
+      }
+
+      const attendanceData = attendanceDoc.data();
+      if (!attendanceData.attendance[userId]) {
+        throw new Error('No attendance record found for this user');
+      }
+
+      console.log("attendanceData",attendanceData)
+
+      await updateDoc(attendanceRef, {
+        [`attendance.${userId}.type`]: type
+      });
+
+      // Refresh records after updating attendance
+      await get().fetchAllUsersAttendance();
+      return 'Attendance updated successfully';
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+      set({ error: (error as Error).message });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  removeAttendance: async (userId: string, date: Date) => {
+    try {
+      set({ loading: true, error: null });
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error('Admin not authenticated');
+
+      const dateObj = new Date(date);
+      const formattedDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+      const attendanceRef = doc(db, 'attendance', formattedDate);
+      const attendanceDoc = await getDoc(attendanceRef);
+
+      if (!attendanceDoc.exists()) {
+        throw new Error('Attendance record not found');
+      }
+
+      const attendanceData = attendanceDoc.data();
+      if (!attendanceData.attendance[userId]) {
+        throw new Error('No attendance record found for this user');
+      }
+
+      await updateDoc(attendanceRef, {
+        [`attendance.${userId}`]: deleteField()
+      });
+
+      // Refresh records after removing attendance
+      await get().fetchAllUsersAttendance();
+      return 'Attendance removed successfully';
+    } catch (error) {
+      console.error('Error removing attendance:', error);
       set({ error: (error as Error).message });
       throw error;
     } finally {

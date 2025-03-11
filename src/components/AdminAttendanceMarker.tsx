@@ -20,15 +20,17 @@ export const AdminAttendanceMarker = ({
 }: AdminAttendanceMarkerProps) => {
   const [selectedUser, setSelectedUser] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [attendanceType, setAttendanceType] = useState<'full' | 'half'>('full');
   const { markAttendanceForUser } = useAttendanceStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const message = await markAttendanceForUser(selectedUser, selectedDate);
+      const message = await markAttendanceForUser(selectedUser, selectedDate, attendanceType);
       toast.success(message);
       setSelectedUser("");
       setSelectedDate("");
+      setAttendanceType('full');
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to mark attendance"
@@ -76,6 +78,21 @@ export const AdminAttendanceMarker = ({
               className="w-full p-2 border rounded"
               max={new Date().toISOString().split("T")[0]}
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Attendance Type
+            </label>
+            <select
+              value={attendanceType}
+              onChange={(e) => setAttendanceType(e.target.value as 'full' | 'half')}
+              required
+              className="w-full p-2 border rounded"
+            >
+              <option value="full">Full Day</option>
+              <option value="half">Half Day</option>
+            </select>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

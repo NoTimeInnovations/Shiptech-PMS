@@ -8,6 +8,7 @@ interface LeaveRequest {
   startDate: string;
   endDate: string;
   reason: string;
+  leaveType: 'full' | 'half';
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
@@ -17,7 +18,7 @@ interface LeaveState {
   error: string | null;
   leaveRequests: LeaveRequest[];
   allLeaveRequests: LeaveRequest[];
-  requestLeave: (startDate: string, endDate: string, reason: string) => Promise<void>;
+  requestLeave: (startDate: string, endDate: string, reason: string, leaveType: 'full' | 'half') => Promise<void>;
   fetchUserLeaveRequests: (userId?: string) => Promise<void>;
   fetchAllLeaveRequests: () => Promise<void>;
   updateLeaveStatus: (leaveId: string, status: 'approved' | 'rejected') => Promise<void>;
@@ -30,7 +31,7 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
   leaveRequests: [],
   allLeaveRequests: [],
 
-  requestLeave: async (startDate: string, endDate: string, reason: string) => {
+  requestLeave: async (startDate: string, endDate: string, reason: string, leaveType: 'full' | 'half') => {
     try {
       set({ loading: true, error: null });
       const currentUser = auth.currentUser;
@@ -45,6 +46,7 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
         startDate,
         endDate,
         reason,
+        leaveType,
         status: 'pending',
         createdAt: new Date().toISOString()
       };
