@@ -372,7 +372,7 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData , c
                         tableCell("Description of Services", true),
                         tableCell("Rate", true),
                         tableCell("Qty", true),
-                        tableCell("Amount(USD)", true),
+                        tableCell(`Amount${" "}(${enquiry.currency?.name})`, true),
                       ],
                     }),
                     new TableRow({
@@ -381,19 +381,19 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData , c
                         tableCell(`${enquiry.name}`, false),
                         tableCell("", false),
                         tableCell("", false),
-                        tableCell(`$${totalAmount}/-`, false),
+                        tableCell(`${enquiry.currency?.symbol}${totalAmount}/-`, false),
                       ],
                     }),
                     new TableRow({
                       children: [
                         tableCell("", false),
                         tableCell(
-                          `Total:- $${totalAmount} USD only`,
+                          `Total:- ${enquiry.currency?.symbol}${totalAmount} ${enquiry.currency?.name} only`,
                           true
                         ),
                         tableCell("", false),
                         tableCell("", false),
-                        tableCell(`$${totalAmount}/-`, true),
+                        tableCell(`${enquiry.currency?.symbol}${totalAmount}/-`, true),
                       ],
                     }),
                   ],
@@ -649,7 +649,7 @@ export const createQuotation = async (enquiry: Enquiry , userData : UserData , c
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "quotation.docx";
+    link.download = `${enquiry.name} quotation.docx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

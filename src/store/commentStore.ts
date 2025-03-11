@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, addDoc, getDocs } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 
 interface Attachment {
   url: string;
   name: string;
+  number: string; // Add number to attachment
 }
 
 interface Comment {
@@ -15,7 +16,7 @@ interface Comment {
     name: string;
     role?: string;  // Add role to user info
   };
-  attachments?: Attachment[]; // Array of attachment objects (URL + name)
+  attachments?: Attachment[]; // Array of attachment objects (URL + name + number)
   createdAt: string;
 }
 
@@ -40,30 +41,28 @@ export const useCommentStore = create<CommentState>((set, get) => ({
   fetchComments: async (projectId: string, userRole?: string) => {
     try {
       set({ loading: true, error: null });
-      const commentsRef = doc(db, 'project_comments', projectId);
-      const commentsDoc = await getDoc(commentsRef);
+      const commentsRef = collection(db, 'project_comments', projectId, 'comments');
+      const commentsSnapshot = await getDocs(commentsRef);
 
-      if (commentsDoc.exists()) {
-        const data = commentsDoc.data() as ProjectComments;
-        let filteredComments = data.comments;
+      const comments: Comment[] = commentsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Comment[];
 
-        // If user is a member, filter out customer comments
-        if (userRole === 'member') {
-          filteredComments = data.comments.filter(comment => 
-            comment.user.role !== 'customer'
-          );
-        }
+      // Order comments by createdAt in descending order
+      comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-        // Sort comments by date
+      // If user is a member, filter out customer comments
+      if (userRole === 'member') {
         set({
-          comments: filteredComments.sort((a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          ),
+          comments: comments.filter(comment => comment.user.role !== 'customer'),
           loading: false,
         });
       } else {
-        // If no comments exist yet, initialize with empty array
-        set({ comments: [], loading: false });
+        set({
+          comments,
+          loading: false,
+        });
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -77,9 +76,37 @@ export const useCommentStore = create<CommentState>((set, get) => ({
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error('User not authenticated');
 
-      const commentsRef = doc(db, 'project_comments', projectId);
-      const commentsDoc = await getDoc(commentsRef);
+      // Determine the latest attachment number for admin/member and customer
+      const commentsRef = collection(db, 'project_comments', projectId, 'comments');
+      const commentsSnapshot = await getDocs(commentsRef);
+      const existingComments = commentsSnapshot.docs.map(doc => doc.data() as Comment);
 
+      let adminMemberAttachmentCount = 0;
+      let customerAttachmentCount = 0;
+
+      existingComments.forEach(comment => {
+        if (comment.attachments) {
+          comment.attachments.forEach(attachment => {
+            if (comment.user.role === 'admin' || comment.user.role === 'member') {
+              if (attachment.number.startsWith('v')) {
+                const number = parseInt(attachment.number.slice(1), 10);
+                if (number > adminMemberAttachmentCount) {
+                  adminMemberAttachmentCount = number;
+                }
+              }
+            } else if (comment.user.role === 'customer') {
+              if (attachment.number.startsWith('c')) {
+                const number = parseInt(attachment.number.slice(1), 10);
+                if (number > customerAttachmentCount) {
+                  customerAttachmentCount = number;
+                }
+              }
+            }
+          });
+        }
+      });
+
+      // Create new comment object
       const newComment: Comment = {
         id: crypto.randomUUID(),
         text,
@@ -88,37 +115,22 @@ export const useCommentStore = create<CommentState>((set, get) => ({
           name: currentUser.email || 'Anonymous',
           role: userRole,  // Include user role in comment
         },
-        attachments: attachments.length > 0 ? attachments : [], // Set to undefined if no attachments
+        attachments: attachments.map((attachment, index) => ({
+          ...attachment,
+          number: userRole === 'admin' || userRole === 'member' ? `v${adminMemberAttachmentCount + index + 1}` : `c${customerAttachmentCount + index + 1}`,
+        })),
         createdAt: new Date().toISOString(),
       };
 
-      if (commentsDoc.exists()) {
-        // Update existing document
-        const currentData = commentsDoc.data() as ProjectComments;
-        await updateDoc(commentsRef, {
-          comments: [...currentData.comments, newComment],
-        });
-      } else {
-        // Create new document
-        await setDoc(commentsRef, {
-          projectId,
-          comments: [newComment],
-        });
-      }
+      // Add the new comment as a document in the Firestore collection
+      await addDoc(collection(db, 'project_comments', projectId, 'comments'), newComment);
 
-      // Update local state based on user role
-      if (userRole === 'member') {
-        // Only add to local state if it's not a customer comment
-        const currentComments = get().comments;
-        set({
-          comments: [newComment, ...currentComments],
-          loading: false,
-          error: null,
-        });
-      } else {
-        // Refetch to ensure proper filtering
-        await get().fetchComments(projectId, userRole);
-      }
+      // Update local state
+      set(state => ({
+        comments: [newComment, ...state.comments],
+        loading: false,
+        error: null,
+      }));
     } catch (error) {
       console.error('Error adding comment:', error);
       set({ error: (error as Error).message, loading: false });

@@ -10,11 +10,10 @@ import {
   Eye,
 } from "lucide-react";
 import toast from "react-hot-toast";
-// import { uploadToCloudinary } from "../lib/cloudinary";
 import { useAuthStore } from "../store/authStore";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { uploadToGitHub } from "@/lib/github";
+import { uploadCommentFilesToGitHub } from "@/lib/githubComments";
 import { useNotificationStore } from "../store/notificationStore";
 
 interface ProjectCommentsProps {
@@ -57,37 +56,21 @@ export default function ProjectComments({ projectId }: ProjectCommentsProps) {
 
     try {
       setSubmitting(true);
-      const attachments: { url: string; name: string }[] = [];
+      const attachments: { url: string; name: string; number: string }[] = [];
 
       // Upload files one by one
-      if (selectedFiles.length > 0 && (isAdmin || isMember)) {
+      if (selectedFiles.length > 0) {
         try {
-          for (let index = 0; index < selectedFiles.length; index++) {
-            const file = selectedFiles[index];
-
-            // Update upload progress for the current file
-            setUploadProgress((prev) => {
-              const newProgress = [...prev];
-              newProgress[index] = 50; // Set progress to 50% for the current file
-              return newProgress;
+          const uploadedFiles = await uploadCommentFilesToGitHub(selectedFiles, projectId, comments.length);
+          
+          // Ensure each uploaded file has a number property
+          const userRole = userData?.role as string;
+          uploadedFiles.forEach((file, index) => {
+            attachments.push({
+              ...file,
+              number: userRole === 'admin' || userRole === 'member' ? `v${index + 1}` : `c${index + 1}`,
             });
-
-            // Upload the file
-            const path = `Projects/${projectId}/v${comments.length + 1}/${
-              file.name
-            }`;
-            const url = await uploadToGitHub(file, path);
-
-            // Update upload progress to 100% for the current file
-            setUploadProgress((prev) => {
-              const newProgress = [...prev];
-              newProgress[index] = 100;
-              return newProgress;
-            });
-
-            // Add the uploaded file URL and name to the attachments array
-            attachments.push({ url, name: file.name });
-          }
+          });
 
           // Add notification for attachments
           await addNotification(
@@ -104,6 +87,11 @@ export default function ProjectComments({ projectId }: ProjectCommentsProps) {
       }
 
       // Add the comment with attachment URLs and names
+      await addComment(projectId, newComment, userData?.role as string, attachments);
+      setNewComment(""); // Clear the comment input
+      setSelectedFiles([]); // Clear the selected files
+      setUploadProgress([]); // Reset the upload progress
+      toast.success("Comment added successfully");
       try {
         await addComment(projectId, newComment, userData?.role as string, attachments);
         
@@ -131,18 +119,8 @@ export default function ProjectComments({ projectId }: ProjectCommentsProps) {
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!isAdmin && !isMember) {
-      toast.error("Only admin and members can add attachments");
-      return;
-    }
-
     const files = e.target.files;
     if (files) {
-      // if (files.length > 10) {
-      //   toast.error("You can upload a maximum of 5 files");
-      //   return;
-      // }
-
       const validFiles = Array.from(files).filter((file) => {
         if (file.size > 50 * 1024 * 1024) {
           toast.error(`File ${file.name} size should be less than 50MB`);
@@ -281,7 +259,7 @@ export default function ProjectComments({ projectId }: ProjectCommentsProps) {
           )}
 
           <div className="flex justify-between items-center">
-            {(isAdmin || isMember) && (
+            {(
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}

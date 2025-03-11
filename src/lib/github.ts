@@ -5,10 +5,10 @@ const OWNER = import.meta.env.VITE_GITHUB_OWNER as string;
 const REPO = import.meta.env.VITE_GITHUB_REPO as string;
 const BRANCH = import.meta.env.VITE_GITHUB_BRANCH as string;
 
-const octokit = new Octokit({ 
+const octokit = new Octokit({
   auth: GITHUB_TOKEN,
   request: {
-    fetch: (url, options) => {
+    fetch: (url: string, options: RequestInit) => {
       // Replace encoded forward slashes in the URL
       const decodedUrl = url.toString().replace(/%2F/g, '/');
       return fetch(decodedUrl, options);

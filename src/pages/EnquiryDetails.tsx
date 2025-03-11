@@ -13,7 +13,8 @@ import { dropdownData } from "../const/enquiryDropdown";
 export default function EnquiryDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { fetchEnquiry, convertToProject , updateEnquiryStatus } = useEnquiryStore();
+  const { fetchEnquiry, convertToProject, updateEnquiryStatus } =
+    useEnquiryStore();
   const [enquiry, setEnquiry] = useState<Enquiry | null>(null);
   const [customerDetails, setCustomerDetails] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,9 +26,10 @@ export default function EnquiryDetails() {
     const loadEnquiry = async () => {
       if (id) {
         const data = await fetchEnquiry(id);
+        // console.log("enquiry data",data)
         if (data) {
           setEnquiry(data);
-          
+
           // Fetch customer details if customer_id exists
           if (data.customer_id) {
             const customerData = await fetchCustomer(data.customer_id);
@@ -65,30 +67,32 @@ export default function EnquiryDetails() {
     }
   };
 
-  const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleStatusChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     if (!id || !enquiry) return;
-    
+
     const newStatus = e.target.value;
-    
+
     try {
       // Update the state immediately for better UX
       setEnquiry({
         ...enquiry,
-        status: newStatus
+        status: newStatus,
       });
-      
+
       // Then update Firebase
       await updateEnquiryStatus(id, newStatus);
-      
-      toast.success('Status updated successfully');
+
+      toast.success("Status updated successfully");
     } catch (error) {
       // Revert the state if Firebase update fails
       setEnquiry({
         ...enquiry,
-        status: enquiry.status
+        status: enquiry.status,
       });
-      
-      toast.error('Failed to update status');
+
+      toast.error("Failed to update status");
     }
   };
 
@@ -170,7 +174,7 @@ export default function EnquiryDetails() {
                 <p className="mt-1">{enquiry.description}</p>
               </div>
               {isAdmin && (
-                <div className="col-span-2">
+                <div className="col-span-1">
                   <p className="text-sm font-medium text-gray-500">Status</p>
                   <select
                     value={enquiry?.status || dropdownData[0]}
@@ -193,6 +197,14 @@ export default function EnquiryDetails() {
                   </select>
                 </div>
               )}
+              <div className="col-span-1">
+                <p className="text-sm font-medium text-gray-500">
+                  Currency Used
+                </p>
+                <p className="mt-1">
+                  {enquiry.currency?.name} ({enquiry.currency?.symbol})
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -210,9 +222,9 @@ export default function EnquiryDetails() {
                 {customerDetails.logoUrl && (
                   <div className="col-span-2">
                     <p className="text-sm font-medium text-gray-500">Logo</p>
-                    <img 
-                      src={customerDetails.logoUrl} 
-                      alt="Customer Logo" 
+                    <img
+                      src={customerDetails.logoUrl}
+                      alt="Customer Logo"
                       className="mt-1 max-h-20 object-contain"
                     />
                   </div>
@@ -226,11 +238,15 @@ export default function EnquiryDetails() {
                   <p className="mt-1">{customerDetails.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">GST Number</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    GST Number
+                  </p>
                   <p className="mt-1">{customerDetails.gstNumber}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">End Client</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    End Client
+                  </p>
                   <p className="mt-1">{customerDetails.endClient}</p>
                 </div>
                 <div className="col-span-2">
@@ -238,24 +254,34 @@ export default function EnquiryDetails() {
                   <p className="mt-1">{customerDetails.address}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">Billing Address</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Billing Address
+                  </p>
                   <p className="mt-1">{customerDetails.billingAddress}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">Contact Persons</p>
+                  <p className="text-sm font-medium text-gray-500">
+                    Contact Persons
+                  </p>
                   <div className="mt-1 space-y-2">
                     {customerDetails.contactPersons.map((person, index) => (
                       <div key={index} className="flex items-center space-x-4">
-                        <span className="text-sm text-gray-700">{person.name}</span>
+                        <span className="text-sm text-gray-700">
+                          {person.name}
+                        </span>
                         <span className="text-sm text-gray-500">-</span>
-                        <span className="text-sm text-gray-700">{person.phone}</span>
+                        <span className="text-sm text-gray-700">
+                          {person.phone}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No customer details found.</p>
+              <p className="text-sm text-gray-500">
+                No customer details found.
+              </p>
             )}
           </div>
         </div>
@@ -263,7 +289,8 @@ export default function EnquiryDetails() {
         {/* Deliverables Section */}
         <div className="bg-white rounded-xl border-[1px] overflow-hidden">
           <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Deliverables</h3>
+            {/* scope of work ( deliverables name changed ) */}
+            <h3 className="text-lg font-medium text-gray-900">Scope of Work</h3>
           </div>
           <div className="px-6 py-4">
             <table className="min-w-full divide-y divide-gray-200">
@@ -293,10 +320,10 @@ export default function EnquiryDetails() {
                       {deliverable.hours}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-500">
-                      ₹{deliverable.costPerHour}
+                      {enquiry.currency?.symbol} {deliverable.costPerHour}
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-900 text-right">
-                      ₹{deliverable.total}
+                      {enquiry.currency?.symbol} {deliverable.total}
                     </td>
                   </tr>
                 ))}
@@ -308,7 +335,7 @@ export default function EnquiryDetails() {
                     Grand Total
                   </td>
                   <td className="px-3 py-4 text-sm font-medium text-gray-900 text-right">
-                    ₹
+                    {enquiry.currency?.symbol}{" "}
                     {enquiry.deliverables.reduce(
                       (sum: number, d: Deliverable) => sum + d.total,
                       0
@@ -323,12 +350,11 @@ export default function EnquiryDetails() {
         {/* Scope of Work Section */}
         <div className="bg-white rounded-xl border-[1px] overflow-hidden">
           <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">
-              Scope of Work
-            </h3>
+            {/* Deliverables ( scope of work name changed ) */}
+            <h3 className="text-lg font-medium text-gray-900">Deliverables</h3>
           </div>
           <div className="px-6 py-4">
-            <div 
+            <div
               className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700"
               dangerouslySetInnerHTML={{ __html: enquiry.scopeOfWork }}
             />
@@ -340,10 +366,12 @@ export default function EnquiryDetails() {
           <div className="border-b border-gray-200 px-6 py-3">
             <h3 className="text-lg font-medium text-gray-900">Exclusions</h3>
           </div>
-          <div className="px-6 py-4"> 
+          <div className="px-6 py-4">
             <ul className="list-disc pl-5">
               {enquiry.exclusions.map((exclusion, index) => (
-                <li key={index} className="text-gray-700">{exclusion}</li>
+                <li key={index} className="text-gray-700">
+                  {exclusion}
+                </li>
               ))}
             </ul>
           </div>
@@ -357,7 +385,9 @@ export default function EnquiryDetails() {
           <div className="px-6 py-4">
             <ul className="list-disc pl-5">
               {enquiry.charges.map((charge, index) => (
-                <li key={index} className="text-gray-700">{charge}</li>
+                <li key={index} className="text-gray-700">
+                  {charge}
+                </li>
               ))}
             </ul>
           </div>
@@ -366,18 +396,20 @@ export default function EnquiryDetails() {
         {/* Inputs Required Section */}
         <div className="bg-white rounded-xl border-[1px] overflow-hidden">
           <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Inputs Required</h3>
+            <h3 className="text-lg font-medium text-gray-900">
+              Inputs Required
+            </h3>
           </div>
-          <div className="px-6 py-4"> 
+          <div className="px-6 py-4">
             <ul className="list-disc pl-5">
               {enquiry.inputsRequired.map((input, index) => (
-                <li key={index} className="text-gray-700">{input}</li>
+                <li key={index} className="text-gray-700">
+                  {input}
+                </li>
               ))}
             </ul>
           </div>
         </div>
-
-        
       </div>
     </div>
   );
