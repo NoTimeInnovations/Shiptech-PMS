@@ -4,6 +4,7 @@ import { LogOut, Menu } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import NotificationDropdown from './NotificationDropdown';
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard" },
@@ -183,7 +184,10 @@ export default function Navbar() {
                 Sign In
               </Link>
             )}
+            <NotificationDropdown />
           </div>
+
+          
         </div>
       </div>
     </nav>

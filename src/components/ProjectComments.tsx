@@ -15,6 +15,7 @@ import { useAuthStore } from "../store/authStore";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { uploadToGitHub } from "@/lib/github";
+import { useNotificationStore } from "../store/notificationStore";
 
 interface ProjectCommentsProps {
   projectId: string;
@@ -30,6 +31,7 @@ export default function ProjectComments({ projectId }: ProjectCommentsProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addNotification } = useNotificationStore();
 
   useEffect(() => {
     if (projectId && userData?.role) {
@@ -86,6 +88,13 @@ export default function ProjectComments({ projectId }: ProjectCommentsProps) {
             // Add the uploaded file URL and name to the attachments array
             attachments.push({ url, name: file.name });
           }
+
+          // Add notification for attachments
+          await addNotification(
+            `${user?.displayName || 'User'} added ${selectedFiles.length} attachment(s) to project`,
+            `/dashboard/projects/${projectId}`,
+            user?.uid as string
+          );
         } catch (uploadError) {
           console.error("Failed to upload files:", uploadError);
           toast.error("Failed to upload files. Please try again.");
@@ -97,9 +106,17 @@ export default function ProjectComments({ projectId }: ProjectCommentsProps) {
       // Add the comment with attachment URLs and names
       try {
         await addComment(projectId, newComment, userData?.role as string, attachments);
-        setNewComment(""); // Clear the comment input
-        setSelectedFiles([]); // Clear the selected files
-        setUploadProgress([]); // Reset the upload progress
+        
+        // Add notification for comment
+        await addNotification(
+          `${user?.displayName || 'User'} added a comment to project`,
+          `/dashboard/projects/${projectId}`,
+          user?.uid as string
+        );
+
+        setNewComment(""); 
+        setSelectedFiles([]); 
+        setUploadProgress([]); 
         toast.success("Comment added successfully");
       } catch (commentError) {
         console.error("Failed to add comment:", commentError);
