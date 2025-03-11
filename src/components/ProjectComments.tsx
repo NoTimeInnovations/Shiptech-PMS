@@ -60,61 +60,69 @@ export default function ProjectComments({ projectId }: ProjectCommentsProps) {
 
       // Upload files one by one
       if (selectedFiles.length > 0) {
-        try {
-          const uploadedFiles = await uploadCommentFilesToGitHub(selectedFiles, projectId, comments.length);
-          
-          // Ensure each uploaded file has a number property
-          const userRole = userData?.role as string;
-          uploadedFiles.forEach((file, index) => {
-            attachments.push({
-              ...file,
-              number: userRole === 'admin' || userRole === 'member' ? `v${index + 1}` : `c${index + 1}`,
-            });
-          });
+        for (let i = 0; i < selectedFiles.length; i++) {
+          try {
+            // Initialize progress for this file
+            const newProgress = [...uploadProgress];
+            newProgress[i] = 0;
+            setUploadProgress(newProgress);
 
-          // Add notification for attachments
+            // Upload single file
+            const uploadedFiles = await uploadCommentFilesToGitHub([selectedFiles[i]], projectId, comments.length);
+            
+            // Update progress to 100%
+            newProgress[i] = 100;
+            setUploadProgress(newProgress);
+
+            // Add to attachments
+            if (uploadedFiles && uploadedFiles.length > 0) {
+              const userRole = userData?.role as string;
+              uploadedFiles.forEach((file) => {
+                if (file && file.url && file.name) {
+                  attachments.push({
+                    url: file.url,
+                    name: file.name,
+                    number: userRole === 'admin' || userRole === 'member' ? `v${attachments.length + 1}` : `c${attachments.length + 1}`,
+                  });
+                }
+              });
+            }
+          } catch (uploadError) {
+            console.error("Failed to upload file:", uploadError);
+            toast.error(`Failed to upload ${selectedFiles[i].name}`);
+            return;
+          }
+        }
+
+        // Only add notification if files were successfully uploaded
+        if (attachments.length > 0) {
           await addNotification(
-            `${user?.displayName || 'User'} added ${selectedFiles.length} attachment(s) to project`,
+            `${user?.displayName || 'User'} added **${attachments.length} attachment(s)** to project`,
             `/dashboard/projects/${projectId}`,
             user?.uid as string
           );
-        } catch (uploadError) {
-          console.error("Failed to upload files:", uploadError);
-          toast.error("Failed to upload files. Please try again.");
-          setUploadProgress(selectedFiles.map(() => 0)); // Reset progress on error
-          return;
         }
       }
 
       // Add the comment with attachment URLs and names
       await addComment(projectId, newComment, userData?.role as string, attachments);
-      setNewComment(""); // Clear the comment input
-      setSelectedFiles([]); // Clear the selected files
-      setUploadProgress([]); // Reset the upload progress
-      toast.success("Comment added successfully");
-      try {
-        await addComment(projectId, newComment, userData?.role as string, attachments);
-        
-        // Add notification for comment
-        await addNotification(
-          `${user?.displayName || 'User'} added a comment to project`,
-          `/dashboard/projects/${projectId}`,
-          user?.uid as string
-        );
+      
+      // Add notification for comment
+      await addNotification(
+        `${userData?.fullName || 'User'} added a **comment** to project`,
+        `/dashboard/projects/${projectId}`,
+        user?.uid as string
+      );
 
-        setNewComment(""); 
-        setSelectedFiles([]); 
-        setUploadProgress([]); 
-        toast.success("Comment added successfully");
-      } catch (commentError) {
-        console.error("Failed to add comment:", commentError);
-        toast.error("Failed to add comment. Please try again.");
-      }
+      setNewComment("");
+      setSelectedFiles([]);
+      setUploadProgress([]);
+      toast.success("Comment added successfully");
     } catch (error) {
       console.error("Error in comment submission:", error);
       toast.error("An error occurred. Please try again.");
     } finally {
-      setSubmitting(false); // Reset the submitting state
+      setSubmitting(false);
     }
   };
 
