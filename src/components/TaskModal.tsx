@@ -82,7 +82,7 @@ export default function TaskModal({
         setSiblingTasks(tasks);
       }
 
-      console.log(tasks, "passed tasks");
+      // console.log(tasks, "passed tasks");
     };
     fetchSibTasks();
     return () => {

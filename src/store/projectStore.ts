@@ -177,8 +177,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateProject: async (id, projectData) => {
     try {
-      console.log('Starting project update:', { id, projectData });
-      console.log('Customer data received:', projectData.customer);
+      // console.log('Starting project update:', { id, projectData });
+      // console.log('Customer data received:', projectData.customer);
       set({ loading: true, error: null });
       const docRef = doc(db, "projects", id);
 
@@ -206,12 +206,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         project_start_date: projectData.project_start_date || currentProject.project_start_date || null,
       };
 
-      console.log('Cleaned project data:', cleanProjectData);
-      console.log('Customer data after cleaning:', cleanProjectData.customer);
+      // console.log('Cleaned project data:', cleanProjectData);
+      // console.log('Customer data after cleaning:', cleanProjectData.customer);
 
       // Update Firestore
       await updateDoc(docRef, cleanProjectData);
-      console.log('Project document updated in Firestore');
+      // console.log('Project document updated in Firestore');
 
       // Update local state
       const updatedProject = {
@@ -221,8 +221,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         createdAt: currentProject.createdAt,
       };
 
-      console.log('Updating local state with:', updatedProject);
-      console.log('Final customer data:', updatedProject.customer);
+      // console.log('Updating local state with:', updatedProject);
+      // console.log('Final customer data:', updatedProject.customer);
       
       // Update both the current project and the projects array
       const currentProjects = get().projects;

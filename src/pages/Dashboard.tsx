@@ -9,7 +9,8 @@ import {
   UserCheck,
   ListTodo,
   Users,
-  DollarSign
+  DollarSign,
+  TimerIcon
 } from "lucide-react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -30,6 +31,7 @@ import Customers from "./Customers";
 import OutsourceTeams from "./OutsourceTeams";
 import Documents from "./Documents";
 import Currencies from "./Currencies";
+import TimeSheet from "./TimeSheet";
 // Remove NewTeam and TeamDetails imports as they'll be handled in index.tsx
 
 export default function Dashboard() {
@@ -253,6 +255,19 @@ export default function Dashboard() {
               <DollarSign size={20} />
               {!isCollapsed && <span>Currencies</span>}
             </NavLink>
+            <NavLink
+              to="/dashboard/timesheet"
+              className={({ isActive }) =>
+                `flex items-center space-x-3 transition-all duration-500 rounded-xl mt-2 ${
+                  isActive
+                    ? "bg-black/90 text-white"
+                    : "text-gray-700 hover:bg-gray-50"
+                } ${isCollapsed ? "justify-center p-2" : " p-4"}`
+              }
+            >
+              <TimerIcon size={20} />
+              {!isCollapsed && <span>Time Sheet</span>}
+            </NavLink>
           </nav>
         </div>
 
@@ -271,6 +286,7 @@ export default function Dashboard() {
             <Route path="/outsource-teams/*" element={<OutsourceTeams />} />
             <Route path="/projects/:projectId/documents/*" element={<Documents />} />
             <Route path="/currencies" element={<Currencies />} />
+            <Route path="/timesheet" element={<TimeSheet />} />
           </Routes>
         </div>
 

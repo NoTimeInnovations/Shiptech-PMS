@@ -111,7 +111,7 @@ export default function TaskDetails() {
         const timer = task?.timeEntries?.find(
           (entry) => entry.userId === user?.uid
         );
-        console.log(timer, "timer");
+        // console.log(timer, "timer");
 
         if (timer) {
           const localTimer = localStorage.getItem("activeTimer");
@@ -367,9 +367,9 @@ export default function TaskDetails() {
         // Update existing entry
         updatedTimeEntries = task.timeEntries?.map((entry) => {
           if (entry.userId === user?.uid) {
-            console.log("entry", entry);
+            // console.log("entry", entry);
             const newDuration = entry.duration + totalMinutes;
-            console.log("newDuration", newDuration);
+            // console.log("newDuration", newDuration);
             return {
               ...entry,
               duration: newDuration,

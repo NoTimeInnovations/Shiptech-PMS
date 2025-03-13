@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 
 const FileViewer = () => {
   const searchParams = useSearchParams();
-    console.log(searchParams)  
+    // console.log(searchParams)  
   return (
     <div>FileViewer</div>
   )

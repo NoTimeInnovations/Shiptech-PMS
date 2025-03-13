@@ -53,7 +53,7 @@ const CustomersList = () => {
         }
       }
     } else {
-      console.log('No user found with email:', email);
+      // console.log('No user found with email:', email);
       deleteCustomer(id);
     }
     

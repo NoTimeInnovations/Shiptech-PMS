@@ -202,7 +202,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         throw new Error('No attendance record found for this user');
       }
 
-      console.log("attendanceData",attendanceData)
+      // console.log("attendanceData",attendanceData)
 
       await updateDoc(attendanceRef, {
         [`attendance.${userId}.type`]: type

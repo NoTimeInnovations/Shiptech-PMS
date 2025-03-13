@@ -42,7 +42,7 @@ export const useNotificationStore = create<NotificationStore>()(
 
       addNotification: async (content: string, url: string, userId: string) => {
         try {
-          console.log('Adding notification:', { content, url, userId });
+          // console.log('Adding notification:', { content, url, userId });
           const notificationData = {
             content,
             url,
@@ -51,7 +51,7 @@ export const useNotificationStore = create<NotificationStore>()(
           };
 
           const docRef = await addDoc(collection(db, 'notifications'), notificationData);
-          console.log('Notification added with ID:', docRef.id);
+          // console.log('Notification added with ID:', docRef.id);
           
           // Add to state immediately for optimistic update
           const newNotification = {
@@ -75,7 +75,7 @@ export const useNotificationStore = create<NotificationStore>()(
       },
 
       fetchNotifications: async (userId: string) => {
-        console.log('Fetching notifications for user:', userId);
+        // console.log('Fetching notifications for user:', userId);
         set({ loading: true, error: null });
         
         try {
@@ -89,7 +89,7 @@ export const useNotificationStore = create<NotificationStore>()(
           const unsubscribe = onSnapshot(q, (snapshot) => {
             const notifications = snapshot.docs.map(doc => {
               const data = doc.data();
-              console.log('Notification data:', data);
+              // console.log('Notification data:', data);
               return {
                 id: doc.id,
                 content: data.content,
@@ -99,7 +99,7 @@ export const useNotificationStore = create<NotificationStore>()(
               };
             });
 
-            console.log('Processed notifications:', notifications);
+            // console.log('Processed notifications:', notifications);
             set({ notifications, loading: false });
           }, (error) => {
             console.error('Error in notification listener:', error);
@@ -116,13 +116,13 @@ export const useNotificationStore = create<NotificationStore>()(
 
       deleteNotification: async (id: string) => {
         try {
-          console.log('Deleting notification:', id);
+          // console.log('Deleting notification:', id);
           await deleteDoc(doc(db, 'notifications', id));
           
           set(state => ({
             notifications: state.notifications.filter(n => n.id !== id)
           }));
-          console.log('Notification deleted successfully');
+          // console.log('Notification deleted successfully');
         } catch (error) {
           console.error('Error deleting notification:', error);
           set({ error: 'Failed to delete notification' });
@@ -131,7 +131,7 @@ export const useNotificationStore = create<NotificationStore>()(
 
       clearAllNotifications: async (userId: string) => {
         try {
-          console.log('Clearing all notifications for user:', userId);
+          // console.log('Clearing all notifications for user:', userId);
           const q = query(collection(db, 'notifications'), where('userId', '==', userId));
           const querySnapshot = await getDocs(q);
           
@@ -139,7 +139,7 @@ export const useNotificationStore = create<NotificationStore>()(
           await Promise.all(deletePromises);
           
           set({ notifications: [] });
-          console.log('All notifications cleared successfully');
+          // console.log('All notifications cleared successfully');
         } catch (error) {
           console.error('Error clearing notifications:', error);
           set({ error: 'Failed to clear notifications' });

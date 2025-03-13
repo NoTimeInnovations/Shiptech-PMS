@@ -140,6 +140,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         (doc) => ({ id: doc.id, ...doc.data() } as Task)
       );
 
+      // if(userTasks.length == 0){
+      //   console.log("user dont have tasks")
+      // }
+
+      // console.log("user have tasks")
+      // console.log("userTasks",userTasks)
+
       set({ tasks: userTasks, loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });

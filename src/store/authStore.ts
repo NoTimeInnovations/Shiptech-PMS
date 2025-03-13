@@ -10,6 +10,7 @@ import {
 import { doc, setDoc, query, collection, where, getDocs } from 'firebase/firestore';
 
 export interface UserData {
+  id:string;
   createdAt: string;
   email: string;
   fullName: string;
@@ -78,6 +79,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       
       const userData: UserData = {
+        id: user.uid,
         fullName,
         email,
         role: 'member',
@@ -109,6 +111,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       
       const userData: UserData = {
+        id: user.uid,
         fullName,
         email,
         role: 'customer',

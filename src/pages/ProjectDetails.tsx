@@ -81,9 +81,9 @@ export default function ProjectDetails() {
       return sum + (subtask.completed ? (subtask.percentage || 0) : 0);
     }, 0);
 
-    console.log(completedSum, "completedSum");
-    console.log(totalAssignedToChildren, "totalAssignedToChildren");
-    console.log((completedSum / totalAssignedToChildren) * 100, "percentage");
+    // console.log(completedSum, "completedSum");
+    // console.log(totalAssignedToChildren, "totalAssignedToChildren");
+    // console.log((completedSum / totalAssignedToChildren) * 100, "percentage");
 
     const comp =  Math.round((completedSum / totalAssignedToChildren) * 100);
     return Number(((comp * task.percentage) / 100).toFixed(1));
@@ -93,14 +93,14 @@ export default function ProjectDetails() {
     if (!tasks.length) return 0;
 
     const rootTasks = tasks;
-    console.log(rootTasks, "rootTasks");
+    // console.log(rootTasks, "rootTasks");
     
     let sum = 0;
 
     rootTasks.forEach((task) => {
-      console.log(task, "task");
+      // console.log(task, "task");
       const value = calculateCompletedPercentage(task);
-      console.log(value, "value");
+      // console.log(value, "value");
       sum += value;
     });
     return sum;
@@ -153,7 +153,7 @@ export default function ProjectDetails() {
     if (project) {
       fetchCustomer(project.customer.id).then(
         (customer) => {
-          console.log(customer, "customer");
+          // console.log(customer, "customer");
           
           setCustomerDetails(customer);
         }
@@ -195,7 +195,7 @@ export default function ProjectDetails() {
             ? currentPath[currentPath.length - 1].id
             : null,
       };
-      console.log(newTask, "newTask");
+      // console.log(newTask, "newTask");
       await addTask(newTask as Task);
       toast.success("Task added successfully");
     } catch (error) {
@@ -465,9 +465,9 @@ export default function ProjectDetails() {
     setPopoverOpen(false);
   };
 
-  useEffect(() => {
-    console.log(tasks, "tasks on project details");
-  }, [tasks]);
+  // useEffect(() => {
+  //   console.log(tasks, "tasks on project details");
+  // }, [tasks]);
 
   if (loading) {
     return (

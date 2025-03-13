@@ -59,9 +59,9 @@ export default function DocumentForm() {
   }, [documentId, project, fetchDocument]);
 
   // Add a separate useEffect to monitor formData changes
-  useEffect(() => {
-    console.log("Form data changed:", formData);
-  }, [formData]);
+  // useEffect(() => {
+  //   console.log("Form data changed:", formData);
+  // }, [formData]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -88,7 +88,7 @@ export default function DocumentForm() {
         
         if (formData.file) {
           const path = `documents/${projectId}/${formData.file.name}`;
-          console.log("Uploading new file to path:", path);
+          // console.log("Uploading new file to path:", path);
           const fileUrl = await uploadToGitHub(formData.file, path);
           if (!fileUrl) throw new Error('Failed to upload file');
           updateData.fileUrl = fileUrl;
@@ -101,7 +101,7 @@ export default function DocumentForm() {
         if (!formData.file) return;
         
         const path = `documents/${projectId}/${formData.file.name}`;
-        console.log("Uploading new file to path:", path);
+        // console.log("Uploading new file to path:", path);
         const fileUrl = await uploadToGitHub(formData.file, path);
         if (!fileUrl) throw new Error('Failed to upload file');
 
@@ -130,7 +130,7 @@ export default function DocumentForm() {
     try {
       if (formData.existingFileName && projectId) {
         const projectDocPath = `documents/${projectId}/${formData.existingFileName}`;
-        console.log("Attempting to delete file:", projectDocPath);
+        // console.log("Attempting to delete file:", projectDocPath);
         
         const response = await fetch('https://ship-backend-black.vercel.app/api/delete-file', {
           method: 'POST',
@@ -147,7 +147,7 @@ export default function DocumentForm() {
         }
 
         const result = await response.json();
-        console.log("File deletion result:", result);
+        // console.log("File deletion result:", result);
 
         // Only clear the form data after successful deletion
         setFormData(prev => ({ 

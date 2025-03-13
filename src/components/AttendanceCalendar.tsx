@@ -116,7 +116,7 @@ export default function AttendanceCalendar({
     };
 
     generateCalendar();
-    console.log(selectedUser);
+    // console.log(selectedUser);
 
     if (selectedUser) {
       fetchUserLeaveRequests(selectedUser);
@@ -393,12 +393,12 @@ export default function AttendanceCalendar({
       const userId = selectedUser || user?.uid;
       if (!userId || !selectedAttendanceDate) return;
 
-      console.log(
-        "before update :",
-        userId,
-        selectedAttendanceDate,
-        selectedAttendanceType
-      );
+      // console.log(
+      //   "before update :",
+      //   userId,
+      //   selectedAttendanceDate,
+      //   selectedAttendanceType
+      // );
 
       if (action === "update") {
         await updateAttendance(

@@ -86,13 +86,13 @@ export const useCustomerStore = create<CustomerState>((set) => ({
   },
 
   fetchCustomer: async (id: string) => {
-    console.log('fetchCustomer', id);
+    // console.log('fetchCustomer', id);
     
     set({ loading: true, error: null });
     try {
       const customerDoc = await getDoc(doc(db, 'customers', id));
 
-      console.log('customerDoc', customerDoc.data());
+      // console.log('customerDoc', customerDoc.data());
       
       
       if (!customerDoc.exists()) {

@@ -26,10 +26,10 @@ export const uploadCommentFilesToGitHub = async (
     const cleanPath = `Projects/${projectId}/v${commentsLength + 1}/${file.name}`;
     
     // Log the values for debugging
-    console.log("Uploading file to GitHub:");
-    console.log("Owner:", OWNER);
-    console.log("Repo:", REPO);
-    console.log("Path:", cleanPath);
+    // console.log("Uploading file to GitHub:");
+    // console.log("Owner:", OWNER);
+    // console.log("Repo:", REPO);
+    // console.log("Path:", cleanPath);
 
     const fileContent = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();

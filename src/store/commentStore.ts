@@ -1,6 +1,22 @@
-import { create } from 'zustand';
-import { doc, getDoc, setDoc, collection, addDoc, getDocs } from 'firebase/firestore';
-import { db, auth } from '../lib/firebase';
+import { create } from "zustand";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  limit,
+  QueryDocumentSnapshot,
+  DocumentData,
+  orderBy,
+  startAfter,
+  deleteDoc,
+  where,
+  Timestamp,
+} from "firebase/firestore";
+import { db, auth } from "../lib/firebase";
 
 interface Attachment {
   url: string;
@@ -14,10 +30,11 @@ interface Comment {
   user: {
     id: string;
     name: string;
-    role?: string;  // Add role to user info
+    role?: string; // Add role to user info
   };
   attachments?: Attachment[]; // Array of attachment objects (URL + name + number)
-  createdAt: string;
+  createdAt: Timestamp;
+  project_id: string; // Add project_id to the comment
 }
 
 interface ProjectComments {
@@ -29,44 +46,99 @@ interface CommentState {
   comments: Comment[];
   loading: boolean;
   error: string | null;
-  fetchComments: (projectId: string, userRole?: string) => Promise<void>;
+  commentsCount: number; // New state variable for tracking fetched pages
+  lastVisible: QueryDocumentSnapshot<DocumentData> | null; // Allow lastVisible to be null
+  fetchComments: (projectId: string) => Promise<void>; // Updated to only take projectId
+  fetchMoreComments: (projectId: string) => Promise<void>; // Updated to only take projectId
   addComment: (projectId: string, text: string, userRole: string, attachments?: Attachment[]) => Promise<void>;
+  deleteComment: (commentId: string) => Promise<void>; // Updated to only take commentId
 }
 
 export const useCommentStore = create<CommentState>((set, get) => ({
   comments: [],
   loading: false,
   error: null,
+  commentsCount: 0,
+  lastVisible: null,
 
-  fetchComments: async (projectId: string, userRole?: string) => {
+  fetchComments: async (projectId: string) => {
     try {
       set({ loading: true, error: null });
-      const commentsRef = collection(db, 'project_comments', projectId, 'comments');
-      const commentsSnapshot = await getDocs(commentsRef);
+      const commentsRef = collection(db, "project_comments");
+      const commentsQuery = query(
+        commentsRef,
+        where("project_id", "==", projectId),
+        orderBy("createdAt", "desc"),
+        limit(5)
+      );
 
+      const commentsSnapshot = await getDocs(commentsQuery);
+      let lastVisibleTemp: QueryDocumentSnapshot<DocumentData> | null = null;
+
+      if (!commentsSnapshot.empty) {
+        lastVisibleTemp = commentsSnapshot.docs[commentsSnapshot.docs.length - 1]; // Store last document
+      }
+
+      // Extract data to match Comment type
       const comments: Comment[] = commentsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Comment[]; // Ensure the data is cast to Comment type
+
+      // Set lastVisible to the last comment if it exists
+      set({ lastVisible: lastVisibleTemp });
+
+      set({
+        comments,
+        loading: false,
+        commentsCount: comments.length, // Set commentsCount to the number of fetched comments
+      });
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      set({ error: (error as Error).message, loading: false });
+    }
+  },
+
+  fetchMoreComments: async (projectId: string) => {
+    try {
+      const { lastVisible, comments } = get();
+      if (!lastVisible) return; // If there's no lastVisible, do nothing
+
+      const commentsRef = collection(db, "project_comments");
+      const commentsQuery = query(
+        commentsRef,
+        where("project_id", "==", projectId),
+        orderBy("createdAt", "desc"),
+        startAfter(lastVisible),
+        limit(5)
+      );
+
+      const commentsSnapshot = await getDocs(commentsQuery);
+      let newLastVisible: QueryDocumentSnapshot<DocumentData> | null = null;
+
+      if (!commentsSnapshot.empty) {
+        newLastVisible = commentsSnapshot.docs[commentsSnapshot.docs.length - 1]; // Store new last document
+      }
+
+      // Extract new comments and ensure they are cast to Comment type
+      const newComments: Comment[] = commentsSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       })) as Comment[];
 
-      // Order comments by createdAt in descending order
-      comments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      // Filter out duplicates before updating state
+      const uniqueNewComments = newComments.filter(
+        (newComment) => !comments.some((existingComment) => existingComment.id === newComment.id)
+      );
 
-      // If user is a member, filter out customer comments
-      if (userRole === 'member') {
-        set({
-          comments: comments.filter(comment => comment.user.role !== 'customer'),
-          loading: false,
-        });
-      } else {
-        set({
-          comments,
-          loading: false,
-        });
-      }
+      // Update state with unique new comments and lastVisible
+      set((state) => ({
+        comments: [...state.comments, ...uniqueNewComments],
+        lastVisible: newLastVisible,
+      }));
     } catch (error) {
-      console.error('Error fetching comments:', error);
-      set({ error: (error as Error).message, loading: false });
+      console.error("Error fetching more comments:", error);
+      set({ error: (error as Error).message });
     }
   },
 
@@ -74,67 +146,80 @@ export const useCommentStore = create<CommentState>((set, get) => ({
     try {
       set({ loading: true, error: null });
       const currentUser = auth.currentUser;
-      if (!currentUser) throw new Error('User not authenticated');
+      if (!currentUser) throw new Error("User not authenticated");
 
-      // Determine the latest attachment number for admin/member and customer
-      const commentsRef = collection(db, 'project_comments', projectId, 'comments');
-      const commentsSnapshot = await getDocs(commentsRef);
-      const existingComments = commentsSnapshot.docs.map(doc => doc.data() as Comment);
-
-      let adminMemberAttachmentCount = 0;
-      let customerAttachmentCount = 0;
-
-      existingComments.forEach(comment => {
-        if (comment.attachments) {
-          comment.attachments.forEach(attachment => {
-            if (comment.user.role === 'admin' || comment.user.role === 'member') {
-              if (attachment.number.startsWith('v')) {
-                const number = parseInt(attachment.number.slice(1), 10);
-                if (number > adminMemberAttachmentCount) {
-                  adminMemberAttachmentCount = number;
-                }
-              }
-            } else if (comment.user.role === 'customer') {
-              if (attachment.number.startsWith('c')) {
-                const number = parseInt(attachment.number.slice(1), 10);
-                if (number > customerAttachmentCount) {
-                  customerAttachmentCount = number;
-                }
-              }
-            }
-          });
-        }
-      });
-
-      // Create new comment object
-      const newComment: Comment = {
-        id: crypto.randomUUID(),
+      const newComment: Omit<Comment, 'id'> = { // Use Omit to exclude 'id' from the type
         text,
         user: {
           id: currentUser.uid,
-          name: currentUser.email || 'Anonymous',
-          role: userRole,  // Include user role in comment
+          name: currentUser.email || "Anonymous",
+          role: userRole, // Include user role in comment
         },
-        attachments: attachments.map((attachment, index) => ({
-          ...attachment,
-          number: userRole === 'admin' || userRole === 'member' ? `v${adminMemberAttachmentCount + index + 1}` : `c${customerAttachmentCount + index + 1}`,
-        })),
-        createdAt: new Date().toISOString(),
+        attachments: attachments.length > 0 ? attachments : [], // Set to empty array if no attachments
+        createdAt: Timestamp.now(), // Use Firestore's Timestamp
+        project_id: projectId, // Set project_id for the comment
       };
 
       // Add the new comment as a document in the Firestore collection
-      await addDoc(collection(db, 'project_comments', projectId, 'comments'), newComment);
+      const docRef = await addDoc(collection(db, "project_comments"), newComment);
 
-      // Update local state
-      set(state => ({
-        comments: [newComment, ...state.comments],
+      // Update local state with the new comment including the generated id
+      set((state) => ({
+        comments: [{ id: docRef.id, ...newComment }, ...state.comments], // Include the generated id
         loading: false,
         error: null,
       }));
     } catch (error) {
-      console.error('Error adding comment:', error);
+      console.error("Error adding comment:", error);
       set({ error: (error as Error).message, loading: false });
       throw error;
+    }
+  },
+
+  deleteComment: async (commentId: string) => {
+    try {
+      const { comments } = get();
+      const commentToDelete = comments.find(comment => comment.id === commentId);
+
+      if (commentToDelete) {
+        let attachmentsDeleted = true;
+
+        // Delete attachments from GitHub if they exist
+        if (commentToDelete.attachments) {
+          for (const attachment of commentToDelete.attachments) {
+            const projectDocPath = attachment.url.split("raw.githubusercontent.com/NoTimeInnovations/shiptech-data/main/")[1];
+            try {
+              const response = await fetch('https://ship-backend-black.vercel.app/api/delete-file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: projectDocPath }),
+              });
+
+              if (!response.ok) {
+                console.warn("Failed to delete attachment from GitHub:", attachment.url);
+                attachmentsDeleted = false;
+              }
+            } catch (error) {
+              console.warn("Attachment deletion failed:", error);
+              attachmentsDeleted = false;
+            }
+          }
+        }
+
+        // Correct Firestore path for comment document
+        const commentRef = doc(db, "project_comments", commentId);
+        if (attachmentsDeleted) {
+          await deleteDoc(commentRef);
+          set((state) => ({
+            comments: state.comments.filter(comment => comment.id !== commentId),
+          }));
+        } else {
+          console.warn("Comment not deleted because attachments could not be deleted.");
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      set({ error: (error as Error).message });
     }
   },
 }));
