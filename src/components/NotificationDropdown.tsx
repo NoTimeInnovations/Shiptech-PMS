@@ -10,11 +10,16 @@ export default function NotificationDropdown() {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
+  console.log("hello");
+
   // Fetch notifications on component mount, when user changes, and when fetchNotifications changes
   React.useEffect(() => {
+    console.log("hello");
+    
     const fetchData = async () => {
       if (user?.uid) {
         try {
+          
           await fetchNotifications(user.uid);
         } catch (error) {
           console.error('Error fetching notifications:', error);
@@ -24,9 +29,9 @@ export default function NotificationDropdown() {
 
     fetchData();
     // Set up an interval to fetch notifications every minute
-    const interval = setInterval(fetchData, 60000);
+    // const interval = setInterval(fetchData, 60000);
 
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, [user?.uid, fetchNotifications]);
 
   const toggleNotifications = () => {
@@ -47,7 +52,7 @@ export default function NotificationDropdown() {
     await deleteNotification(notificationId);
   };
 
-  const formatTimestamp = (date: Date | any) => {
+  const formatTimestamp = (date: Date) => {
     if (!date) return 'Just now';
     
     // Ensure we have a Date object

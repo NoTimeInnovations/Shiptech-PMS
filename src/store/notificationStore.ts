@@ -10,7 +10,6 @@ import {
     where,
     query,
     orderBy,
-    Timestamp,
     onSnapshot,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -42,7 +41,6 @@ export const useNotificationStore = create<NotificationStore>()(
 
       addNotification: async (content: string, url: string, userId: string) => {
         try {
-          // console.log('Adding notification:', { content, url, userId });
           const notificationData = {
             content,
             url,
@@ -51,9 +49,7 @@ export const useNotificationStore = create<NotificationStore>()(
           };
 
           const docRef = await addDoc(collection(db, 'notifications'), notificationData);
-          // console.log('Notification added with ID:', docRef.id);
           
-          // Add to state immediately for optimistic update
           const newNotification = {
             id: docRef.id,
             content,
@@ -66,7 +62,6 @@ export const useNotificationStore = create<NotificationStore>()(
             notifications: [newNotification, ...state.notifications]
           }));
 
-          // Fetch latest notifications to ensure consistency
           await get().fetchNotifications(userId);
         } catch (error) {
           console.error('Error adding notification:', error);
@@ -75,21 +70,20 @@ export const useNotificationStore = create<NotificationStore>()(
       },
 
       fetchNotifications: async (userId: string) => {
-        // console.log('Fetching notifications for user:', userId);
+        console.log("hello",userId)
         set({ loading: true, error: null });
         
         try {
           const q = query(
             collection(db, 'notifications'),
-            where('userId', '==', userId),
+            where('userId', '!=', userId),
             orderBy('createdAt', 'desc')
           );
 
           // Set up real-time listener
-          const unsubscribe = onSnapshot(q, (snapshot) => {
+          onSnapshot(q, (snapshot) => {
             const notifications = snapshot.docs.map(doc => {
               const data = doc.data();
-              // console.log('Notification data:', data);
               return {
                 id: doc.id,
                 content: data.content,
@@ -99,15 +93,14 @@ export const useNotificationStore = create<NotificationStore>()(
               };
             });
 
-            // console.log('Processed notifications:', notifications);
+            console.log(notifications)
+
             set({ notifications, loading: false });
           }, (error) => {
             console.error('Error in notification listener:', error);
             set({ error: 'Failed to fetch notifications', loading: false });
           });
 
-          // Clean up listener on next fetch
-          return () => unsubscribe();
         } catch (error) {
           console.error('Error setting up notification listener:', error);
           set({ error: 'Failed to fetch notifications', loading: false });

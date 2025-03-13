@@ -10,6 +10,7 @@ import { Loader2, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 import AttendanceCalendar from "@/components/AttendanceCalendar";
 import { AdminAttendanceMarker } from "@/components/AdminAttendanceMarker";
+import { useNotificationStore } from "../store/notificationStore";
 
 interface User {
   id: string;
@@ -37,7 +38,7 @@ export default function Attendance() {
     updateAttendance,
     removeAttendance,
   } = useAttendanceStore();
-  const { user } = useAuthStore();
+  const { user, userData } = useAuthStore();
   const { requestLeave, fetchUserLeaveRequests, allLeaveRequests, fetchAllLeaveRequests } =
     useLeaveStore();
   const { requestWorkFrom, fetchUserWorkFromRequests, allWorkFromRequests, fetchAllWorkFromRequests } =
@@ -49,6 +50,7 @@ export default function Attendance() {
   const [monthlyAttendance, setMonthlyAttendance] = useState<
     MonthlyAttendance[]
   >([]);
+  const { addNotification } = useNotificationStore();
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
 
   // Modal states
@@ -202,6 +204,13 @@ export default function Attendance() {
       setShowLeaveModal(false);
       setLeaveForm({ startDate: "", endDate: "", reason: "", leaveType: "full" });
       toast.success("Leave request submitted successfully");
+      if(userData?.role !== "admin"){
+        await addNotification(
+          `${userData?.fullName || 'User'} requested **leave**`,
+          `/dashboard/attendance`,
+          user?.uid as string
+        );
+      }
     } catch (error) {
       console.error("Leave request error:", error);
       toast.error("Failed to submit leave request");
@@ -240,6 +249,13 @@ export default function Attendance() {
       setWorkFromForm({ startDate: "", endDate: "", reason: "" });
       setShowEndDateInput(false);
       toast.success("Work from home request submitted successfully");
+      if(userData?.role !== "admin"){
+        await addNotification(
+          `${userData?.fullName || 'User'} requested **work from home**`,
+          `/dashboard/attendance`,
+          user?.uid as string
+        );
+      }
     } catch (error) {
       console.error("Work from home request error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to submit work from home request");
@@ -274,6 +290,13 @@ export default function Attendance() {
       setOOOForm({ startDate: "", endDate: "", reason: "" });
       setShowEndDateInput(false);
       toast.success("Out-of-Office request submitted successfully");
+      if(userData?.role !== "admin"){
+        await addNotification(
+          `${userData?.fullName || 'User'} requested **out-of-office**`,
+          `/dashboard/attendance`,
+          user?.uid as string
+        );
+      }
     } catch (error) {
       console.error("OOO request error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to submit Out-of-Office request");
