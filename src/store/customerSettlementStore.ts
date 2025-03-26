@@ -31,6 +31,7 @@ export interface CusSettlement {
 
 interface SettlementState {
   settlement: CusSettlement;
+  AllSettlements: CusSettlement[];
   loading: boolean;
   error: string | null;
   cache: Map<string, CusSettlement>;
@@ -40,6 +41,7 @@ interface SettlementState {
   updateSettlement: (id: string, settlement: Partial<CusSettlement>) => Promise<void>;
   deleteSettlement: (id: string) => Promise<void>;
   fetchSettlement: DebouncedFunc<(customerId: string) => Promise<void>>;
+  fetchAllSettlements: () => Promise<void>;
   addPayment: (
     settlementId: string,
     payment: number,
@@ -61,6 +63,7 @@ interface SettlementState {
 
 export const useCustomerSettlementStore = create<SettlementState>((set, get) => ({
   settlement: {} as CusSettlement,
+  AllSettlements: {} as CusSettlement[],
   loading: false,
   error: null,
   cache: new Map(),
@@ -166,6 +169,7 @@ export const useCustomerSettlementStore = create<SettlementState>((set, get) => 
 
   fetchSettlement: debounce(async (customerId: string) => {
     try {
+      console.log(`settlement finding for customer: ${customerId}`)
       set({ loading: true, error: null });
 
       const cachedSettlement = get().cache.get(customerId);
@@ -174,14 +178,14 @@ export const useCustomerSettlementStore = create<SettlementState>((set, get) => 
         return;
       }
 
-      console.log("Fetching customer settlement from Firestore...");
-
       const querySnapshot = await getDocs(
         query(collection(db, "customerSettlement"), where("customer_id", "==", customerId))
       );
 
       if (querySnapshot.empty) {
-        throw new Error(`No settlement found for customer: ${customerId}`);
+        // throw new Error(`No settlement found for customer: ${customerId}`);
+        console.log(`No settlement found for customer: ${customerId}`)
+        return
       }
 
       const settlement = querySnapshot.docs[0].data() as CusSettlement;
@@ -203,6 +207,38 @@ export const useCustomerSettlementStore = create<SettlementState>((set, get) => 
       set({ loading: false });
     }
   }, 300),
+
+  fetchAllSettlements: async () => {
+    console.log("start to fetch")
+    try {
+      set({ loading: true, error: null });
+
+      if (get().AllSettlements.length > 0) {
+        set({ AllSettlements: get().AllSettlements, loading: false });
+        return;
+      }
+
+      const querySnapshot = await getDocs(
+        query(collection(db, "customerSettlement"))
+      );
+
+      console.log("query complete")
+
+      const AllSettlementsData: CusSettlement[] = querySnapshot.docs.map(doc => {
+        const data = doc.data() as Omit<CusSettlement, "id">;
+        return { ...data, id: doc.id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      });
+      console.log("AllSettlementsData", AllSettlementsData);
+
+      set({ AllSettlements: AllSettlementsData });
+    } catch (error) {
+      console.error("Error fetching settlement:", error);
+      set({ error: (error as Error).message, settlement: {} as CusSettlement });
+      throw error;
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   addPayment: async (settlementId, payment, totalAmount, paymentRef) => {
     try {

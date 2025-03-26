@@ -9,7 +9,7 @@ import { Project } from "../store/projectStore"; // Import the Project type
 
 export default function Projects() {
   const { projects, loading, deleteProject, fetchProjects } = useProjectStore();
-  const { fetchSettlement } = useCustomerSettlementStore();
+  const { fetchAllSettlements, AllSettlements } = useCustomerSettlementStore();
   const navigate = useNavigate();
   const [updatedProjects, setUpdatedProjects] = useState<Project[]>([]); // Now Project type is recognized
 
@@ -31,32 +31,29 @@ export default function Projects() {
     if (projects.length === 0) {
       fetchProjects();
     }
-  }, [projects]);
+    if (AllSettlements.length === 0) {
+      fetchAllSettlements();
+    }
+  }, [projects, AllSettlements]);
 
   useEffect(() => {
-    const fetchSettlements = async () => {
-      const updatedProjects = await Promise.all(
-        projects.map(async (project) => {
-          try {
-            await fetchSettlement(project.customer_id);
-            const settlement = useCustomerSettlementStore.getState().settlement;
-            return {
-              ...project,
-              settlement: settlement.status,
-            };
-          } catch (error) {
-            console.error('Error fetching settlement:', error);
-            return project;
-          }
-        })
-      );
+    const fetchSettlements = () => {
+      console.log("projects",projects)
+      console.log("AllSettlements",AllSettlements)
+      const updatedProjects = projects.map((project) => {
+        const projectSettlement = AllSettlements?.find(settlement => settlement.project_id === project.id);
+        return {
+          ...project,
+          settlement: projectSettlement ? projectSettlement.status : 'No settlement started',
+        };
+      });
       setUpdatedProjects(updatedProjects);
     };
 
     if (projects.length > 0) {
       fetchSettlements();
     }
-  }, [projects]);
+  }, [projects, AllSettlements]);
 
   return (
     <div className="p-6">
