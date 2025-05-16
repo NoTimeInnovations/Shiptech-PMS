@@ -22,6 +22,7 @@ export default function CustomerForm() {
     Omit<Customer, "id" | "createdAt" | "updatedAt">
   >({
     name: "",
+    nickname:"",
     address: "",
     billingAddress: "",
     gstNumber: "",
@@ -62,6 +63,7 @@ export default function CustomerForm() {
 
           setFormData({
             name: customer.name,
+            nickname:customer.nickname, 
             address: customer.address,
             billingAddress: customer.billingAddress,
             gstNumber: customer.gstNumber,
@@ -81,17 +83,17 @@ export default function CustomerForm() {
   }, [id, fetchCustomer]);
 
   // Function to generate password from customer name
-  const generatePassword = (name: string) => {
-    const formattedName = name.replace(/\s+/g, "_").toLowerCase();
+  const generatePassword = (nickName: string) => {
+    const formattedName = nickName.replace(/\s+/g, "_").toLowerCase();
     return `${formattedName}@123`;
   };
 
   // Update password when name changes
   useEffect(() => {
-    if (formData.name) {
-      setGeneratedPassword(generatePassword(formData.name));
+    if (formData.nickname) {
+      setGeneratedPassword(generatePassword(formData.nickname));
     }
-  }, [formData.name]);
+  }, [formData.nickname]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -301,6 +303,22 @@ export default function CustomerForm() {
                 className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
+
+            <div>
+  <label className="block font-medium text-gray-700">
+    Nickname
+  </label>
+  <input
+    type="text"
+    value={formData.nickname}
+    required
+    onChange={(e) =>
+      setFormData((prev) => ({ ...prev, nickname: e.target.value }))
+    }
+    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+  />
+ 
+</div>
 
             <div>
               <label className="block font-medium text-gray-700">Email</label>

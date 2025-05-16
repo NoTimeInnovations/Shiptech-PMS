@@ -23,6 +23,7 @@ export interface ContactPerson {
 export interface Customer {
   id?: string;
   name: string;
+  nickname:string;
   userId?: string;
   address: string;
   billingAddress: string;
