@@ -251,8 +251,8 @@ export default function CustomerDetails() {
                       <div className="space-y-2">
                         {customer.contactPersons.map((contact, index) => (
                           <div key={index} className="text-gray-600">
-                            <span className="font-medium">{contact.name}</span>{" "}
-                            - {contact.phone}
+                            <span className="font-medium">{contact.name}</span>{":  "}
+                             {contact.countryCode+" "+contact.phone}
                           </div>
                         ))}
                       </div>

@@ -120,7 +120,7 @@ const CustomersList = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                     {customer.contactPersons && customer.contactPersons.length > 0 
-                      ? customer.contactPersons[0].phone 
+                      ? customer.contactPersons[0].countryCode +" "+customer.contactPersons[0].phone 
                       : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">

@@ -11,6 +11,8 @@ import toast from "react-hot-toast";
 import { uploadToGitHub } from "@/lib/github";
 import { Image } from "lucide-react";
 
+import CountryCodeSelector from "@/components/CountryCode";
+
 export default function CustomerForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -22,11 +24,11 @@ export default function CustomerForm() {
     Omit<Customer, "id" | "createdAt" | "updatedAt">
   >({
     name: "",
-    nickname:"",
+    nickname: "",
     address: "",
     billingAddress: "",
     gstNumber: "",
-    contactPersons: [{ name: "", phone: "" }],
+    contactPersons: [{ name: "", phone: "", countryCode: "+91" }],
     email: "",
     logoUrl: "",
   });
@@ -52,18 +54,25 @@ export default function CustomerForm() {
               {
                 name: customer.contactPerson as string,
                 phone: customer.phone as string,
+                countryCode: "+91",
               },
             ];
           }
 
           // If no contact persons exist, initialize with an empty one
           if (contactPersons.length === 0) {
-            contactPersons = [{ name: "", phone: "" }];
+            contactPersons = [{ name: "", phone: "", countryCode: "+91" }];
+          } else {
+            // Add countryCode to existing contact persons if not present
+            contactPersons = contactPersons.map((contact) => ({
+              ...contact,
+              countryCode: contact.countryCode || "+91", // Default if not available
+            }));
           }
 
           setFormData({
             name: customer.name,
-            nickname:customer.nickname, 
+            nickname: customer.nickname,
             address: customer.address,
             billingAddress: customer.billingAddress,
             gstNumber: customer.gstNumber,
@@ -154,14 +163,13 @@ export default function CustomerForm() {
         });
         toast.success("Customer updated successfully");
       } else {
-
         const cus = await signUpCustomer(
           formData.email,
           generatedPassword,
           formData.name
         );
 
-        if(!cus) {
+        if (!cus) {
           toast.error("Failed to create customer account");
           throw new Error("Failed to create customer account");
         }
@@ -219,7 +227,10 @@ export default function CustomerForm() {
   const addContactPerson = () => {
     setFormData((prev) => ({
       ...prev,
-      contactPersons: [...prev.contactPersons, { name: "", phone: "" }],
+      contactPersons: [
+        ...prev.contactPersons,
+        { name: "", phone: "", countryCode: "+91" },
+      ],
     }));
   };
 
@@ -305,20 +316,19 @@ export default function CustomerForm() {
             </div>
 
             <div>
-  <label className="block font-medium text-gray-700">
-    Nickname
-  </label>
-  <input
-    type="text"
-    value={formData.nickname}
-    required
-    onChange={(e) =>
-      setFormData((prev) => ({ ...prev, nickname: e.target.value }))
-    }
-    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-  />
- 
-</div>
+              <label className="block font-medium text-gray-700">
+                Nickname
+              </label>
+              <input
+                type="text"
+                value={formData.nickname}
+                required
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, nickname: e.target.value }))
+                }
+                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
 
             <div>
               <label className="block font-medium text-gray-700">Email</label>
@@ -414,51 +424,65 @@ export default function CustomerForm() {
               </div>
 
               <div className="space-y-3">
-                {formData.contactPersons.map((contact, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50"
-                  >
-                    <div className="flex-grow grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Name
-                        </label>
-                        <input
-                          type="text"
-                          required={index === 0}
-                          value={contact.name}
-                          onChange={(e) =>
-                            updateContactPerson(index, "name", e.target.value)
-                          }
-                          className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">
-                          Phone
-                        </label>
-                        <input
-                          type="tel"
-                          required={index === 0}
-                          value={contact.phone}
-                          onChange={(e) =>
-                            updateContactPerson(index, "phone", e.target.value)
-                          }
-                          className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeContactPerson(index)}
-                      className="mt-7 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))}
-              </div>
+  {formData.contactPersons.map((contact, index) => (
+    <div
+      key={index}
+      className="flex items-start space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50"
+    >
+      <div className="flex-grow grid grid-cols-1 gap-3 sm:grid-cols-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">
+            Name
+          </label>
+          <input
+            type="text"
+            required={index === 0}
+            value={contact.name}
+            onChange={(e) =>
+              updateContactPerson(index, "name", e.target.value)
+            }
+            className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="w-32 sm:col-span-1">
+          <label className="block text-sm font-medium text-gray-700">
+            Country Code
+          </label>
+          <CountryCodeSelector
+            value={contact.countryCode || "+91"}
+            onChange={(value) =>
+              updateContactPerson(index, "countryCode", value)
+            }
+            className="mt-1 block w-full"
+          />
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Phone
+          </label>
+          <input
+            type="tel"
+            required={index === 0}
+            value={contact.phone}
+            onChange={(e) =>
+              updateContactPerson(index, "phone", e.target.value)
+            }
+            className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => removeContactPerson(index)}
+        className="mt-7 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+      >
+        <Trash2 size={18} />
+      </button>
+    </div>
+  ))}
+</div>
               <p className="mt-1 text-sm text-gray-500">
                 At least one contact person is required
               </p>
@@ -512,7 +536,7 @@ export default function CustomerForm() {
               <p className="mt-1 text-sm text-gray-500">
                 Leave empty if same as address
               </p>
-            </div>            
+            </div>
           </div>
         </div>
       </div>

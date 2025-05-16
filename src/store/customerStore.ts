@@ -17,6 +17,7 @@ import { Project } from './projectStore';
 
 export interface ContactPerson {
   name: string;
+  countryCode?:string;
   phone: string;
 }
 
