@@ -28,6 +28,7 @@ export interface Customer {
   userId?: string;
   address: string;
   billingAddress: string;
+  shippingAddress:string;
   phone?: string;
   gstNumber: string;
   contactPersons: ContactPerson[];

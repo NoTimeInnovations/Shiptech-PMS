@@ -27,6 +27,7 @@ export default function CustomerForm() {
     nickname: "",
     address: "",
     billingAddress: "",
+    shippingAddress:"",
     gstNumber: "",
     contactPersons: [{ name: "", phone: "", countryCode: "+91" }],
     email: "",
@@ -75,6 +76,7 @@ export default function CustomerForm() {
             nickname: customer.nickname,
             address: customer.address,
             billingAddress: customer.billingAddress,
+            shippingAddress:customer.shippingAddress,
             gstNumber: customer.gstNumber,
             contactPersons,
             email: customer.email || "",
@@ -528,6 +530,27 @@ export default function CustomerForm() {
                   setFormData((prev) => ({
                     ...prev,
                     billingAddress: e.target.value,
+                  }))
+                }
+                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                rows={3}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Leave empty if same as address
+              </p>
+            </div>
+
+            
+            <div>
+              <label className="block font-medium text-gray-700">
+                Shipping Address
+              </label>
+              <textarea
+                value={formData.shippingAddress}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    shippingAddress: e.target.value,
                   }))
                 }
                 className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"

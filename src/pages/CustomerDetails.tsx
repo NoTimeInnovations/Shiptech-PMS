@@ -13,6 +13,8 @@ import {
   FileQuestion,
   ArrowRight,
   Check,
+
+  TruckIcon,
 } from "lucide-react";
 import { useCustomerStore, Customer } from "@/store/customerStore";
 import toast from "react-hot-toast";
@@ -311,6 +313,17 @@ export default function CustomerDetails() {
                     </p>
                   </div>
                 </div>
+
+                <div className="flex items-start">
+                  <TruckIcon className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <div>
+                    <p className="font-medium text-gray-700">Shipping Address</p>
+                    <p className="text-gray-600 whitespace-pre-line">
+                      {customer.shippingAddress || "Same as address"}
+                    </p>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
