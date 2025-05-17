@@ -127,6 +127,8 @@ const EnquiriesList = () => {
                           ? "bg-green-500"
                           : enquiry.status === "on hold"
                           ? "bg-yellow-500"
+                          : enquiry.status==="processing"
+                          ? "bg-blue-500"
                           : ""
                       }`}
                     >

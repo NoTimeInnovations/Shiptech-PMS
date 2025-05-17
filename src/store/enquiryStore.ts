@@ -38,6 +38,7 @@ export interface Enquiry {
   status: string;
   currency?: CurrencyDetails;
   endClient: string;
+  deadLine:string
 }
 
 interface TaskWithEnquiryId extends Task {

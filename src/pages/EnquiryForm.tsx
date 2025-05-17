@@ -13,6 +13,7 @@ interface Deliverable {
   hours: number;
   costPerHour: number;
   total: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   description: any;
 }
 
@@ -24,11 +25,13 @@ interface EnquiryFormData {
   deliverables: Deliverable[];
   exclusions: string[];
   charges: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   scopeOfWork: any;
   inputsRequired: string[];
   status: string;
   currency?: CurrencyDetails;
   endClient: string;
+  deadLine:string
 }
 
 const toolbarConfig: ToolbarConfig = {
@@ -102,6 +105,7 @@ export default function EnquiryForm() {
     status: "draft",
     currency: undefined,
     endClient: "",
+    deadLine:""
   });
 
   useEffect(() => {
@@ -158,6 +162,7 @@ export default function EnquiryForm() {
         // Ensure the parsed data matches the expected structure
         if (parsedData && typeof parsedData === 'object') {
           // Process deliverables and scopeOfWork to convert HTML strings to RichTextEditor values
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const processedDeliverables = parsedData.deliverables.map((d: any) => ({
             ...d,
             description: d.description
@@ -392,6 +397,7 @@ export default function EnquiryForm() {
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleDeliverableDescriptionChange = (id: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
@@ -418,6 +424,7 @@ export default function EnquiryForm() {
       status: "draft",
       currency: undefined,
       endClient: "",
+      deadLine:""
     });
     localStorage.removeItem("enquiryFormData"); // Clear from localStorage
   };
@@ -518,6 +525,24 @@ export default function EnquiryForm() {
                 rows={3}
               />
             </div>
+
+<div>
+  <label className="block font-medium text-gray-700">
+    Deadline
+  </label>
+  <input
+    type="date"
+    value={formData.deadLine}
+    onChange={(e) =>
+      setFormData((prev) => ({
+        ...prev,
+        deadLine: e.target.value,
+      }))
+    }
+    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+  />
+</div>
+
             <div>
               {/* changed scope of work label to deliverables */}
               <label className="block font-medium text-gray-700">
@@ -852,8 +877,28 @@ export default function EnquiryForm() {
               </div>
             ))}
           </div>
+          
         </div>
+        
       </div>
+   <div className="flex justify-end mt-4">
+  <button
+    type="submit"
+    disabled={isSubmitting || storeLoading}
+    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black/90 hover:bg-black/80 focus:outline-none"
+  >
+    {isSubmitting || storeLoading ? (
+      <>
+        <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+        {id ? "Updating..." : "Creating..."}
+      </>
+    ) : id ? (
+      "Update Enquiry"
+    ) : (
+      "Create Enquiry"
+    )}
+  </button>
+</div>
     </form>
   );
 }

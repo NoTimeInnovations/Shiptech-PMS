@@ -148,67 +148,75 @@ export default function EnquiryDetails() {
 
       <div className="space-y-6 px-[10%] mt-10">
         {/* Basic Information Section */}
-        <div className="bg-white border-[1px] rounded-lg overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">
-              Basic Information
-            </h3>
-          </div>
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-gray-500">ID</p>
-                <p className="mt-1">E-{enquiry.enquiryNumber}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Created At</p>
-                <p className="mt-1">
-                  {new Date(enquiry.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-sm font-medium text-gray-500">Name</p>
-                <p className="mt-1">{enquiry.name}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="text-sm font-medium text-gray-500">Description</p>
-                <p className="mt-1">{enquiry.description}</p>
-              </div>
-              {isAdmin && (
-                <div className="col-span-1">
-                  <p className="text-sm font-medium text-gray-500">Status</p>
-                  <select
-                    value={enquiry?.status || dropdownData[0]}
-                    onChange={handleStatusChange}
-                    className={`mt-1 w-max border-1 py-2 px-1 rounded-md shadow-sm focus:ring-1 text-white ${
-                      enquiry?.status === "cancelled"
-                        ? "bg-red-500 border-red-500 focus:border-red-400 focus:ring-red-400"
-                        : enquiry?.status === "on hold"
-                        ? "bg-yellow-500 border-yellow-500 focus:border-yellow-400 focus:ring-yellow-400"
-                        : enquiry?.status === "moved to projects"
-                        ? "bg-green-500 border-green-500 focus:border-green-400 focus:ring-green-400"
-                        : "bg-blue-600 border-blue-600 focus:border-blue-500 focus:ring-blue-500"
-                    } sm:text-sm`}
-                  >
-                    {dropdownData.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <div className="col-span-1">
-                <p className="text-sm font-medium text-gray-500">
-                  Currency Used
-                </p>
-                <p className="mt-1">
-                  {enquiry.currency?.name} ({enquiry.currency?.symbol})
-                </p>
-              </div>
-            </div>
-          </div>
+     <div className="bg-white border-[1px] rounded-lg overflow-hidden">
+  <div className="border-b border-gray-200 px-6 py-3">
+    <h3 className="text-lg font-medium text-gray-900">
+      Basic Information
+    </h3>
+  </div>
+  <div className="px-6 py-4">
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <p className="text-sm font-medium text-gray-500">ID</p>
+        <p className="mt-1">E-{enquiry.enquiryNumber}</p>
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-500">Created At</p>
+        <p className="mt-1">
+          {new Date(enquiry.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+      
+      <div>
+        <p className="text-sm font-medium text-gray-500">Deadline</p>
+        <p className="mt-1">
+        {enquiry.deadLine}
+        </p>
+      </div>
+      
+      <div className="col-span-2">
+        <p className="text-sm font-medium text-gray-500">Name</p>
+        <p className="mt-1">{enquiry.name}</p>
+      </div>
+      <div className="col-span-2">
+        <p className="text-sm font-medium text-gray-500">Description</p>
+        <p className="mt-1">{enquiry.description}</p>
+      </div>
+      {isAdmin && (
+        <div className="col-span-1">
+          <p className="text-sm font-medium text-gray-500">Status</p>
+          <select
+            value={enquiry?.status || dropdownData[0]}
+            onChange={handleStatusChange}
+            className={`mt-1 w-max border-1 py-2 px-1 rounded-md shadow-sm focus:ring-1 text-white ${
+              enquiry?.status === "cancelled"
+                ? "bg-red-500 border-red-500 focus:border-red-400 focus:ring-red-400"
+                : enquiry?.status === "on hold"
+                ? "bg-yellow-500 border-yellow-500 focus:border-yellow-400 focus:ring-yellow-400"
+                : enquiry?.status === "moved to projects"
+                ? "bg-green-500 border-green-500 focus:border-green-400 focus:ring-green-400"
+                : "bg-blue-600 border-blue-600 focus:border-blue-500 focus:ring-blue-500"
+            } sm:text-sm`}
+          >
+            {dropdownData.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
         </div>
+      )}
+      <div className="col-span-1">
+        <p className="text-sm font-medium text-gray-500">
+          Currency Used
+        </p>
+        <p className="mt-1">
+          {enquiry.currency?.name} ({enquiry.currency?.symbol})
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
 
         {/* Customer Details Section */}
         <div className="bg-white border-[1px] rounded-xl overflow-hidden">
