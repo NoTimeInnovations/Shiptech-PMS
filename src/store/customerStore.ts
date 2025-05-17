@@ -19,6 +19,7 @@ export interface ContactPerson {
   name: string;
   countryCode?:string;
   phone: string;
+  email:string;
 }
 
 export interface Customer {

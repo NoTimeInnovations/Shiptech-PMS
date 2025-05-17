@@ -29,7 +29,7 @@ export default function CustomerForm() {
     billingAddress: "",
     shippingAddress:"",
     gstNumber: "",
-    contactPersons: [{ name: "", phone: "", countryCode: "+91" }],
+    contactPersons: [{ name: "", phone: "", countryCode: "+91" ,email:""}],
     email: "",
     logoUrl: "",
   });
@@ -56,13 +56,14 @@ export default function CustomerForm() {
                 name: customer.contactPerson as string,
                 phone: customer.phone as string,
                 countryCode: "+91",
+                email:customer.email as string,
               },
             ];
           }
 
           // If no contact persons exist, initialize with an empty one
           if (contactPersons.length === 0) {
-            contactPersons = [{ name: "", phone: "", countryCode: "+91" }];
+            contactPersons = [{ name: "", phone: "", countryCode: "+91",email:""}];
           } else {
             // Add countryCode to existing contact persons if not present
             contactPersons = contactPersons.map((contact) => ({
@@ -231,7 +232,7 @@ export default function CustomerForm() {
       ...prev,
       contactPersons: [
         ...prev.contactPersons,
-        { name: "", phone: "", countryCode: "+91" },
+        { name: "", phone: "", countryCode: "+91",email:"" },
       ],
     }));
   };
@@ -425,66 +426,163 @@ export default function CustomerForm() {
                 </button>
               </div>
 
-              <div className="space-y-3">
-  {formData.contactPersons.map((contact, index) => (
-    <div
-      key={index}
-      className="flex items-start space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50"
-    >
-      <div className="flex-grow grid grid-cols-1 gap-3 sm:grid-cols-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Name
-          </label>
-          <input
-            type="text"
-            required={index === 0}
-            value={contact.name}
-            onChange={(e) =>
-              updateContactPerson(index, "name", e.target.value)
-            }
-            className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-
-        <div className="w-32 sm:col-span-1">
-          <label className="block text-sm font-medium text-gray-700">
-            Country Code
-          </label>
-          <CountryCodeSelector
-            value={contact.countryCode || "+91"}
-            onChange={(value) =>
-              updateContactPerson(index, "countryCode", value)
-            }
-            className="mt-1 block w-full"
-          />
-        </div>
-
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Phone
-          </label>
-          <input
-            type="tel"
-            required={index === 0}
-            value={contact.phone}
-            onChange={(e) =>
-              updateContactPerson(index, "phone", e.target.value)
-            }
-            className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={() => removeContactPerson(index)}
-        className="mt-7 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+              {/* <div className="space-y-3">
+    {formData.contactPersons.map((contact, index) => (
+      <div
+        key={index}
+        className="flex items-start space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50"
       >
-        <Trash2 size={18} />
-      </button>
-    </div>
-  ))}
-</div>
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-gray-700">
+              Name
+            </label>
+            <input
+              type="text"
+              required={index === 0}
+              value={contact.name}
+              onChange={(e) =>
+                updateContactPerson(index, "name", e.target.value)
+              }
+              className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-gray-700">
+              Country Code
+            </label>
+            <CountryCodeSelector
+              value={contact.countryCode || "+91"}
+              onChange={(value) =>
+                updateContactPerson(index, "countryCode", value)
+              }
+              className="mt-1 block w-full"
+            />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-gray-700">
+              Phone
+            </label>
+            <input
+              type="tel"
+              required={index === 0}
+              value={contact.phone}
+              onChange={(e) =>
+                updateContactPerson(index, "phone", e.target.value)
+              }
+              className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="md:col-span-1">
+            <label className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              type="email"
+              required={index === 0}
+              value={contact.email || ""}
+              onChange={(e) =>
+                updateContactPerson(index, "email", e.target.value)
+              }
+              className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => removeContactPerson(index)}
+          className="mt-7 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+          aria-label="Remove contact"
+        >
+          <Trash2 size={18} />
+        </button>
+      </div>
+    ))}
+  </div> 
+  */}
+
+
+<div className="space-y-3">
+    {formData.contactPersons.map((contact, index) => (
+      <div
+        key={index}
+        className="flex items-start space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50"
+      >
+        <div className="flex-grow flex flex-row items-start gap-3">
+          <div className="w-1/4">
+            <label className="block text-sm font-medium text-gray-700">
+              Name
+            </label>
+            <input
+              type="text"
+              required={index === 0}
+              value={contact.name}
+              onChange={(e) =>
+                updateContactPerson(index, "name", e.target.value)
+              }
+              className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="w-1/6">
+            <label className="block text-sm font-medium text-gray-700">
+              Country Code
+            </label>
+            <CountryCodeSelector
+              value={contact.countryCode || "+91"}
+              onChange={(value) =>
+                updateContactPerson(index, "countryCode", value)
+              }
+              className="mt-1 block w-full"
+            />
+          </div>
+
+          <div className="w-1/4">
+            <label className="block text-sm font-medium text-gray-700">
+              Phone
+            </label>
+            <input
+              type="tel"
+              required={index === 0}
+              value={contact.phone}
+              onChange={(e) =>
+                updateContactPerson(index, "phone", e.target.value)
+              }
+              className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              type="email"
+              required={index === 0}
+              value={contact.email || ""}
+              onChange={(e) =>
+                updateContactPerson(index, "email", e.target.value)
+              }
+              className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => removeContactPerson(index)}
+          className="mt-7 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+          aria-label="Remove contact"
+        >
+          <Trash2 size={18} />
+        </button>
+      </div>
+    ))}
+  </div>
+
+
               <p className="mt-1 text-sm text-gray-500">
                 At least one contact person is required
               </p>
