@@ -12,7 +12,7 @@ import {
   TableRow,
   WidthType,
   TextRun,
-  PageBreak,
+ 
   SectionType,
   IBordersOptions,
 } from "docx";
@@ -385,6 +385,24 @@ export const createQuotation = async (
                   },
                 })
             ),
+
+
+    new Paragraph({
+              indent: {
+                left: 600,
+              },
+              spacing: {
+                before: 200,
+              },
+              children: [
+                new TextRun({
+                  text: customer.gstNumber ? `GST: ${customer.gstNumber}` : "",
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+            }),
+
 
             //customer name
             new Paragraph({
