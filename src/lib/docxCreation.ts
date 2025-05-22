@@ -716,6 +716,7 @@ export const createQuotation = async (
             // tankyou
             Text("Thanking you,"),
             Text(userData.fullName ?? "User", true),
+            Text(userData.designation??'USER'),
             Text("SHIP TECHNOLOGY INDUSTRIAL CONSULTANCY", true),
             Text("CITTIC, CUSAT TBI", true),
             Text("CUSAT, Kochi-22", true),
