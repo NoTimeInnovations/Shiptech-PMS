@@ -441,7 +441,7 @@ export default function ProjectDetails() {
           </div>
           <div className="bg-gray-100 p-4 rounded-lg">
             <h3 className="text-lg font-semibold">Project Due Date</h3>
-            <p className="text-2xl font-bold">{projectDueDate}</p>
+            <p className="text-2xl font-bold">{new Date(projectDueDate).toLocaleDateString("en-GB")}</p>
           </div>
           <div
             className="bg-red-100 p-4 rounded-lg"

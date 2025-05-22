@@ -415,10 +415,10 @@ export default function CustomerDetails() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.project_start_date ? new Date(project.project_start_date).toLocaleDateString() : '-'}
+                            {project.project_start_date ? new Date(project.project_start_date).toLocaleDateString("en-GB") : '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.project_due_date ? new Date(project.project_due_date).toLocaleDateString() : '-'}
+                            {project.project_due_date ? new Date(project.project_due_date).toLocaleDateString("en-GB") : '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {project.total_amount}
@@ -479,7 +479,7 @@ export default function CustomerDetails() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(enquiry.createdAt).toLocaleDateString()}
+                            {new Date(enquiry.createdAt).toLocaleDateString("en-GB")}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                             ₹{enquiry.deliverables.reduce((sum, d) => sum + d.total, 0)}

@@ -163,14 +163,14 @@ export default function EnquiryDetails() {
       <div>
         <p className="text-sm font-medium text-gray-500">Created At</p>
         <p className="mt-1">
-          {new Date(enquiry.createdAt).toLocaleDateString()}
+          {new Date(enquiry.createdAt).toLocaleDateString('en-GB')}
         </p>
       </div>
       
       <div>
         <p className="text-sm font-medium text-gray-500">Deadline</p>
         <p className="mt-1">
-        {enquiry.deadLine}
+        {new Date(enquiry.deadLine).toLocaleDateString('en-GB')}
         </p>
       </div>
       

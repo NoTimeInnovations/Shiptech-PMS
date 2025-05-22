@@ -178,7 +178,7 @@ export default function Projects() {
                             {project.customer.name}
                           </td>
                           <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(project.createdAt).toLocaleDateString()}
+                            {new Date(project.createdAt).toLocaleDateString("en-GB")}
                           </td>
                           <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <ProjectStatusSelect
