@@ -441,7 +441,7 @@ export default function ProjectDetails() {
           </div>
           <div className="bg-gray-100 p-4 rounded-lg">
             <h3 className="text-lg font-semibold">Project Due Date</h3>
-            <p className="text-2xl font-bold">{projectDueDate}</p>
+            <p className="text-2xl font-bold">{new Date(projectDueDate).toLocaleDateString("en-GB")}</p>
           </div>
           <div
             className="bg-red-100 p-4 rounded-lg"
@@ -476,12 +476,20 @@ export default function ProjectDetails() {
                   <td className="py-2 font-medium text-gray-500">ID</td>
                   <td className="py-2">P-{project.projectNumber}</td>
                 </tr>
-                <tr>
+                {/* <tr>
                   <td className="py-2 font-medium text-gray-500">Created At</td>
                   <td className="py-2">
                     {new Date(project.createdAt).toLocaleDateString()}
                   </td>
-                </tr>
+                </tr> */}
+
+
+                <tr>
+  <td className="py-2 font-medium text-gray-500">Created At</td>
+  <td className="py-2">
+    {new Date(project.createdAt).toLocaleDateString('en-GB')}
+  </td>
+</tr>
                 <tr>
                   <td className="py-2 font-medium text-gray-500">Name</td>
                   <td className="py-2">{project.name}</td>
@@ -527,7 +535,7 @@ export default function ProjectDetails() {
                           {project.project_start_date ? (
                             new Date(
                               project.project_start_date
-                            ).toLocaleString()
+                            ).toLocaleString("en-GB")
                           ) : (
                             <span className="text-gray-500">
                               No start date set
@@ -584,7 +592,7 @@ export default function ProjectDetails() {
                             {project.project_due_date ? (
                               new Date(
                                 project.project_due_date
-                              ).toLocaleString()
+                              ).toLocaleString("en-GB")
                             ) : (
                               <span className="text-gray-500">
                                 No due date set

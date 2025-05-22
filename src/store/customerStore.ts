@@ -17,15 +17,19 @@ import { Project } from './projectStore';
 
 export interface ContactPerson {
   name: string;
+  countryCode?:string;
   phone: string;
+  email:string;
 }
 
 export interface Customer {
   id?: string;
   name: string;
+  nickname:string;
   userId?: string;
   address: string;
   billingAddress: string;
+  shippingAddress:string;
   phone?: string;
   gstNumber: string;
   contactPersons: ContactPerson[];
