@@ -45,6 +45,7 @@ export default function TaskModal({
 
   const [availablePercentage, setAvailablePercentage] = useState(0);
   const [ParentTask, setParentTask] = useState<Task | null>(null);
+const [availableHours, setAvailableHours] = useState(0);
 
   const SetaddOrPencilEditTofalse = () => {
     setParentTask(null);
@@ -131,6 +132,33 @@ export default function TaskModal({
     }
   }, [siblingTasks , initialData]);
 
+
+useEffect(() => {
+  if (siblingTasks && ParentTask) {
+    calculateAvailableHours();
+  }
+}, [siblingTasks, initialData, ParentTask]);
+
+
+
+
+  const calculateAvailableHours = () => {
+  if (!ParentTask || !ParentTask.hours) {
+    setAvailableHours(0);
+    return;
+  }
+
+  const totalAllocatedHours = siblingTasks
+    .filter((task) => !initialData || task.id !== initialData.id)
+    .reduce((sum, task) => sum + (task.hours || 0), 0);
+
+  const availableHours = ParentTask.hours - totalAllocatedHours;
+  setAvailableHours(Math.max(0, availableHours));
+};
+
+
+
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const taskData = {
@@ -160,11 +188,24 @@ export default function TaskModal({
       return;
     }
 
+
+ if (ParentTask && ParentTask.hours && formData.hours) {
+    if (formData.hours > availableHours) {
+      toast.error(`Hours cannot exceed available hours (${availableHours}). Please reduce hours of other subtasks first.`);
+      return;
+    }
+  }
+
+
     setParentTask(null);
     onSubmit(taskData as Task);
     SetaddOrPencilEditTofalse();
     onClose();
   };
+
+
+
+
   const handleAssignedToChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedOptions = Array.from(e.target.selectedOptions);
     const selectedUsers = selectedOptions
@@ -256,7 +297,7 @@ export default function TaskModal({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700">
                       Hours
                     </label>
@@ -276,8 +317,48 @@ export default function TaskModal({
                       }
                       className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
-                  </div>
+                  </div> */}
 
+
+<div>
+  <label className="block text-sm font-medium text-gray-700">
+    Hours {ParentTask && ParentTask.hours && (
+      <span className="text-sm text-gray-500">
+        (Available: {availableHours})
+      </span>
+    )}
+  </label>
+  <input
+    type="number"
+    min="0"
+    step="0.5"
+    placeholder="0.0"
+    max={ParentTask && ParentTask.hours ? availableHours + (formData.hours || 0) : undefined}
+    value={formData.hours || ""}
+    onChange={(e) => {
+      const value = e.target.value ? Number(e.target.value) : undefined;
+      if (ParentTask && ParentTask.hours && value && value > availableHours) {
+        toast.error(`Hours cannot exceed available hours (${availableHours})`);
+        return;
+      }
+      setFormData((prev) => ({
+        ...prev,
+        hours: value,
+      }))
+    }}
+    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+  />
+  {ParentTask && ParentTask.hours && availableHours === 0 && (
+    <span className="text-red-500 text-sm flex justify-center text-center mt-2 border-2 border-red-500 p-1 rounded">
+      No hours available! Reduce hours of other subtasks first
+    </span>
+  )}
+  {ParentTask && ParentTask.hours && (
+    <p className="mt-1 text-xs text-gray-500">
+      Parent task has {ParentTask.hours} hours total
+    </p>
+  )}
+</div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
                       Cost/Hour
