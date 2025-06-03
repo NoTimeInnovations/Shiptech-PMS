@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { useParams } from "react-router-dom";
@@ -31,6 +32,7 @@ export default function TaskModal({
     searchTaskFromTree,
     SetaddOrPencilEdit,
     addOrPencilEdit,
+    clearTask
   } = useTaskStore();
 
   const [formData, setFormData] = useState({
@@ -47,58 +49,110 @@ export default function TaskModal({
   const [ParentTask, setParentTask] = useState<Task | null>(null);
 const [availableHours, setAvailableHours] = useState(0);
 
-  const SetaddOrPencilEditTofalse = () => {
-    setParentTask(null);
-    SetaddOrPencilEdit(false);
-  };
 
+const [hourError, setHourError] = useState<string>("");
+const [parentId, setParentId] = useState<string>("");
+
+
+const clearModalValues = () => {
+  console.log("Clearing modal values");
+  setFormData({
+    name: "",
+    description: "",
+    hours: undefined,
+    costPerHour: undefined,
+    assignedTo: [],
+    deadline: "",
+    percentage: 0,
+  });
+  setHourError("");
+  setParentTask(null);
+  setParentId("");
+
+  setAvailableHours(0);
+  setSiblingTasks([]);
+  clearTask()
+};
+
+const SetaddOrPencilEditTofalse = () => {
+  console.log("Setting addOrPencilEdit to false and clearing parent task");
+  setParentTask(null);
+  setParentId("");
+  setHourError("");
+  SetaddOrPencilEdit(false);
+  clearTask()
+};
   const getParentTask = () => {
-    setParentTask(null);
-    if (addOrPencilEdit) {
-      const parentId = task?.id;
-      const parentTask = parentId
-        ? searchTaskFromTree(parentId, allTasks)
-        : null;
+  console.log("Getting parent task");
+  setParentTask(null);
+  setParentId(""); // Clear parentId first
+  
+  if (addOrPencilEdit && task) { // Check if task exists
+    console.log("Crucial", task?.name);
+    console.log("FIND,", task?.id);
+    
+    const parentTaskId = task.id;
+    if (parentTaskId) { // Only proceed if parentTaskId exists
+      const parentTask = searchTaskFromTree(parentTaskId, allTasks);
       setParentTask(parentTask);
-      return;
+      setParentId(parentTaskId);
+      console.log("Parent task (add/edit mode):", parentTask);
+      console.log("Parent ID (add/edit mode):", parentTaskId);
     }
-    const parentId = task?.parentId;
-    const parentTask = parentId ? searchTaskFromTree(parentId, allTasks) : null;
+    return;
+  }
+  
+  // For editing existing tasks, only set parent if parentId actually exists
+  const parentTaskId = task?.parentId || parentId;
+  if (parentTaskId && parentTaskId.trim() !== "") {
+    const parentTask = searchTaskFromTree(parentTaskId, allTasks);
     setParentTask(parentTask);
-  };
+    setParentId(parentTaskId);
+    console.log("Parent task:", parentTask);
+    console.log("Parent ID:", parentTaskId);
+  } else {
+    // This is a project-level task or no task selected
+    setParentTask(null);
+    setParentId("");
+    console.log("No parent task - this is a project-level task or no task selected");
+  }
+};
 
-  useEffect(() => {
-    if (!isOpen) return;
+useEffect(() => {
+  if (isOpen) {
+    console.log("Modal opened - clearing values first");
+    clearModalValues();
     fetchUsers();
-  }, [isOpen]);
+  } else {
+    console.log("Modal closed - clearing values");
+    clearModalValues();
+    SetaddOrPencilEdit(false); // Ensure this is also set to false
+  }
+}, [isOpen]);
+
+
+
 
   useEffect(() => {
     getParentTask();
   }, [tasks, addOrPencilEdit]);
 
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        name: initialData.name || "",
-        description: initialData.description || "",
-        hours: initialData.hours,
-        costPerHour: initialData.costPerHour,
-        assignedTo: initialData.assignedTo || [],
-        deadline: initialData.deadline || "",
-        percentage: initialData.percentage || 0,
-      });
-    } else {
-      setFormData({
-        name: "",
-        description: "",
-        hours: 0,
-        costPerHour: 0,
-        assignedTo: [],
-        deadline: "",
-        percentage: 0,
-      });
-    }
-  }, [initialData, isOpen]);
+useEffect(() => {
+  if (isOpen && initialData) {
+    console.log("Setting form data from initialData:", initialData);
+    setFormData({
+      name: initialData.name || "",
+      description: initialData.description || "",
+      hours: initialData.hours,
+      costPerHour: initialData.costPerHour,
+      assignedTo: initialData.assignedTo || [],
+      deadline: initialData.deadline || "",
+      percentage: initialData.percentage || 0,
+    });
+    setParentId(initialData.parentId || "");
+    console.log("Parent ID set to:", initialData.parentId || "");
+  }
+}, [initialData, isOpen]);
 
   useEffect(() => {
     const fetchSibTasks = async () => {
@@ -190,6 +244,8 @@ useEffect(() => {
 
 
  if (ParentTask && ParentTask.hours && formData.hours) {
+  console.log("TYPING HOUR",formData.hours);
+  
     if (formData.hours > availableHours) {
       toast.error(`Hours cannot exceed available hours (${availableHours}). Please reduce hours of other subtasks first.`);
       return;
@@ -337,17 +393,31 @@ useEffect(() => {
     value={formData.hours || ""}
     onChange={(e) => {
       const value = e.target.value ? Number(e.target.value) : undefined;
-      if (ParentTask && ParentTask.hours && value && value > availableHours) {
-        toast.error(`Hours cannot exceed available hours (${availableHours})`);
+      setHourError(""); // Clear previous error
+      
+      if (ParentTask && ParentTask.hours && value && value > availableHours + (initialData?.hours || 0)) {
+        const errorMsg = `Hours cannot exceed available hours (${availableHours}`;
+        setHourError(errorMsg);
+        console.log("Hour validation error:", errorMsg);
+        toast.error(errorMsg);
         return;
       }
+      
       setFormData((prev) => ({
         ...prev,
         hours: value,
       }))
     }}
-    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+   className={`mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
+      hourError ? 'border-red-500' : ''
+    }`}
+  
   />
+  {hourError && (
+    <span className="text-red-500 text-sm mt-1 block">
+      {hourError}
+    </span>
+  )}
   {ParentTask && ParentTask.hours && availableHours === 0 && (
     <span className="text-red-500 text-sm flex justify-center text-center mt-2 border-2 border-red-500 p-1 rounded">
       No hours available! Reduce hours of other subtasks first
@@ -359,6 +429,7 @@ useEffect(() => {
     </p>
   )}
 </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
                       Cost/Hour
@@ -524,6 +595,5 @@ useEffect(() => {
           </div>
         </div>
       ) : null}
-    </>
-  );
+</>);
 }
