@@ -147,9 +147,10 @@ export default function ItemDetails({
                   Deadline
                 </h3>
                 <div className="flex items-center">
+                  
                   <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                  <p>{new Date(item.deadline).toLocaleString()}</p>
-                </div>
+                  <p>{new Date(item.deadline).toLocaleString('en-GB')}</p>
+                </div>  
               </div>
             )}
 

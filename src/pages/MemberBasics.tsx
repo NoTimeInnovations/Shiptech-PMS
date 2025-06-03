@@ -239,7 +239,7 @@ export default function MemberBasics() {
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-1" />
                               <span>
-                                {new Date(task.deadline).toLocaleDateString()}
+                                {new Date(task.deadline).toLocaleDateString('en-GB')}
                               </span>
                             </div>
                           )}

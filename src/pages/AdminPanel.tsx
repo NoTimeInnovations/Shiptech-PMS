@@ -239,7 +239,7 @@ export default function AdminPanel() {
                         </td>
                       )}
                       <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {new Date(user.createdAt).toLocaleDateString('en-GB')}
                       </td>
                       <td className="text-center px-6 py-4 whitespace-nowrap text-right text-xs font-medium flex justify-center">
                         <div className="flex justify-end gap-2">

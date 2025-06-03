@@ -126,7 +126,8 @@ export default function MyTasks() {
                         <h3 className="font-semibold">Task Details:</h3>
                         <p>Description: {task.description}</p>
                         <p>Assigned To: {task.assignedTo?.map(user => user.name).join(", ")}</p>
-                        <p>Deadline: {task.deadline || "No deadline set"}</p>
+                        <p>Deadline:{task.deadline? new Date(task.deadline).toLocaleString("en-GB") : "No deadline set"}</p>
+
                         <Link to={`/dashboard/projects/${task.projectId}`} className="text-blue-500 flex items-center gap-1 hover:cursor-pointer"><File size={18} /> Go to project</Link>
                       </div>
                     </td>
