@@ -393,14 +393,14 @@ export default function TaskModal({
     ParentTask &&
     ParentTask.hours &&
     value &&
-    value > availableHours + (formData.hours || 0) 
+    value > availableHours  || 0
 
   ) {
     let errorMsg=''
-    if (availableHours + (formData.hours || 0) >1){
-       errorMsg= `Only  ${availableHours + (formData.hours || 0)} hours left ` ;
+    if (availableHours  >1){
+       errorMsg= `Only  ${availableHours } hours left ` ;
     }else{
-        errorMsg = `Only  ${availableHours + (formData.hours || 0)} hour left ` ;
+        errorMsg = `Only  ${availableHours } hour left ` ;
     }
    
     setHourError(errorMsg);
