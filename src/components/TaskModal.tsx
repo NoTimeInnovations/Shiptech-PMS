@@ -393,9 +393,16 @@ export default function TaskModal({
     ParentTask &&
     ParentTask.hours &&
     value &&
-    value > availableHours + (formData.hours || 0) // Changed from initialData?.hours to formData.hours
+    value > availableHours + (formData.hours || 0) 
+
   ) {
-    const errorMsg = `Hours cannot exceed available hours (${availableHours + (formData.hours || 0)})`;
+    let errorMsg=''
+    if (availableHours + (formData.hours || 0) >1){
+       errorMsg= `Only  ${availableHours + (formData.hours || 0)} hours left ` ;
+    }else{
+        errorMsg = `Only  ${availableHours + (formData.hours || 0)} hour left ` ;
+    }
+   
     setHourError(errorMsg);
     console.log("Hour validation error:", errorMsg);
     toast.error(errorMsg);

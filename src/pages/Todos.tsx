@@ -106,7 +106,7 @@ export default function Todos() {
                     day: 'numeric',
                     hour: 'numeric',
                     minute: '2-digit',
-                    hour12: true
+                    hour12: false
                   })}
                 </p>
               </div>

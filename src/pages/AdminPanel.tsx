@@ -335,6 +335,7 @@ export default function AdminPanel() {
               setSelectedUser(null);
             }}
             userId={selectedUser.id}
+            userEmail={selectedUser.email}
             currentDesignation={selectedUser.designation || ''}
             onDesignationChange={handleDesignationChange}
           />

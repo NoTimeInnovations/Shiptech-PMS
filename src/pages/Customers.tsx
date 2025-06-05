@@ -88,9 +88,7 @@ const CustomersList = () => {
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Name
                 </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nickname
-                </th>
+        
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Email
                 </th>
@@ -111,9 +109,7 @@ const CustomersList = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
                     {customer.name}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-center">
-                    {customer.nickname}
-                  </td>
+                 
 
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                     {customer.email}

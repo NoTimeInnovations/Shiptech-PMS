@@ -507,7 +507,7 @@ export default function ProjectDetails() {
                       {isEditingStartDate ? (
                         <div className="flex items-center space-x-2">
                           <input
-                            type="datetime-local"
+                            type="date"
                             value={tempStartDate}
                             onChange={handleStartDateChange}
                             className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
@@ -531,11 +531,12 @@ export default function ProjectDetails() {
                         </div>
                       ) : (
                         <div className="flex items-center text-gray-900">
+                          
                           <Calendar className="h-4 w-4 mr-2 text-gray-400" />
                           {project.project_start_date ? (
                             new Date(
                               project.project_start_date
-                            ).toLocaleString("en-GB")
+                            ).toLocaleDateString("en-GB")
                           ) : (
                             <span className="text-gray-500">
                               No start date set
@@ -564,7 +565,7 @@ export default function ProjectDetails() {
                         {isEditingDueDate ? (
                           <div className="flex items-center space-x-2">
                             <input
-                              type="datetime-local"
+                              type="date"
                               value={tempDueDate}
                               onChange={handleDueDateChange}
                               className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
@@ -592,7 +593,7 @@ export default function ProjectDetails() {
                             {project.project_due_date ? (
                               new Date(
                                 project.project_due_date
-                              ).toLocaleString("en-GB")
+                              ).toLocaleDateString("en-GB")
                             ) : (
                               <span className="text-gray-500">
                                 No due date set
