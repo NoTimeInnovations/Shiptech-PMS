@@ -40,7 +40,7 @@ export default function SubTaskItem({
             {task.deadline && (
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 mr-1" />
-                <span>{new Date(task.deadline).toLocaleDateString()}</span>
+                <span>{new Date(task.deadline).toLocaleDateString('en-GB')}</span>
               </div>
             )}
           </div>

@@ -114,7 +114,7 @@ const EnquiriesList = () => {
                     {enquiry.customerName}
                   </td>
                   <td onClick={() => navigate(`${enquiry.id}`)} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                    {new Date(enquiry.createdAt).toLocaleDateString()}
+                    {new Date(enquiry.createdAt).toLocaleDateString('en-GB')}
                   </td>
                   <td onClick={() => navigate(`${enquiry.id}`)}
                     className={`px-6 py-4 whitespace-nowrap text-sm text-white text-center flex justify-center`}
@@ -127,6 +127,8 @@ const EnquiriesList = () => {
                           ? "bg-green-500"
                           : enquiry.status === "on hold"
                           ? "bg-yellow-500"
+                          : enquiry.status==="under processing"
+                          ? "bg-blue-500"
                           : ""
                       }`}
                     >

@@ -13,6 +13,7 @@ interface Deliverable {
   hours: number;
   costPerHour: number;
   total: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   description: any;
 }
 
@@ -24,11 +25,13 @@ interface EnquiryFormData {
   deliverables: Deliverable[];
   exclusions: string[];
   charges: string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   scopeOfWork: any;
   inputsRequired: string[];
   status: string;
   currency?: CurrencyDetails;
   endClient: string;
+  deadLine: string;
 }
 
 const toolbarConfig: ToolbarConfig = {
@@ -102,12 +105,12 @@ export default function EnquiryForm() {
     status: "draft",
     currency: undefined,
     endClient: "",
+    deadLine: "",
   });
 
   useEffect(() => {
-    fetchCustomers()
-  }, [])
-  
+    fetchCustomers();
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -156,19 +159,25 @@ export default function EnquiryForm() {
       try {
         const parsedData = JSON.parse(savedData);
         // Ensure the parsed data matches the expected structure
-        if (parsedData && typeof parsedData === 'object') {
+        if (parsedData && typeof parsedData === "object") {
           // Process deliverables and scopeOfWork to convert HTML strings to RichTextEditor values
-          const processedDeliverables = parsedData.deliverables.map((d: any) => ({
-            ...d,
-            description: d.description
-              ? RichTextEditor.createValueFromString(d.description, "html")
-              : RichTextEditor.createEmptyValue(),
-            hours: d.hours ?? 0,
-            costPerHour: d.costPerHour ?? 0,
-          }));
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const processedDeliverables = parsedData.deliverables.map(
+            (d: any) => ({
+              ...d,
+              description: d.description
+                ? RichTextEditor.createValueFromString(d.description, "html")
+                : RichTextEditor.createEmptyValue(),
+              hours: d.hours ?? 0,
+              costPerHour: d.costPerHour ?? 0,
+            })
+          );
 
           const processedScopeOfWork = parsedData.scopeOfWork
-            ? RichTextEditor.createValueFromString(parsedData.scopeOfWork, "html")
+            ? RichTextEditor.createValueFromString(
+                parsedData.scopeOfWork,
+                "html"
+              )
             : RichTextEditor.createEmptyValue();
 
           setFormData((prev) => ({
@@ -179,7 +188,10 @@ export default function EnquiryForm() {
           }));
         }
       } catch (error) {
-        console.error("Failed to parse enquiry form data from localStorage:", error);
+        console.error(
+          "Failed to parse enquiry form data from localStorage:",
+          error
+        );
         // Optionally, you can reset the formData to default values if parsing fails
         setFormData((prev) => ({
           ...prev,
@@ -198,12 +210,12 @@ export default function EnquiryForm() {
         }));
       }
     }
-    setShouldWork(true)
+    setShouldWork(true);
   }, []);
 
   useEffect(() => {
     // Prepare formData for localStorage similar to how it's prepared for Firestore
-    if(ShouldWork){
+    if (ShouldWork) {
       const dataToStore = {
         ...formData,
         scopeOfWork: formData.scopeOfWork.toString("html"),
@@ -251,11 +263,12 @@ export default function EnquiryForm() {
       if (id) {
         await updateEnquiry(id, submitData);
         toast.success("Enquiry updated successfully");
+        
       } else {
         await createEnquiry(submitData);
         toast.success("Enquiry created successfully");
       }
-      clearDraft()
+      clearDraft();
       navigate("/dashboard/enquiries");
     } catch (error) {
       console.error("Error submitting enquiry:", error);
@@ -392,6 +405,7 @@ export default function EnquiryForm() {
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleDeliverableDescriptionChange = (id: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
@@ -418,6 +432,7 @@ export default function EnquiryForm() {
       status: "draft",
       currency: undefined,
       endClient: "",
+      deadLine: "",
     });
     localStorage.removeItem("enquiryFormData"); // Clear from localStorage
   };
@@ -518,6 +533,24 @@ export default function EnquiryForm() {
                 rows={3}
               />
             </div>
+
+            <div>
+              <label className="block font-medium text-gray-700">
+                Deadline
+              </label>
+              <input
+                type="date"
+                value={formData.deadLine}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    deadLine: e.target.value,
+                  }))
+                }
+                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+
             <div>
               {/* changed scope of work label to deliverables */}
               <label className="block font-medium text-gray-700">
@@ -613,9 +646,7 @@ export default function EnquiryForm() {
           )}
         </div>
         <div>
-          <label className="block font-medium text-gray-700">
-            End Client
-          </label>
+          <label className="block font-medium text-gray-700">End Client</label>
           <input
             type="text"
             value={formData.endClient}
@@ -820,40 +851,79 @@ export default function EnquiryForm() {
           </div>
         </div>
 
-        <div className="bg-white border-[1px] rounded-xl px-6 py-10">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Charges Included</h3>
-            <button
-              type="button"
-              onClick={addCharge}
-              className="inline-flex items-center px-3 border border-transparent text-sm font-medium rounded-md text-white bg-black/90 hover:bg-black/80 py-2"
-            >
-              <Plus size={16} className="mr-1" />
-              Add Charge
-            </button>
-          </div>
-          <div className="space-y-4">
-            {formData.charges.map((charge, index) => (
-              <div key={index} className="flex items-end space-x-2">
-                <input
-                  type="text"
-                  required
-                  value={charge}
-                  onChange={(e) => updateCharge(index, e.target.value)}
-                  className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeCharge(index)}
-                  className="mb-1 p-2 text-red-600 hover:text-red-900"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+   <div className="bg-white border-[1px] rounded-xl px-6 py-10">
+  <div className="flex justify-between items-center mb-4">
+    <h3 className="text-lg font-medium text-gray-900">
+      Charges Included
+    </h3>
+    <button
+      type="button"
+      onClick={addCharge}
+      className="inline-flex items-center px-3 border border-transparent text-sm font-medium rounded-md text-white bg-black/90 hover:bg-black/80 py-2"
+    >
+      <Plus size={16} className="mr-1" />
+      Add Charge
+    </button>
+  </div>
+  <div className="space-y-4">
+    {formData.charges.map((charge, index) => (
+      <div key={index} className="flex items-end space-x-2">
+        <input
+          type="text"
+          required
+          value={charge}
+          onChange={(e) => updateCharge(index, e.target.value)}
+          className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+        />
+        <button
+          type="button"
+          onClick={() => removeCharge(index)}
+          className="mb-1 p-2 text-red-600 hover:text-red-900"
+        >
+          <Trash2 size={18} />
+        </button>
       </div>
+    ))}
+  </div>
+</div>
+
+{/* Buttons container with same width as white div above */}
+<div className="mt-4">
+  <div className="flex gap-4">
+    <button
+      type="button"
+      onClick={() => navigate(-1)}
+      className="flex-1 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+    >
+      Cancel
+    </button>
+    <button
+      type="submit"
+      disabled={isSubmitting || storeLoading}
+      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black/90 hover:bg-black/80 focus:outline-none"
+    >
+      {isSubmitting || storeLoading ? (
+        <>
+          <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+          {id ? "Updating..." : "Creating..."}
+        </>
+      ) : id ? (
+        "Update Enquiry"
+      ) : (
+        "Create Enquiry"
+      )}
+    </button>
+    <button
+      type="button"
+      onClick={clearDraft}
+      className="flex-1 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+    >
+      Clear Draft
+    </button>
+  </div>
+</div>
+</div>
+
     </form>
   );
 }

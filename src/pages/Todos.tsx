@@ -100,13 +100,13 @@ export default function Todos() {
                 </h3>
                 <p className="text-gray-600 mt-1">{todo.description}</p>
                 <p className="text-sm text-gray-500 mt-2">
-                  Due: {new Date(todo.endDate).toLocaleString('en-US', {
+                  Due: {new Date(todo.endDate).toLocaleString('en-GB', {
                     year: 'numeric',
                     month: 'numeric',
                     day: 'numeric',
                     hour: 'numeric',
                     minute: '2-digit',
-                    hour12: true
+                    hour12: false
                   })}
                 </p>
               </div>

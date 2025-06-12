@@ -91,6 +91,8 @@ interface TaskState {
   getTaskPath: (taskId: string, projectId: string) => Promise<string>;
   fetchTasksByOutsourceTeam: (teamId: string) => Promise<Task[]>;
   SetaddOrPencilEdit: (check : boolean) => Promise<void>;
+  clearTask: () => void;
+  setTask: (task: Task | null) => void;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -127,6 +129,14 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
+
+  SetaddOrPencilEdit: async (check : boolean) => {
+    set({ addOrPencilEdit : check })
+  },
+
+  clearTask: () => set({ task: null }),
+
+  setTask: (task: Task | null) => set({ task }),
   fetchUserTasks: async (user: { id: string; name: string; email: string }) => {
     try {
       set({ loading: true, error: null });
@@ -576,7 +586,5 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
-  SetaddOrPencilEdit: async (check : boolean) => {
-    set({ addOrPencilEdit : check })
-  },
+
 }));

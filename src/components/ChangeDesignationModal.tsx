@@ -3,27 +3,34 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/store/authStore';
 
 interface ChangeDesignationModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  userEmail:string;
   currentDesignation: string;
-  onDesignationChange: (newDesignation: string) => void;
+  onDesignationChange: (newDesignation:
+     string) => void;
 }
 
 const ChangeDesignationModal = ({
   isOpen,
   onClose,
   userId,
+  userEmail,
   currentDesignation,
   onDesignationChange
 }: ChangeDesignationModalProps) => {
   const [designation, setDesignation] = useState(currentDesignation || '');
   const [loading, setLoading] = useState(false);
 
+  const {updateUserData}=useAuthStore()
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     
     if (!designation.trim()) {
       toast.error('Please enter a designation');
@@ -35,10 +42,16 @@ const ChangeDesignationModal = ({
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
         designation: designation.trim()
+
       });
-      
+
+
+      await  updateUserData(userEmail,designation)
       onDesignationChange(designation);
       toast.success('Designation updated successfully');
+       
+  
+      
       onClose();
     } catch (error) {
       console.error('Error updating designation:', error);

@@ -13,6 +13,9 @@ import {
   FileQuestion,
   ArrowRight,
   Check,
+
+  TruckIcon,
+  Phone,
 } from "lucide-react";
 import { useCustomerStore, Customer } from "@/store/customerStore";
 import toast from "react-hot-toast";
@@ -242,7 +245,7 @@ export default function CustomerDetails() {
               </h3>
 
               <div className="space-y-4">
-                <div className="flex items-start">
+                {/* <div className="flex items-start">
                   <User className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
                   <div>
                     <p className="font-medium text-gray-700">Contact Persons</p>
@@ -251,8 +254,8 @@ export default function CustomerDetails() {
                       <div className="space-y-2">
                         {customer.contactPersons.map((contact, index) => (
                           <div key={index} className="text-gray-600">
-                            <span className="font-medium">{contact.name}</span>{" "}
-                            - {contact.phone}
+                            <span className="font-medium">{contact.name}</span>{":  "}
+                             {contact.countryCode+" "+contact.phone}
                           </div>
                         ))}
                       </div>
@@ -265,8 +268,48 @@ export default function CustomerDetails() {
                       <p className="text-gray-600">Not specified</p>
                     )}
                   </div>
-                </div>
+                </div> */}
 
+<div className="flex items-start">
+      <User className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+      <div className="w-full">
+        <p className="font-medium text-gray-700">Contact Persons</p>
+        {customer.contactPersons &&
+        customer.contactPersons.length > 0 ? (
+          <div className="space-y-3 mt-1">
+            {customer.contactPersons.map((contact, index) => (
+              <div key={index} className="text-gray-600 border-b border-gray-200 pb-2 last:border-0">
+                <div className="font-medium text-gray-700 mb-1">{contact.name}</div>
+                <div className="flex items-center space-x-1 text-sm">
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  <span>{contact.countryCode} {contact.phone}</span>
+                </div>
+                <div className="flex items-center space-x-1 text-sm mt-1">
+                  <Mail className="h-4 w-4 text-gray-500" />
+                  <span>{contact.email || "Email not specified"}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : customer.contactPersons &&
+          customer.contactPersons.length === 1 ? (
+          <div className="text-gray-600">
+            <div className="font-medium">{customer.contactPersons[0].name}</div>
+            <div className="flex items-center space-x-1 text-sm">
+              <Phone className="h-4 w-4 text-gray-500" />
+              <span>{customer.contactPersons[0].countryCode} {customer.contactPersons[0].phone}</span>
+            </div>
+            <div className="flex items-center space-x-1 text-sm mt-1">
+              <Mail className="h-4 w-4 text-gray-500" />
+              <span>{customer.contactPersons[0].email || "Email not specified"}</span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-gray-600">Not specified</p>
+        )}
+      </div>
+    </div>
+   
                 <div className="flex items-start">
                   <Mail className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
                   <div>
@@ -311,6 +354,17 @@ export default function CustomerDetails() {
                     </p>
                   </div>
                 </div>
+
+                <div className="flex items-start">
+                  <TruckIcon className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <div>
+                    <p className="font-medium text-gray-700">Shipping Address</p>
+                    <p className="text-gray-600 whitespace-pre-line">
+                      {customer.shippingAddress || "Same as address"}
+                    </p>
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -361,10 +415,10 @@ export default function CustomerDetails() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.project_start_date ? new Date(project.project_start_date).toLocaleDateString() : '-'}
+                            {project.project_start_date ? new Date(project.project_start_date).toLocaleDateString("en-GB") : '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.project_due_date ? new Date(project.project_due_date).toLocaleDateString() : '-'}
+                            {project.project_due_date ? new Date(project.project_due_date).toLocaleDateString("en-GB") : '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {project.total_amount}
@@ -425,7 +479,7 @@ export default function CustomerDetails() {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(enquiry.createdAt).toLocaleDateString()}
+                            {new Date(enquiry.createdAt).toLocaleDateString("en-GB")}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                             ₹{enquiry.deliverables.reduce((sum, d) => sum + d.total, 0)}

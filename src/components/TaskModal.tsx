@@ -31,6 +31,7 @@ export default function TaskModal({
     searchTaskFromTree,
     SetaddOrPencilEdit,
     addOrPencilEdit,
+    clearTask,
   } = useTaskStore();
 
   const [formData, setFormData] = useState({
@@ -45,30 +46,89 @@ export default function TaskModal({
 
   const [availablePercentage, setAvailablePercentage] = useState(0);
   const [ParentTask, setParentTask] = useState<Task | null>(null);
+  const [availableHours, setAvailableHours] = useState(0);
 
-  const SetaddOrPencilEditTofalse = () => {
+  const [hourError, setHourError] = useState<string>("");
+  const [parentId, setParentId] = useState<string>("");
+
+  const clearModalValues = () => {
+    console.log("Clearing modal values");
+    setFormData({
+      name: "",
+      description: "",
+      hours: undefined,
+      costPerHour: undefined,
+      assignedTo: [],
+      deadline: "",
+      percentage: 0,
+    });
+    setHourError("");
     setParentTask(null);
-    SetaddOrPencilEdit(false);
+    setParentId("");
+
+    setAvailableHours(0);
+    setSiblingTasks([]);
+    clearTask();
   };
 
-  const getParentTask = () => {
+  const SetaddOrPencilEditTofalse = () => {
+    console.log("Setting addOrPencilEdit to false and clearing parent task");
     setParentTask(null);
-    if (addOrPencilEdit) {
-      const parentId = task?.id;
-      const parentTask = parentId
-        ? searchTaskFromTree(parentId, allTasks)
-        : null;
-      setParentTask(parentTask);
+    setParentId("");
+    setHourError("");
+    SetaddOrPencilEdit(false);
+    clearTask();
+  };
+  const getParentTask = () => {
+    console.log("Getting parent task");
+    setParentTask(null);
+    setParentId(""); // Clear parentId first
+
+    if (addOrPencilEdit && task) {
+      // Check if task exists
+      console.log("Crucial", task?.name);
+      console.log("FIND,", task?.id);
+
+      const parentTaskId = task.id;
+      if (parentTaskId) {
+        // Only proceed if parentTaskId exists
+        const parentTask = searchTaskFromTree(parentTaskId, allTasks);
+        setParentTask(parentTask);
+        setParentId(parentTaskId);
+        console.log("Parent task (add/edit mode):", parentTask);
+        console.log("Parent ID (add/edit mode):", parentTaskId);
+      }
       return;
     }
-    const parentId = task?.parentId;
-    const parentTask = parentId ? searchTaskFromTree(parentId, allTasks) : null;
-    setParentTask(parentTask);
+
+    // For editing existing tasks, only set parent if parentId actually exists
+    const parentTaskId = task?.parentId || parentId;
+    if (parentTaskId && parentTaskId.trim() !== "") {
+      const parentTask = searchTaskFromTree(parentTaskId, allTasks);
+      setParentTask(parentTask);
+      setParentId(parentTaskId);
+      console.log("Parent task:", parentTask);
+      console.log("Parent ID:", parentTaskId);
+    } else {
+      // This is a project-level task or no task selected
+      setParentTask(null);
+      setParentId("");
+      console.log(
+        "No parent task - this is a project-level task or no task selected"
+      );
+    }
   };
 
   useEffect(() => {
-    if (!isOpen) return;
-    fetchUsers();
+    if (isOpen) {
+      console.log("Modal opened - clearing values first");
+      clearModalValues();
+      fetchUsers();
+    } else {
+      console.log("Modal closed - clearing values");
+      clearModalValues();
+      SetaddOrPencilEdit(false); // Ensure this is also set to false
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -76,7 +136,8 @@ export default function TaskModal({
   }, [tasks, addOrPencilEdit]);
 
   useEffect(() => {
-    if (initialData) {
+    if (isOpen && initialData) {
+      console.log("Setting form data from initialData:", initialData);
       setFormData({
         name: initialData.name || "",
         description: initialData.description || "",
@@ -86,16 +147,8 @@ export default function TaskModal({
         deadline: initialData.deadline || "",
         percentage: initialData.percentage || 0,
       });
-    } else {
-      setFormData({
-        name: "",
-        description: "",
-        hours: 0,
-        costPerHour: 0,
-        assignedTo: [],
-        deadline: "",
-        percentage: 0,
-      });
+      setParentId(initialData.parentId || "");
+      console.log("Parent ID set to:", initialData.parentId || "");
     }
   }, [initialData, isOpen]);
 
@@ -129,7 +182,27 @@ export default function TaskModal({
     if (siblingTasks) {
       calculateAvailablePercentage();
     }
-  }, [siblingTasks , initialData]);
+  }, [siblingTasks, initialData]);
+
+  useEffect(() => {
+    if (siblingTasks && ParentTask) {
+      calculateAvailableHours();
+    }
+  }, [siblingTasks, initialData, ParentTask]);
+
+  const calculateAvailableHours = () => {
+    if (!ParentTask || !ParentTask.hours) {
+      setAvailableHours(0);
+      return;
+    }
+
+    const totalAllocatedHours = siblingTasks
+      .filter((task) => !initialData || task.id !== initialData.id)
+      .reduce((sum, task) => sum + (task.hours || 0), 0);
+
+    const availableHours = ParentTask.hours - totalAllocatedHours;
+    setAvailableHours(Math.max(0, availableHours));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,11 +233,23 @@ export default function TaskModal({
       return;
     }
 
+    if (ParentTask && ParentTask.hours && formData.hours) {
+      console.log("TYPING HOUR", formData.hours);
+
+      if (formData.hours > availableHours) {
+        toast.error(
+          `Hours cannot exceed available hours (${availableHours}). Please reduce hours of other subtasks first.`
+        );
+        return;
+      }
+    }
+
     setParentTask(null);
     onSubmit(taskData as Task);
     SetaddOrPencilEditTofalse();
     onClose();
   };
+
   const handleAssignedToChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedOptions = Array.from(e.target.selectedOptions);
     const selectedUsers = selectedOptions
@@ -256,7 +341,7 @@ export default function TaskModal({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  {/* <div>
                     <label className="block text-sm font-medium text-gray-700">
                       Hours
                     </label>
@@ -276,6 +361,79 @@ export default function TaskModal({
                       }
                       className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
+                  </div> */}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Hours{" "}
+                      {ParentTask && ParentTask.hours && (
+                        <span className="text-sm text-gray-500">
+                          (Available: {availableHours})
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      placeholder="0.0"
+                      max={
+                        ParentTask && ParentTask.hours
+                          ? availableHours + (formData.hours || 0)
+                          : undefined
+                      }
+                      value={formData.hours || ""}
+                      onChange={(e) => {
+  const value = e.target.value
+    ? Number(e.target.value)
+    : undefined;
+  setHourError(""); // Clear previous error
+
+  if (
+    ParentTask &&
+    ParentTask.hours &&
+    value &&
+    value > availableHours  || 0
+
+  ) {
+    let errorMsg=''
+    if (availableHours  >1){
+       errorMsg= `Only  ${availableHours } hours left ` ;
+    }else{
+        errorMsg = `Only  ${availableHours } hour left ` ;
+    }
+   
+    setHourError(errorMsg);
+    console.log("Hour validation error:", errorMsg);
+    toast.error(errorMsg);
+    return;
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    hours: value,
+  }));
+}}
+
+                      className={`mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
+                        hourError ? "border-red-500" : ""
+                      }`}
+                    />
+                    {hourError && (
+                      <span className="text-red-500 text-sm mt-1 block">
+                        {hourError}
+                      </span>
+                    )}
+                    {ParentTask && ParentTask.hours && availableHours === 0 && (
+                      <span className="text-red-500 text-sm flex justify-center text-center mt-2 border-2 border-red-500 p-1 rounded">
+                        No hours available! Reduce hours of other subtasks first
+                      </span>
+                    )}
+                    {ParentTask && ParentTask.hours && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Parent task has {ParentTask.hours} hours total
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -360,7 +518,11 @@ export default function TaskModal({
                         Current: {formData.percentage}%
                       </span>
                       <span className="text-sm text-gray-500">
-                        Available: {(availablePercentage - formData.percentage) < 0 ? 0 : (availablePercentage - formData.percentage)}%
+                        Available:{" "}
+                        {availablePercentage - formData.percentage < 0
+                          ? 0
+                          : availablePercentage - formData.percentage}
+                        %
                       </span>
                     </div>
                     <input
@@ -411,7 +573,8 @@ export default function TaskModal({
                   </div>
                   {availablePercentage === 0 && (
                     <span className="text-red-500 text-sm flex justify-center text-center mt-3 border-2 border-red-500 p-1 ">
-                      You cant allocate any more percentage! Reduce percentage of other tasks first
+                      You cant allocate any more percentage! Reduce percentage
+                      of other tasks first
                     </span>
                   )}
                 </div>

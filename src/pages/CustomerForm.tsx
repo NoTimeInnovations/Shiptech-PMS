@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+
+
+import React, { useState, useEffect} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import {
@@ -11,6 +13,8 @@ import toast from "react-hot-toast";
 import { uploadToGitHub } from "@/lib/github";
 import { Image } from "lucide-react";
 
+import CountryCodeSelector from "@/components/CountryCode";
+
 export default function CustomerForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -22,13 +26,19 @@ export default function CustomerForm() {
     Omit<Customer, "id" | "createdAt" | "updatedAt">
   >({
     name: "",
+    nickname: "",
     address: "",
     billingAddress: "",
+    shippingAddress:"",
     gstNumber: "",
-    contactPersons: [{ name: "", phone: "" }],
+    contactPersons: [{ name: "", phone: "", countryCode: "+91" ,email:""}],
     email: "",
     logoUrl: "",
   });
+  
+  // Store the original nickname to detect changes
+  const [originalNickname, setOriginalNickname] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [generatedPassword, setGeneratedPassword] = useState<string>("");
@@ -51,24 +61,39 @@ export default function CustomerForm() {
               {
                 name: customer.contactPerson as string,
                 phone: customer.phone as string,
+                countryCode: "+91",
+                email:customer.email as string,
               },
             ];
           }
 
           // If no contact persons exist, initialize with an empty one
           if (contactPersons.length === 0) {
-            contactPersons = [{ name: "", phone: "" }];
+            contactPersons = [{ name: "", phone: "", countryCode: "+91",email:""}];
+          } else {
+            // Add countryCode to existing contact persons if not present
+            contactPersons = contactPersons.map((contact) => ({
+              ...contact,
+              countryCode: contact.countryCode || "+91", // Default if not available
+            }));
           }
 
           setFormData({
             name: customer.name,
+            nickname: customer.nickname,
             address: customer.address,
             billingAddress: customer.billingAddress,
+            shippingAddress:customer.shippingAddress,
             gstNumber: customer.gstNumber,
             contactPersons,
             email: customer.email || "",
             logoUrl: customer.logoUrl || "",
           });
+          
+          // Store the original nickname and userId for comparison later
+          setOriginalNickname(customer.nickname);
+          setUserId(customer.email);
+          
           // Set logo preview if exists
           if (customer.logoUrl) {
             setLogoPreview(customer.logoUrl);
@@ -81,17 +106,17 @@ export default function CustomerForm() {
   }, [id, fetchCustomer]);
 
   // Function to generate password from customer name
-  const generatePassword = (name: string) => {
-    const formattedName = name.replace(/\s+/g, "_").toLowerCase();
+  const generatePassword = (nickName: string) => {
+    const formattedName = nickName.replace(/\s+/g, "_").toLowerCase();
     return `${formattedName}@123`;
   };
 
   // Update password when name changes
   useEffect(() => {
-    if (formData.name) {
-      setGeneratedPassword(generatePassword(formData.name));
+    if (formData.nickname) {
+      setGeneratedPassword(generatePassword(formData.nickname));
     }
-  }, [formData.name]);
+  }, [formData.nickname]);
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -103,6 +128,7 @@ export default function CustomerForm() {
       setLogoPreview(previewUrl);
     }
   };
+  
   const uploadLogo = async (customerId: string): Promise<string | null> => {
     if (!logoFile) return formData.logoUrl || null;
 
@@ -118,6 +144,34 @@ export default function CustomerForm() {
       return null;
     }
   };
+  
+  // Function to update user password in Firebase Auth
+  const updateUserPassword = async (email: string, newPassword: string) => {
+    try {
+      const response = await fetch('http://localhost:3000/api/updateUserPassword', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          newPassword
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update password');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Failed to update user password:', error);
+      throw error;
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -143,23 +197,38 @@ export default function CustomerForm() {
 
     try {
       if (id) {
+        // Check if nickname has changed
+        const nicknameChanged = originalNickname !== formData.nickname;
+        
         // Upload logo if changed
         const logoUrl = await uploadLogo(id);
-
+        
+        // Update customer data
         await updateCustomer(id, {
           ...filteredData,
           logoUrl: logoUrl || filteredData.logoUrl,
         });
+        
+        // If nickname has changed, update the password in Firebase Auth
+        if (nicknameChanged && userId) {
+          try {
+            await updateUserPassword(userId, generatedPassword);
+            toast.success("Customer password updated successfully");
+          } catch (error) {
+            console.error("Failed to update customer password:", error);
+            toast.error("Failed to update customer password");
+          }
+        }
+        
         toast.success("Customer updated successfully");
       } else {
-
         const cus = await signUpCustomer(
           formData.email,
           generatedPassword,
           formData.name
         );
 
-        if(!cus) {
+        if (!cus) {
           toast.error("Failed to create customer account");
           throw new Error("Failed to create customer account");
         }
@@ -217,7 +286,10 @@ export default function CustomerForm() {
   const addContactPerson = () => {
     setFormData((prev) => ({
       ...prev,
-      contactPersons: [...prev.contactPersons, { name: "", phone: "" }],
+      contactPersons: [
+        ...prev.contactPersons,
+        { name: "", phone: "", countryCode: "+91",email:"" },
+      ],
     }));
   };
 
@@ -303,6 +375,21 @@ export default function CustomerForm() {
             </div>
 
             <div>
+              <label className="block font-medium text-gray-700">
+                Nickname
+              </label>
+              <input
+                type="text"
+                value={formData.nickname}
+                required
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, nickname: e.target.value }))
+                }
+                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
               <label className="block font-medium text-gray-700">Email</label>
               <input
                 type="email"
@@ -315,34 +402,40 @@ export default function CustomerForm() {
               />
             </div>
 
-            {!id && (
-              <div>
-                <label className="block font-medium text-gray-700">
-                  Generated Password
-                </label>
-                <div className="mt-1 flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={generatedPassword}
-                    readOnly
-                    className="p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(generatedPassword);
-                      toast.success("Password copied to clipboard");
-                    }}
-                    className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200"
-                  >
-                    Copy
-                  </button>
-                </div>
+            <div>
+              <label className="block font-medium text-gray-700">
+                {id && originalNickname !== formData.nickname 
+                  ? "New Generated Password" 
+                  : "Generated Password"}
+              </label>
+              <div className="mt-1 flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={generatedPassword}
+                  readOnly
+                  className="p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedPassword);
+                    toast.success("Password copied to clipboard");
+                  }}
+                  className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200"
+                >
+                  Copy
+                </button>
+              </div>
+              {id && originalNickname !== formData.nickname ? (
+                <p className="mt-1 text-sm text-red-500">
+                  Password will be updated when you save changes
+                </p>
+              ) : (
                 <p className="mt-1 text-sm text-gray-500">
                   This password will be used for customer login
                 </p>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Logo Upload Section */}
             <div>
@@ -401,8 +494,8 @@ export default function CustomerForm() {
                     key={index}
                     className="flex items-start space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50"
                   >
-                    <div className="flex-grow grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div>
+                    <div className="flex-grow flex flex-row items-start gap-3">
+                      <div className="w-1/4">
                         <label className="block text-sm font-medium text-gray-700">
                           Name
                         </label>
@@ -416,7 +509,21 @@ export default function CustomerForm() {
                           className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         />
                       </div>
-                      <div>
+
+                      <div className="w-1/6">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Country Code
+                        </label>
+                        <CountryCodeSelector
+                          value={contact.countryCode || "+91"}
+                          onChange={(value) =>
+                            updateContactPerson(index, "countryCode", value)
+                          }
+                          className="mt-1 block w-full"
+                        />
+                      </div>
+
+                      <div className="w-1/4">
                         <label className="block text-sm font-medium text-gray-700">
                           Phone
                         </label>
@@ -430,17 +537,34 @@ export default function CustomerForm() {
                           className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                         />
                       </div>
+
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          required={index === 0}
+                          value={contact.email || ""}
+                          onChange={(e) =>
+                            updateContactPerson(index, "email", e.target.value)
+                          }
+                          className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => removeContactPerson(index)}
                       className="mt-7 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+                      aria-label="Remove contact"
                     >
                       <Trash2 size={18} />
                     </button>
                   </div>
                 ))}
               </div>
+
               <p className="mt-1 text-sm text-gray-500">
                 At least one contact person is required
               </p>
@@ -494,7 +618,27 @@ export default function CustomerForm() {
               <p className="mt-1 text-sm text-gray-500">
                 Leave empty if same as address
               </p>
-            </div>            
+            </div>
+
+            <div>
+              <label className="block font-medium text-gray-700">
+                Shipping Address
+              </label>
+              <textarea
+                value={formData.shippingAddress}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    shippingAddress: e.target.value,
+                  }))
+                }
+                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                rows={3}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Leave empty if same as address
+              </p>
+            </div>
           </div>
         </div>
       </div>

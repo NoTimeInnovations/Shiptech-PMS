@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { auth, db } from '../lib/firebase';
-import { 
-  createUserWithEmailAndPassword, 
+import {
+  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   User,
@@ -10,7 +10,7 @@ import {
 import { doc, setDoc, query, collection, where, getDocs } from 'firebase/firestore';
 
 export interface UserData {
-  id:string;
+  id: string;
   createdAt: string;
   email: string;
   fullName: string;
@@ -29,6 +29,7 @@ interface AuthState {
   error: string | null;
   initialized: boolean;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  updateUserData: (userID: string, userDesign: string) => Promise<void>
   signUpCustomer: (email: string, password: string, fullName: string) => Promise<User | null>;
   signIn: (email: string, password: string) => Promise<User | null>;
   signOut: () => Promise<void>;
@@ -52,7 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             const usersRef = collection(db, 'users');
             const q = query(usersRef, where('email', '==', user.email));
             const querySnapshot = await getDocs(q);
-            
+
             if (!querySnapshot.empty) {
               const userData = querySnapshot.docs[0].data() as UserData;
               set({ user, userData, initialized: true });
@@ -77,7 +78,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       set({ loading: true, error: null });
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       const userData: UserData = {
         id: user.uid,
         fullName,
@@ -103,13 +104,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   signUpCustomer: async (email: string, password: string, fullName: string) => {
     try {
       set({ loading: true, error: null });
-      
+
       // Store current user's auth
       const currentUser = auth.currentUser;
-      
+
       // Create new customer account
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       const userData: UserData = {
         id: user.uid,
         fullName,
@@ -122,10 +123,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       // Store user data in Firestore
       await setDoc(doc(db, 'users', user.uid), userData);
-      
+
       // Delete the new customer's auth session
       await auth.updateCurrentUser(currentUser);
-      
+
       set({ loading: false });
       return user;
     } catch (error) {
@@ -143,7 +144,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', email));
       const querySnapshot = await getDocs(q);
-      
+
       if (!querySnapshot.empty) {
         const userData = querySnapshot.docs[0].data() as UserData;
         set({ user, userData, loading: false });
@@ -169,5 +170,28 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ error: (error as Error).message });
       throw error;
     }
+  },
+  updateUserData: async (userEmail: string, userDesign: string) => {
+ 
+
+    const state = useAuthStore.getState()
+    const usrEmail = state.userData?.email
+  
+
+    try {
+      if (userEmail=== usrEmail) {
+        const updatedUserData = {
+          ...state.userData!,
+          designation: userDesign
+        }
+        set({ userData: updatedUserData, loading: false })
+        console.log("Designation changed,", updatedUserData);
+
+      }
+    } catch (error) {
+      console.error('User id not matching', error);
+    }
   }
-}));
+}
+
+));
