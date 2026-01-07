@@ -22,6 +22,7 @@ import { Task, useTaskStore, TimeEntry } from "../store/taskStore";
 import { useOutsourceTeamStore } from "../store/outsourceTeamStore";
 import { useSettlementStore } from "../store/settlementStore";
 import { Settlement } from "../store/settlementStore";
+import { useTodoStore } from "../store/todoStore";
 
 export default function TaskDetails() {
   const { id: projectId, "*": taskPath } = useParams();
@@ -41,6 +42,8 @@ export default function TaskDetails() {
     stopTimer,
     searchTaskFromTree
   } = useTaskStore();
+
+  const { taskTodos, fetchTaskTodos, toggleTodoComplete: toggleReminderComplete } = useTodoStore();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -56,7 +59,7 @@ export default function TaskDetails() {
   const [selectedTeam, setSelectedTeam] = useState<string>("");
   const [outsourceAmount, setOutsourceAmount] = useState<string>("");
   const { teams, fetchTeams, fetchTeamById } = useOutsourceTeamStore();
-  const { createSettlement, fetchTeamSettlementsWithTaskID } =
+  const { createSettlement } =
     useSettlementStore();
   const [outsourcedTeam, setOutsourcedTeam] = useState<{ name: string } | null>(
     null
@@ -80,18 +83,18 @@ export default function TaskDetails() {
   };
   const [parentTaskCompleted, setParentTaskCompleted] = useState(false);
 
-      useEffect(() => {
-        const checkParentTaskCompletion = async () => {
-          if (task?.parentId) {
-            const parentTask = await searchTaskFromTree(task.parentId,tasks);
-            setParentTaskCompleted(parentTask?.completed || false);
-          } else {
-            setParentTaskCompleted(false);
-          }
-        };
+  useEffect(() => {
+    const checkParentTaskCompletion = async () => {
+      if (task?.parentId) {
+        const parentTask = await searchTaskFromTree(task.parentId, tasks);
+        setParentTaskCompleted(parentTask?.completed || false);
+      } else {
+        setParentTaskCompleted(false);
+      }
+    };
 
-        checkParentTaskCompletion();
-      }, [task?.parentId, searchTaskFromTree]);
+    checkParentTaskCompletion();
+  }, [task?.parentId, searchTaskFromTree]);
 
   useEffect(() => {
     fetchProject(projectId as string)
@@ -168,6 +171,13 @@ export default function TaskDetails() {
       setCurrentPath([]);
     };
   }, [projectId, taskPath, user, taskId, task]);
+
+  // Fetch reminders
+  useEffect(() => {
+    if (task?.id) {
+      fetchTaskTodos(task.id);
+    }
+  }, [task?.id, fetchTaskTodos]);
 
   // Timer effect
   useEffect(() => {
@@ -593,11 +603,10 @@ export default function TaskDetails() {
               )}
               <button
                 onClick={isTimerActive ? handleStopTimer : handleStartTimer}
-                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${
-                  isTimerActive
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-green-600 hover:bg-green-700"
-                }`}
+                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${isTimerActive
+                  ? "bg-red-600 hover:bg-red-700"
+                  : "bg-green-600 hover:bg-green-700"
+                  }`}
               >
                 {isTimerActive ? (
                   <>
@@ -642,7 +651,7 @@ export default function TaskDetails() {
         </div>
       </div>
 
-      
+
 
       <ItemDetails
         item={task}
@@ -677,6 +686,68 @@ export default function TaskDetails() {
                   <div className="flex items-center text-gray-700">
                     <Clock className="h-4 w-4 mr-2" />
                     {formatDuration(userTime.totalMinutes)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {taskTodos.length > 0 && (
+        <div className="bg-white shadow rounded-lg mb-6">
+          <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
+            <h3 className="text-lg font-medium text-gray-900">Reminders</h3>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {taskTodos.map((reminder) => (
+                <div
+                  key={reminder.id}
+                  className={`p-4 rounded-lg border ${reminder.completed ? "bg-gray-50" : "bg-white"
+                    }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3
+                        className={`text-sm font-semibold ${reminder.completed ? "line-through text-gray-500" : ""
+                          }`}
+                      >
+                        {reminder.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {reminder.description}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Due:{" "}
+                        {new Date(reminder.endDate).toLocaleString("en-GB", {
+                          year: "numeric",
+                          month: "numeric",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: false,
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      {/* We can reuse the toggle functionality or just show status. 
+                             The user didn't explicitly asking for interacting with them here, 
+                             but "fetch it" implies viewing. "Store in same place" implies full todo. 
+                             I'll add a simple checkbox or button to toggle if I imported it. 
+                             I imported toggleTodoComplete as toggleReminderComplete. 
+                         */}
+                      <button
+                        onClick={() => toggleReminderComplete(reminder.id)}
+                        className={`p-2 rounded-md ${reminder.completed
+                          ? "text-green-600 bg-green-100"
+                          : "text-gray-400 bg-gray-100 hover:bg-gray-200"
+                          }`}
+                      >
+                        {/* Using a simple Check icon or text */}
+                        {reminder.completed ? "Completed" : "Mark Complete"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

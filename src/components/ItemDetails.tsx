@@ -5,7 +5,11 @@ import {
   DollarSign,
   Check,
   AlertCircle,
+  Bell,
 } from "lucide-react";
+import { useState } from "react";
+import toast from "react-hot-toast";
+import { useTodoStore } from "@/store/todoStore";
 import ItemStatusBadge from "./ItemStatusBadge";
 import { Task, useTaskStore } from "@/store/taskStore";
 import { useAuthStore } from "@/store/authStore";
@@ -39,7 +43,7 @@ export default function ItemDetails({
     : true;
 
   const calculateProgress = () => {
-    
+
     if (!tasks.length) return 0;
 
     const completedProgress = tasks.reduce((acc, task) => {
@@ -50,6 +54,92 @@ export default function ItemDetails({
     }, 0);
 
     return Math.round(completedProgress);
+  };
+
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderData, setReminderData] = useState({
+    title: "",
+    description: "",
+    leadTime: 0,
+    leadTimeUnit: "days" as "days" | "weeks" | "months",
+    endDate: "",
+  });
+
+  const { addTodo } = useTodoStore();
+
+  const handleOpenReminderModal = () => {
+    setReminderData({
+      title: item.name || "",
+      description: item.description || "",
+      leadTime: 0,
+      leadTimeUnit: "days",
+      endDate: "",
+    });
+    setShowReminderModal(true);
+  };
+
+  const handleLeadTimeChange = (
+    value: number,
+    unit: "days" | "weeks" | "months"
+  ) => {
+    const now = new Date();
+    let newDate = new Date(now);
+
+    if (unit === "days") {
+      newDate.setDate(now.getDate() + value);
+    } else if (unit === "weeks") {
+      newDate.setDate(now.getDate() + value * 7);
+    } else if (unit === "months") {
+      newDate.setMonth(now.getMonth() + value);
+    }
+
+    // Format for datetime-local input: YYYY-MM-DDTHH:mm
+    // Adjust for timezone offset to keep local time correct
+    const offset = newDate.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(newDate.getTime() - offset).toISOString().slice(0, 16);
+
+    setReminderData((prev) => ({
+      ...prev,
+      leadTime: value,
+      leadTimeUnit: unit,
+      endDate: localISOTime,
+    }));
+  };
+
+  const handleEndDateChange = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    setReminderData((prev) => ({
+      ...prev,
+      endDate: dateStr,
+      leadTime: diffDays > 0 ? diffDays : 0,
+      leadTimeUnit: "days",
+    }));
+  };
+
+  const handleAddReminder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reminderData.endDate) {
+      toast.error("Please select an end date or lead time");
+      return;
+    }
+    await addTodo(
+      reminderData.title,
+      reminderData.description,
+      reminderData.endDate,
+      reminderData.leadTime,
+      reminderData.leadTimeUnit,
+      item.projectId || null,
+      item.id || null,
+      project?.__id || null,
+      project?.name || null,
+      item.name || null
+    );
+    toast.success("Reminder added successfully");
+    setShowReminderModal(false);
   };
 
   const progress = calculateProgress();
@@ -90,9 +180,9 @@ export default function ItemDetails({
             </div>
             <div className="flex items-center space-x-4">
               {/* {!parentTaskCompleted && (isAdmin || exceptionCase) && onEditClick && project && project.status !== 'completed' &&( */}
-              {!parentTaskCompleted && (isAdmin || exceptionCase) && onEditClick && project && project.status !== 'completed' &&(
+              {!parentTaskCompleted && (isAdmin || exceptionCase) && onEditClick && project && project.status !== 'completed' && (
                 <button
-                  onClick={()=>{
+                  onClick={() => {
                     onEditClick()
                   }}
                   className="px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
@@ -108,15 +198,13 @@ export default function ItemDetails({
                     !canComplete ||
                     ((tasks?.length && !allChildrenComplete) as boolean)
                   }
-                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-                    item.completed
-                      ? "text-yellow-600 hover:text-yellow-700"
-                      : "text-green-600 hover:text-green-700"
-                  } ${
-                    !canComplete || (tasks?.length && !allChildrenComplete)
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${item.completed
+                    ? "text-yellow-600 hover:text-yellow-700"
+                    : "text-green-600 hover:text-green-700"
+                    } ${!canComplete || (tasks?.length && !allChildrenComplete)
                       ? "opacity-50 cursor-not-allowed"
                       : ""
-                  }`}
+                    }`}
                 >
                   {item.completed ? "Mark Incomplete" : "Mark Complete"}
                 </button>
@@ -147,10 +235,10 @@ export default function ItemDetails({
                   Deadline
                 </h3>
                 <div className="flex items-center">
-                  
+
                   <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                   <p>{new Date(item.deadline).toLocaleString('en-GB')}</p>
-                </div>  
+                </div>
               </div>
             )}
 
@@ -193,10 +281,119 @@ export default function ItemDetails({
                   </span>
                 ) : null}
               </div>
+              <button
+                onClick={handleOpenReminderModal}
+                className="mt-4 flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                <Bell className="h-4 w-4 mr-1" />
+                Add Reminder
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {showReminderModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-lg p-6 w-[32rem]">
+            <h2 className="text-xl font-bold mb-4">Add Reminder</h2>
+            <form onSubmit={handleAddReminder}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Title</label>
+                <input
+                  type="text"
+                  value={reminderData.title}
+                  onChange={(e) =>
+                    setReminderData({ ...reminderData, title: e.target.value })
+                  }
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={reminderData.description}
+                  onChange={(e) =>
+                    setReminderData({
+                      ...reminderData,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 border rounded"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Lead Time
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={reminderData.leadTime}
+                      onChange={(e) =>
+                        handleLeadTimeChange(
+                          parseInt(e.target.value) || 0,
+                          reminderData.leadTimeUnit
+                        )
+                      }
+                      className="w-full p-2 border rounded"
+                    />
+                    <select
+                      value={reminderData.leadTimeUnit}
+                      onChange={(e) =>
+                        handleLeadTimeChange(
+                          reminderData.leadTime,
+                          e.target.value as "days" | "weeks" | "months"
+                        )
+                      }
+                      className="p-2 border rounded bg-white"
+                    >
+                      <option value="days">Days</option>
+                      <option value="weeks">Weeks</option>
+                      <option value="months">Months</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={reminderData.endDate}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReminderModal(false)}
+                  className="px-4 py-2 text-gray-600 border rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Save Reminder
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

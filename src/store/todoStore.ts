@@ -8,32 +8,42 @@ interface Todo {
   title: string;
   description: string;
   endDate: string;
+  leadTime?: number;
+  leadTimeUnit?: 'days' | 'weeks' | 'months';
+  projectId?: string | null;
+  taskId?: string | null;
+  projectNumber?: string | null;
+  projectName?: string | null;
+  taskName?: string | null;
   createdAt: string;
   completed: boolean;
 }
 
 interface TodoState {
   todos: Todo[];
+  taskTodos: Todo[];
   loading: boolean;
   error: string | null;
   cache: {
     [userId: string]: Todo[]; // Cache for user-specific todos
   };
-  addTodo: (title: string, description: string, endDate: string) => Promise<void>;
+  addTodo: (title: string, description: string, endDate: string, leadTime?: number, leadTimeUnit?: 'days' | 'weeks' | 'months', projectId?: string | null, taskId?: string | null, projectNumber?: string | null, projectName?: string | null, taskName?: string | null) => Promise<void>;
   updateTodo: (id: string, updates: Partial<Todo>) => Promise<void>;
   deleteTodo: (id: string) => Promise<void>;
   fetchUserTodos: () => Promise<void>;
+  fetchTaskTodos: (taskId: string) => Promise<void>;
   toggleTodoComplete: (id: string) => Promise<void>;
 }
 
 export const useTodoStore = create<TodoState>((set, get) => ({
   todos: [],
+  taskTodos: [],
   loading: false,
   error: null,
   cache: {}, // Initialize cache
 
   // Add a new todo
-  addTodo: async (title: string, description: string, endDate: string) => {
+  addTodo: async (title: string, description: string, endDate: string, leadTime?: number, leadTimeUnit?: 'days' | 'weeks' | 'months', projectId?: string | null, taskId?: string | null, projectNumber?: string | null, projectName?: string | null, taskName?: string | null) => {
     try {
       set({ loading: true, error: null });
       const currentUser = auth.currentUser;
@@ -45,6 +55,13 @@ export const useTodoStore = create<TodoState>((set, get) => ({
         title,
         description,
         endDate,
+        leadTime,
+        leadTimeUnit,
+        projectId: projectId || null,
+        taskId: taskId || null,
+        projectNumber: projectNumber || null,
+        projectName: projectName || null,
+        taskName: taskName || null,
         createdAt: new Date().toISOString(),
         completed: false,
       };
@@ -55,6 +72,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       // Update cache and state
       set((state) => ({
         todos: [...state.todos, todoWithId],
+        taskTodos: taskId ? [...state.taskTodos, todoWithId] : state.taskTodos,
         cache: {
           ...state.cache,
           [currentUser.uid]: [...(state.cache[currentUser.uid] || []), todoWithId],
@@ -78,6 +96,9 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       // Update cache and state
       set((state) => ({
         todos: state.todos.map((todo) =>
+          todo.id === id ? { ...todo, ...updates } : todo
+        ),
+        taskTodos: state.taskTodos.map((todo) =>
           todo.id === id ? { ...todo, ...updates } : todo
         ),
         cache: {
@@ -105,6 +126,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       // Update cache and state
       set((state) => ({
         todos: state.todos.filter((todo) => todo.id !== id),
+        taskTodos: state.taskTodos.filter((todo) => todo.id !== id),
         cache: {
           ...state.cache,
           [auth.currentUser?.uid || '']: state.cache[auth.currentUser?.uid || '']?.filter(
@@ -121,6 +143,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
   },
 
   // Fetch todos for the current user
+
   fetchUserTodos: async () => {
     try {
       set({ loading: true, error: null });
@@ -160,11 +183,49 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     }
   },
 
+  // Fetch todos for a specific task
+  fetchTaskTodos: async (taskId: string) => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      const todosRef = collection(db, 'todos');
+      const q = query(
+        todosRef, 
+        where('taskId', '==', taskId),
+        where('userId', '==', currentUser.uid)
+      );
+      const querySnapshot = await getDocs(q);
+
+      const taskTodos = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Todo[];
+
+      set({ taskTodos });
+    } catch (error) {
+      console.error('Error fetching task todos:', error);
+      // We might not want to set global error here to avoid blocking UI
+    }
+  },
+
   // Toggle todo completion status
   toggleTodoComplete: async (id: string) => {
     const todo = get().todos.find((t) => t.id === id);
     if (todo) {
       await get().updateTodo(id, { completed: !todo.completed });
+    }
+    // Also update taskTodos if present there
+    const taskTodo = get().taskTodos.find((t) => t.id === id);
+    if (taskTodo) {
+         // Create a new updated list locally to reflect change immediately
+         const updatedTaskTodos = get().taskTodos.map(t => 
+             t.id === id ? { ...t, completed: !t.completed } : t
+         );
+         set({ taskTodos: updatedTaskTodos });
+         // The actual update was done above in updateTodo (via get().updateTodo which calls firestore)
+         // Wait, the toggleTodoComplete calls updateTodo.
+         // updateTodo only updates `todos`. We should update `taskTodos` too in `updateTodo`.
     }
   },
 }));

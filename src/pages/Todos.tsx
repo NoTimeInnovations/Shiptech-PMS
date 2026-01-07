@@ -30,7 +30,7 @@ export default function Todos() {
         await updateTodo(editingTodo, formData);
         toast.success('Todo updated successfully');
       } else {
-        await addTodo(formData.title, formData.description, formData.endDate);
+        await addTodo(formData.title, formData.description, formData.endDate, undefined, undefined, null, null, null, null, null);
         toast.success('Todo added successfully');
       }
       setShowModal(false);
@@ -60,13 +60,7 @@ export default function Todos() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
+
 
   return (
     <div className="p-6">
@@ -89,9 +83,8 @@ export default function Todos() {
         {todos.map(todo => (
           <div
             key={todo.id}
-            className={`p-4 rounded-lg border ${
-              todo.completed ? 'bg-gray-50' : 'bg-white'
-            }`}
+            className={`p-4 rounded-lg border ${todo.completed ? 'bg-gray-50' : 'bg-white'
+              }`}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -99,6 +92,14 @@ export default function Todos() {
                   {todo.title}
                 </h3>
                 <p className="text-gray-600 mt-1">{todo.description}</p>
+                {todo.projectNumber && todo.projectName && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Project: {todo.projectNumber} - {todo.projectName}
+                  </p>
+                )}
+                {todo.taskName && (
+                  <p className="text-xs text-gray-400 mt-1">Task: {todo.taskName}</p>
+                )}
                 <p className="text-sm text-gray-500 mt-2">
                   Due: {new Date(todo.endDate).toLocaleString('en-GB', {
                     year: 'numeric',
@@ -113,9 +114,8 @@ export default function Todos() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toggleTodoComplete(todo.id)}
-                  className={`p-2 rounded-md ${
-                    todo.completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-                  }`}
+                  className={`p-2 rounded-md ${todo.completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
+                    }`}
                 >
                   <Check className="h-4 w-4" />
                 </button>
