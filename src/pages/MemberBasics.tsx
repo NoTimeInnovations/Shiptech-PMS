@@ -51,7 +51,7 @@ export default function MemberBasics() {
   const upcomingTasks = userTasks
     ?.filter((task) => !task.completed)
     .sort((a, b) => new Date(a.deadline as string).getTime() - new Date(b.deadline as string).getTime())
-    // .slice(0, 5) ?? [];
+  // .slice(0, 5) ?? [];
 
   const handleTaskClick = (projectId: string, taskid: string) => {
     navigate(`/dashboard/projects/${projectId}/task/${taskid}`);
@@ -77,7 +77,7 @@ export default function MemberBasics() {
   return (
     <div className="p-6">
       {/* Analytics Board */}
-      <div onClick={()=>{
+      <div onClick={() => {
         navigate("/dashboard/projects")
       }} className="mb-6 bg-white rounded-lg shadow p-4">
         <h2 className="text-2xl font-bold mb-4">Analytics Dashboard</h2>
@@ -133,12 +133,12 @@ export default function MemberBasics() {
               <div
                 onClick={() => navigate(`/dashboard/todos`)}
                 key={todo.id}
-                className="p-4"
+                className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-medium text-gray-900">{todo.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-1">
                       {todo.description}
                     </p>
                     <div className="flex items-center mt-2 text-sm text-gray-500">
@@ -158,6 +158,15 @@ export default function MemberBasics() {
                 </div>
               </div>
             ))}
+            <div
+              onClick={() => navigate("/dashboard/todos")}
+              className="p-3 text-center text-sm text-blue-600 hover:bg-gray-50 cursor-pointer font-medium"
+            >
+              {todos.filter((t) => !t.completed).length - 2 > 0
+                ? `${todos.filter((t) => !t.completed).length - 2} more To Do${todos.filter((t) => !t.completed).length - 2 === 1 ? "" : "s"
+                } pending. View all`
+                : "View all"}
+            </div>
           </div>
         </div>
       )}
@@ -246,11 +255,10 @@ export default function MemberBasics() {
                         </div>
                       </div>
                       <div
-                        className={`px-2 py-1 rounded text-sm ${
-                          task.completed
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
+                        className={`px-2 py-1 rounded text-sm ${task.completed
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                          }`}
                       >
                         {task.completed ? "Completed" : "In Progress"}
                       </div>
