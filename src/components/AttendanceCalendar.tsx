@@ -271,6 +271,20 @@ export default function AttendanceCalendar({
       });
     }
 
+    // Check for 2nd and 4th Saturdays
+    const dayOfWeek = date.getDay();
+    if (dayOfWeek === 6) { // Saturday
+      const dayOfMonth = date.getDate();
+      const weekOfMonth = Math.ceil(dayOfMonth / 7);
+      if (weekOfMonth === 2 || weekOfMonth === 4) {
+        statuses.push({
+          type: "holiday",
+          name: weekOfMonth === 2 ? "2nd Saturday" : "4th Saturday",
+          id: `sat-${weekOfMonth}-${date.toISOString()}`, // Unique ID
+        });
+      }
+    }
+
     return statuses;
   };
 
@@ -522,7 +536,7 @@ export default function AttendanceCalendar({
     } else {
       // Default to first day of current month for overall
       startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      endDate = new Date();
+      endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
     }
 
     // Ensure dates are set to beginning of day for comparison
@@ -614,17 +628,63 @@ export default function AttendanceCalendar({
       }
     });
 
-    // Calculate total working days in the selected period (excluding weekends)
+
+    // Calculate total working days in the selected period (excluding Sundays, 2nd & 4th Saturdays, and holidays)
     const totalWorkingDays = (() => {
       let count = 0;
       const currentDate = new Date(startDate);
+      // Create a map of holidays for faster lookup
+      // holidays is an array of objects { startDate: string, endDate: string }
+      // We need to check if a date falls within any holiday range
+      // Important: holiday dates are strings "YYYY-MM-DD"
 
       while (currentDate <= endDate) {
-        // 0 is Sunday, 6 is Saturday
-        const dayOfWeek = currentDate.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        const dayOfWeek = currentDate.getDay(); // 0 is Sunday, 6 is Saturday
+        const dateString = currentDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
+
+        let isWorkingDay = true;
+
+        // 1. Exclude Sundays
+        if (dayOfWeek === 0) {
+          isWorkingDay = false;
+        }
+        // 2. Handle Saturdays (Exclude 2nd and 4th)
+        else if (dayOfWeek === 6) {
+          const dayOfMonth = currentDate.getDate();
+          const weekOfMonth = Math.ceil(dayOfMonth / 7);
+
+          if (weekOfMonth === 2 || weekOfMonth === 4) {
+            isWorkingDay = false;
+          }
+        }
+
+        // 3. Exclude Holidays
+        if (isWorkingDay) {
+          const isHoliday = holidays.some(h => {
+            const hStart = new Date(h.startDate);
+            const hEnd = new Date(h.endDate);
+            // Normalize times
+            hStart.setHours(0, 0, 0, 0);
+            hEnd.setHours(23, 59, 59, 999);
+
+            // Check if current date falls within holiday range
+            // We need a fresh copy of currentDate for comparison to avoid mutation issues if any (though loop variable is robust here)
+            const checkDate = new Date(currentDate);
+            checkDate.setHours(12, 0, 0, 0); // Midday to be safe
+
+            return checkDate >= hStart && checkDate <= hEnd;
+          });
+
+          if (isHoliday) {
+            isWorkingDay = false;
+          }
+        }
+
+        if (isWorkingDay) {
           count++;
         }
+
+        // Move to next day
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
@@ -1083,6 +1143,10 @@ export default function AttendanceCalendar({
               <div className="bg-red-100 p-4 rounded-lg">
                 <h4 className="font-medium">Total OOO Days</h4>
                 <p className="text-2xl">{metrics.totalOOO}</p>
+              </div>
+              <div className="bg-blue-100 p-4 rounded-lg">
+                <h4 className="font-medium">Total Working Days</h4>
+                <p className="text-2xl">{metrics.totalWorkingDays}</p>
               </div>
             </div>
           )}
