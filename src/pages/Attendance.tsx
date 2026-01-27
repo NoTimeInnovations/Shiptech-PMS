@@ -70,7 +70,30 @@ export default function Attendance() {
     null
   );
   const [users, setUsers] = useState<Record<string, User>>({});
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<string | null>(() => {
+    // Initialize from localStorage if available
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("selectedAttendanceUser");
+    }
+    return null;
+  });
+
+  // Persist selectedUser to localStorage
+  useEffect(() => {
+    if (selectedUser) {
+      localStorage.setItem("selectedAttendanceUser", selectedUser);
+    } else {
+      localStorage.removeItem("selectedAttendanceUser");
+    }
+  }, [selectedUser]);
+
+  // Security: Clear selectedUser if current user is not an admin
+  useEffect(() => {
+    if (userData && userData.role !== "admin" && selectedUser) {
+      setSelectedUser(null);
+    }
+  }, [userData, selectedUser]);
+
   const [monthlyAttendance, setMonthlyAttendance] = useState<
     MonthlyAttendance[]
   >([]);
@@ -85,7 +108,7 @@ export default function Attendance() {
     endDate: "",
     reason: "",
     leaveType: "full" as "full" | "half",
-    session : "forenoon" as "forenoon" | "afternoon"
+    session: "forenoon" as "forenoon" | "afternoon"
   });
   const [workFromForm, setWorkFromForm] = useState({
     startDate: "",
@@ -117,7 +140,7 @@ export default function Attendance() {
 
   useEffect(() => {
     console.log("Attendance Records:", records.filter((record) => record.date === "2025-03-29"));
-    
+
   }, [records]);
 
   useEffect(() => {
@@ -253,13 +276,13 @@ export default function Attendance() {
         session: "forenoon"
       });
       toast.success("Leave request submitted successfully");
-      
+
       // Calculate duration and send single notification
       if (userData?.role !== "admin") {
         const start = new Date(leaveForm.startDate);
         const end = new Date(leaveForm.endDate || leaveForm.startDate);
         const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        
+
         await addNotification(
           `${userData?.fullName || "User"} requested ${leaveForm.leaveType} leave for ${days} day${days > 1 ? 's' : ''}`,
           `/dashboard/attendance`,
@@ -276,7 +299,7 @@ export default function Attendance() {
     e.preventDefault();
     try {
       const endDate = showEndDateInput ? workFromForm.endDate : workFromForm.startDate;
-      
+
       if (!workFromForm.startDate) {
         throw new Error("Start date is required");
       }
@@ -293,13 +316,13 @@ export default function Attendance() {
       setWorkFromForm({ startDate: "", endDate: "", reason: "" });
       setShowEndDateInput(false);
       toast.success("Work from home request submitted successfully");
-      
+
       // Send single notification for WFH request
       if (userData?.role !== "admin") {
         const start = new Date(workFromForm.startDate);
         const end = new Date(endDate);
         const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        
+
         await addNotification(
           `${userData?.fullName || "User"} requested work from home for ${days} day${days > 1 ? 's' : ''}`,
           `/dashboard/attendance`,
@@ -318,7 +341,7 @@ export default function Attendance() {
     e.preventDefault();
     try {
       const endDate = showEndDateInput ? oooForm.endDate : oooForm.startDate;
-      
+
       if (!oooForm.startDate) {
         throw new Error("Start date is required");
       }
@@ -335,13 +358,13 @@ export default function Attendance() {
       setOOOForm({ startDate: "", endDate: "", reason: "" });
       setShowEndDateInput(false);
       toast.success("Out-of-Office request submitted successfully");
-      
+
       // Send single notification for OOO request
       if (userData?.role !== "admin") {
         const start = new Date(oooForm.startDate);
         const end = new Date(endDate);
         const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        
+
         await addNotification(
           `${userData?.fullName || "User"} requested out-of-office for ${days} day${days > 1 ? 's' : ''}`,
           `/dashboard/attendance`,
@@ -938,9 +961,8 @@ export default function Attendance() {
                   )}
                 </div>
                 <ChevronDown
-                  className={`h-5 w-5 transition-transform ${
-                    showEmployeeDropdown ? "rotate-180" : ""
-                  }`}
+                  className={`h-5 w-5 transition-transform ${showEmployeeDropdown ? "rotate-180" : ""
+                    }`}
                 />
                 {isAnyRequestPending() ? (
                   <span className="h-3 w-3 bg-red-600 rounded-full animate-pulse absolute top-0 right-0 translate-x-1 -translate-y-1"></span>
