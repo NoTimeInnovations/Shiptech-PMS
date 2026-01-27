@@ -56,8 +56,8 @@ export default function ItemDetails({
     return Math.round(completedProgress);
   };
 
-  const [showReminderModal, setShowReminderModal] = useState(false);
-  const [reminderData, setReminderData] = useState({
+  const [showToDoModal, setShowToDoModal] = useState(false);
+  const [toDoData, setToDoData] = useState({
     title: "",
     description: "",
     leadTime: 0,
@@ -67,15 +67,15 @@ export default function ItemDetails({
 
   const { addTodo } = useTodoStore();
 
-  const handleOpenReminderModal = () => {
-    setReminderData({
+  const handleOpenToDoModal = () => {
+    setToDoData({
       title: item.name || "",
       description: item.description || "",
       leadTime: 0,
       leadTimeUnit: "days",
       endDate: "",
     });
-    setShowReminderModal(true);
+    setShowToDoModal(true);
   };
 
   const handleLeadTimeChange = (
@@ -90,7 +90,14 @@ export default function ItemDetails({
     } else if (unit === "weeks") {
       newDate.setDate(now.getDate() + value * 7);
     } else if (unit === "months") {
+      // Handle month overflow (e.g., Jan 31 + 1 month -> Feb 28/29)
+      const currentDay = now.getDate();
       newDate.setMonth(now.getMonth() + value);
+
+      // If the day changed (e.g. was 31st, now 3rd of March), rollback to last day of intended month
+      if (newDate.getDate() !== currentDay) {
+        newDate.setDate(0);
+      }
     }
 
     // Format for datetime-local input: YYYY-MM-DDTHH:mm
@@ -98,7 +105,7 @@ export default function ItemDetails({
     const offset = newDate.getTimezoneOffset() * 60000;
     const localISOTime = new Date(newDate.getTime() - offset).toISOString().slice(0, 16);
 
-    setReminderData((prev) => ({
+    setToDoData((prev) => ({
       ...prev,
       leadTime: value,
       leadTimeUnit: unit,
@@ -107,39 +114,81 @@ export default function ItemDetails({
   };
 
   const handleEndDateChange = (dateStr: string) => {
+    if (!dateStr) {
+      setToDoData((prev) => ({
+        ...prev,
+        endDate: dateStr,
+        leadTime: 0,
+        // leadTimeUnit: "days", // Keep previous unit
+      }));
+      return;
+    }
+
     const date = new Date(dateStr);
     const now = new Date();
+
+    // Calculate difference in milliseconds
     const diffTime = date.getTime() - now.getTime();
+
+    // Calculate days first
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    setReminderData((prev) => ({
+    // Use current unit preference
+    const currentUnit = toDoData.leadTimeUnit;
+    let newLeadTime = 0;
+
+    if (currentUnit === "days") {
+      newLeadTime = diffDays > 0 ? diffDays : 0;
+    } else if (currentUnit === "weeks") {
+      // Convert to weeks, keeping 1 decimal place if needed
+      const weeks = diffDays / 7;
+      // If it's effectively an integer (e.g. 2.0), show integer. Else fixed to 1 decimal
+      newLeadTime = weeks > 0 ? parseFloat(weeks.toFixed(1)) : 0;
+    } else if (currentUnit === "months") {
+      // Rough month calculation
+      let months = (date.getFullYear() - now.getFullYear()) * 12 + (date.getMonth() - now.getMonth());
+      // Adjust for day of month
+      if (date.getDate() < now.getDate()) {
+        months--;
+      }
+      // Add fractional month? For simplicity, we might just use full months or simple ratio
+      // Given the previous forward logic was simpler, let's stick to simple integer months if possible,
+      // or maybe just approximation: diffDays / 30
+
+      // Better approach for months: 
+      // If user selected months, they probably want to see approx months.
+      const approxMonths = diffDays / 30.44; // Average days in month
+      newLeadTime = approxMonths > 0 ? parseFloat(approxMonths.toFixed(1)) : 0;
+    }
+
+    setToDoData((prev) => ({
       ...prev,
       endDate: dateStr,
-      leadTime: diffDays > 0 ? diffDays : 0,
-      leadTimeUnit: "days",
+      leadTime: newLeadTime,
+      // unit stays same
     }));
   };
 
-  const handleAddReminder = async (e: React.FormEvent) => {
+  const handleAddToDo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reminderData.endDate) {
+    if (!toDoData.endDate) {
       toast.error("Please select an end date or lead time");
       return;
     }
     await addTodo(
-      reminderData.title,
-      reminderData.description,
-      reminderData.endDate,
-      reminderData.leadTime,
-      reminderData.leadTimeUnit,
+      toDoData.title,
+      toDoData.description,
+      toDoData.endDate,
+      toDoData.leadTime,
+      toDoData.leadTimeUnit,
       item.projectId || null,
       item.id || null,
       project?.__id || null,
       project?.name || null,
       item.name || null
     );
-    toast.success("Reminder added successfully");
-    setShowReminderModal(false);
+    toast.success("To-Do created successfully");
+    setShowToDoModal(false);
   };
 
   const progress = calculateProgress();
@@ -282,29 +331,31 @@ export default function ItemDetails({
                 ) : null}
               </div>
               <button
-                onClick={handleOpenReminderModal}
-                className="mt-4 flex items-center text-sm font-medium text-blue-600 hover:text-blue-700"
+                onClick={handleOpenToDoModal}
+                className="mt-4 flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
               >
-                <Bell className="h-4 w-4 mr-1" />
-                Add Reminder
+                <div className="flex items-center">
+                  <Bell className="h-4 w-4 mr-2" />
+                  Create To-Do
+                </div>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {showReminderModal && (
+      {showToDoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
           <div className="bg-white rounded-lg p-6 w-[32rem]">
-            <h2 className="text-xl font-bold mb-4">Add Reminder</h2>
-            <form onSubmit={handleAddReminder}>
+            <h2 className="text-xl font-bold mb-4">Create To-Do</h2>
+            <form onSubmit={handleAddToDo}>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Title</label>
                 <input
                   type="text"
-                  value={reminderData.title}
+                  value={toDoData.title}
                   onChange={(e) =>
-                    setReminderData({ ...reminderData, title: e.target.value })
+                    setToDoData({ ...toDoData, title: e.target.value })
                   }
                   className="w-full p-2 border rounded"
                   required
@@ -315,10 +366,10 @@ export default function ItemDetails({
                   Description
                 </label>
                 <textarea
-                  value={reminderData.description}
+                  value={toDoData.description}
                   onChange={(e) =>
-                    setReminderData({
-                      ...reminderData,
+                    setToDoData({
+                      ...toDoData,
                       description: e.target.value,
                     })
                   }
@@ -336,20 +387,20 @@ export default function ItemDetails({
                     <input
                       type="number"
                       min="0"
-                      value={reminderData.leadTime}
+                      value={toDoData.leadTime}
                       onChange={(e) =>
                         handleLeadTimeChange(
                           parseInt(e.target.value) || 0,
-                          reminderData.leadTimeUnit
+                          toDoData.leadTimeUnit
                         )
                       }
                       className="w-full p-2 border rounded"
                     />
                     <select
-                      value={reminderData.leadTimeUnit}
+                      value={toDoData.leadTimeUnit}
                       onChange={(e) =>
                         handleLeadTimeChange(
-                          reminderData.leadTime,
+                          0,
                           e.target.value as "days" | "weeks" | "months"
                         )
                       }
@@ -367,7 +418,7 @@ export default function ItemDetails({
                   </label>
                   <input
                     type="datetime-local"
-                    value={reminderData.endDate}
+                    value={toDoData.endDate}
                     onChange={(e) => handleEndDateChange(e.target.value)}
                     className="w-full p-2 border rounded"
                     required
@@ -378,7 +429,7 @@ export default function ItemDetails({
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowReminderModal(false)}
+                  onClick={() => setShowToDoModal(false)}
                   className="px-4 py-2 text-gray-600 border rounded hover:bg-gray-50"
                 >
                   Cancel
@@ -387,7 +438,7 @@ export default function ItemDetails({
                   type="submit"
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                  Save Reminder
+                  Save To-Do
                 </button>
               </div>
             </form>

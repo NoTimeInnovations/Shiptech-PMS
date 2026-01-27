@@ -697,7 +697,7 @@ export default function TaskDetails() {
       {taskTodos.length > 0 && (
         <div className="bg-white shadow rounded-lg mb-6">
           <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Reminders</h3>
+            <h3 className="text-lg font-medium text-gray-900">To-Dos</h3>
           </div>
           <div className="p-6">
             <div className="space-y-4">
