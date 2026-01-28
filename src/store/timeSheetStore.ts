@@ -10,6 +10,8 @@ interface TimeSheet {
   minutes: number;
   userId: string;
   createdAt: Timestamp;
+  projectId?: string;
+  taskIds?: string[];
 }
 
 interface TimeSheetState {

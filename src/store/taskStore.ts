@@ -69,7 +69,8 @@ interface TaskState {
   fetchAllTasksWithChildren: (
     projectId: string,
     taskId?: string,
-    forceFetch?: boolean
+    forceFetch?: boolean,
+    shouldUpdateState?: boolean
   ) => Promise<Task[]>;
   checkActiveTime: (taskId: string) => Promise<number | null>;
   getTaskTimeEntries: (taskId: string) => Promise<TimeEntry[] | null>;
@@ -173,10 +174,11 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   fetchAllTasksWithChildren: async (
     projectId: string,
     taskId?: string,
-    forceFetch = false
+    forceFetch = false,
+    shouldUpdateState = true
   ) => {
     try {
-      if (!forceFetch) {
+      if (!forceFetch && shouldUpdateState) {
         if (
           get().tasks.length > 0 &&
           get().tasks.some((task) => task.projectId === projectId)
@@ -191,7 +193,10 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         }
       }
 
-      set({ loading: true, error: null });
+      if (shouldUpdateState) {
+        set({ loading: true, error: null });
+      }
+
       const querySnapshot = await getDocs(
         query(collection(db, "tasks"), where("projectId", "==", projectId))
       );
@@ -202,17 +207,28 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       const hierarchicalTasks = get().convertNodesToTree(tasks);
 
-      if (taskId) {
+      if (taskId && shouldUpdateState) {
         set({
           task: get().searchTaskFromTree(taskId, hierarchicalTasks) || null,
           loading: false,
         });
       }
 
-      set({ tasks: hierarchicalTasks, taskNodes: tasks });
+      if (shouldUpdateState) {
+        set({ tasks: hierarchicalTasks, taskNodes: tasks });
+      } else {
+        // If we started loading (though we guard above, good to be safe if we want independent loading state later)
+        // But for now, if shouldUpdateState is false, we typically don't want to affect global loading state either?
+        // Actually, the original code sets loading=true unconditionally. 
+        // If I don't update state, I shouldn't set loading=true either, or I should reset it.
+        // Let's rely on the call site or just not set loading if !shouldUpdateState to avoid UI flicker in other components.
+      }
+
       return hierarchicalTasks;
     } catch (error) {
-      set({ error: (error as Error).message, loading: false });
+      if (shouldUpdateState) {
+        set({ error: (error as Error).message, loading: false });
+      }
       return [];
     }
   },

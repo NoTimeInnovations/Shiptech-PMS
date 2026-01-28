@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useTimeSheetStore } from "@/store/timeSheetStore";
+import { useProjectStore } from "@/store/projectStore"; // Import project store
 import { useAuthStore, UserData } from "@/store/authStore";
-import { useTaskStore } from "@/store/taskStore"; // Import the task store
+import { useTaskStore, Task } from "@/store/taskStore"; // Import Task interface and store
 import CustomModal from "@/components/CustomModal"; // Import the custom modal
 import { collection, getDocs } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -31,15 +32,27 @@ const TimeSheet = () => {
     deleteTimeSheet,
     updateTimeSheet,
   } = useTimeSheetStore();
-  const { fetchUserTasks, tasks } = useTaskStore(); // Access tasks from the task store
+  const { fetchUserTasks, tasks, fetchAllTasksWithChildren } = useTaskStore(); // Access fetchAllTasksWithChildren
+  const { projects, fetchProjects } = useProjectStore(); // Access projects
   const [selectedUserId, setSelectedUserId] = useState(user?.uid);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [newTimeSheet, setNewTimeSheet] = useState({
+  const [projectTasks, setProjectTasks] = useState<Task[]>([]); // Assignments state for modal
+
+  const [newTimeSheet, setNewTimeSheet] = useState<{
+    title: string;
+    description: string;
+    hours: number;
+    minutes: number;
+    projectId?: string;
+    taskIds?: string[];
+  }>({
     title: "",
     description: "",
     hours: 0,
     minutes: 0,
+    projectId: "",
+    taskIds: [],
   });
   const [editingTimeSheetId, setEditingTimeSheetId] = useState<string | null>(
     null
@@ -48,6 +61,24 @@ const TimeSheet = () => {
   const [expandedTaskRows, setExpandedTaskRows] = useState<Set<string>>(
     new Set()
   ); // State for expanded task rows
+
+  // Filter states
+  const [filterProjectId, setFilterProjectId] = useState<string>("");
+  const [filterTaskId, setFilterTaskId] = useState<string>("");
+  const [filterProjectTasks, setFilterProjectTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    const loadFilterTasks = async () => {
+      if (filterProjectId) {
+        // Force fetch tasks for filter WITHOUT updating global state
+        const tasks = await fetchAllTasksWithChildren(filterProjectId, undefined, true, false);
+        setFilterProjectTasks(tasks);
+      } else {
+        setFilterProjectTasks([]);
+      }
+    };
+    loadFilterTasks();
+  }, [filterProjectId]);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -78,6 +109,32 @@ const TimeSheet = () => {
     loadUsers();
   }, []);
 
+  const [taskLookup, setTaskLookup] = useState<Map<string, string>>(new Map()); // Map taskId -> taskName
+
+  useEffect(() => {
+    const loadLookupTasks = async () => {
+      const projectIds = Array.from(new Set(timeSheets.map(ts => ts.projectId).filter(Boolean)));
+      const newLookup = new Map(taskLookup);
+
+      for (const pid of projectIds) {
+        // Fetch without updating global state
+        const tasks = await fetchAllTasksWithChildren(pid as string, undefined, false, false);
+        const flatten = (tList: Task[]) => {
+          tList.forEach(t => {
+            newLookup.set(t.id, t.name);
+            if (t.children) flatten(t.children);
+          });
+        };
+        flatten(tasks);
+      }
+      setTaskLookup(newLookup);
+    };
+
+    if (timeSheets.length > 0) {
+      loadLookupTasks();
+    }
+  }, [timeSheets]);
+
   useEffect(() => {
     if (user && user.uid && userData?.fullName && user.email) {
       fetchTimeSheets(user.uid);
@@ -86,6 +143,7 @@ const TimeSheet = () => {
         name: userData.fullName,
         email: user.email,
       });
+      fetchProjects(); // Fetch projects
     }
   }, [user, userData]);
 
@@ -109,7 +167,10 @@ const TimeSheet = () => {
         description: "",
         hours: 0,
         minutes: 0,
+        projectId: "",
+        taskIds: [],
       });
+      setProjectTasks([]); // Reset tasks
       setEditingTimeSheetId(null); // Reset editing ID
     } else {
       console.error("User ID is not defined");
@@ -122,13 +183,28 @@ const TimeSheet = () => {
     description: string;
     hours: number;
     minutes: number;
+    projectId?: string;
+    taskIds?: string[];
   }) => {
     setNewTimeSheet({
       title: sheet.title,
       description: sheet.description,
       hours: sheet.hours,
       minutes: sheet.minutes,
+      projectId: sheet.projectId || "",
+      taskIds: sheet.taskIds || [],
     });
+
+    if (sheet.projectId) {
+      const loadTasks = async () => {
+        const tasks = await fetchAllTasksWithChildren(sheet.projectId!);
+        setProjectTasks(tasks);
+      };
+      loadTasks();
+    } else {
+      setProjectTasks([]);
+    }
+
     setEditingTimeSheetId(sheet.id);
     setShowModal(true);
   };
@@ -180,8 +256,21 @@ const TimeSheet = () => {
     setExpandedTaskRows(newExpandedTaskRows);
   };
 
-  // Calculate total time spent
-  const totalTime = timeSheets.reduce(
+  // Filter logic
+  const filteredTimeSheets = timeSheets.filter((sheet) => {
+    if (filterProjectId && sheet.projectId !== filterProjectId) return false;
+    if (filterTaskId && !sheet.taskIds?.includes(filterTaskId)) return false;
+    return true;
+  });
+
+  const filteredTasks = tasks.filter((task) => {
+    if (filterProjectId && task.projectId !== filterProjectId) return false;
+    if (filterTaskId && task.id !== filterTaskId) return false;
+    return true;
+  });
+
+  // Calculate total time spent (using filtered data)
+  const totalTime = filteredTimeSheets.reduce(
     (acc, sheet) => {
       acc.hours += sheet.hours;
       acc.minutes += sheet.minutes;
@@ -194,12 +283,14 @@ const TimeSheet = () => {
   totalTime.hours += Math.floor(totalTime.minutes / 60);
   totalTime.minutes = totalTime.minutes % 60;
 
-  // Calculate total time spent on tasks
-  const totalTaskTime = tasks.reduce(
+  // Calculate total time spent on tasks (using filtered data)
+  const totalTaskTime = filteredTasks.reduce(
     (acc, task) => {
       if (task.timeEntries) {
         task.timeEntries.forEach((entry) => {
-          acc.minutes += entry.duration; // Add duration from time entries
+          if (entry.userId === (selectedUserId || user?.uid)) { // Ensure we only count user's time
+            acc.minutes += entry.duration;
+          }
         });
       }
       return acc;
@@ -222,31 +313,70 @@ const TimeSheet = () => {
           Add to Time Sheet
         </button>
       </div>
-      <div className="flex gap-4 mb-3">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 items-center flex-wrap">
         {userData?.role === "admin" && (
+          <div className="flex flex-col gap-1 w-full sm:w-auto">
+            <label className="text-xs font-semibold text-gray-500 uppercase">User</label>
+            <select
+              onChange={handleUserChange}
+              value={selectedUserId}
+              className="p-2 border rounded bg-white min-w-[200px] shadow-sm focus:ring-2 focus:ring-black/5 outline-none"
+            >
+              <option value="">Select a user...</option>
+              {Object.values(users).map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.fullName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1 w-full sm:w-auto">
+          <label className="text-xs font-semibold text-gray-500 uppercase">Project</label>
           <select
-            onChange={handleUserChange}
-            value={selectedUserId}
-            className="p-2 border rounded"
+            value={filterProjectId}
+            onChange={(e) => {
+              setFilterProjectId(e.target.value);
+              setFilterTaskId(""); // Reset task filter when project changes
+            }}
+            className="p-2 border rounded bg-white min-w-[200px] shadow-sm focus:ring-2 focus:ring-black/5 outline-none"
           >
-            <option value="">Select a user...</option>
-            {Object.values(users).map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.fullName}
+            <option value="">All Projects</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
               </option>
             ))}
           </select>
-        )}
+        </div>
+
+        <div className="flex flex-col gap-1 w-full sm:w-auto">
+          <label className="text-xs font-semibold text-gray-500 uppercase">Task</label>
+          <select
+            value={filterTaskId}
+            onChange={(e) => setFilterTaskId(e.target.value)}
+            className="p-2 border rounded bg-white min-w-[200px] shadow-sm focus:ring-2 focus:ring-black/5 outline-none disabled:bg-gray-100 disabled:text-gray-400"
+            disabled={!filterProjectId}
+          >
+            <option value="">All Tasks</option>
+            {filterProjectTasks.map((task) => (
+              <option key={task.id} value={task.id}>
+                {task.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <button
           onClick={handleFetchUserTimeSheets}
-          className={`inline-flex items-center px-4 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-500 ${
-            HasChnaged && "animate-pulse"
-          }`}
+          className={`inline-flex items-center px-4 py-2 mt-auto border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-500 transition-colors ${HasChnaged && "animate-pulse"
+            }`}
         >
           Fetch Time Sheets
         </button>
       </div>
-      {timeSheets.length > 0 ? (
+      {filteredTimeSheets.length > 0 ? (
         <>
           <h2 className="text-xl font-bold my-6">User Extra Time Entries</h2>
           <table className="min-w-full divide-y divide-gray-200">
@@ -254,6 +384,12 @@ const TimeSheet = () => {
               <tr>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Title
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Project
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tasks
                 </th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Time Spent
@@ -264,7 +400,7 @@ const TimeSheet = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {timeSheets.map((sheet) => (
+              {filteredTimeSheets.map((sheet) => (
                 <React.Fragment key={sheet.id}>
                   <tr
                     onClick={() => toggleRowExpansion(sheet.id)}
@@ -272,6 +408,15 @@ const TimeSheet = () => {
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       <span className="relative group">{sheet.title}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {projects.find((p) => p.id === sheet.projectId)?.name || "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs overflow-hidden text-ellipsis">
+                      {sheet.taskIds?.map(taskId => {
+                        const taskName = taskLookup.get(taskId) || tasks.find(t => t.id === taskId)?.name;
+                        return taskName || "";
+                      }).filter(Boolean).join(", ") || "-"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {sheet.hours} Hours {sheet.minutes} Minutes
@@ -303,7 +448,7 @@ const TimeSheet = () => {
                   </tr>
                   {expandedRows.has(sheet.id) && (
                     <tr>
-                      <td colSpan={4} className="px-6 py-4 bg-gray-100">
+                      <td colSpan={5} className="px-6 py-4 bg-gray-100">
                         <div>
                           <h3 className="font-semibold">Details:</h3>
                           <p>Title: {sheet.title}</p>
@@ -324,7 +469,7 @@ const TimeSheet = () => {
               ))}
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="px-6 py-4 bg-green-500 text-md font-semibold text-gray-900 text-right"
                 >
                   Total Time Spent: {totalTime.hours} hours {totalTime.minutes}{" "}
@@ -334,7 +479,7 @@ const TimeSheet = () => {
             </tbody>
           </table>
           <h2 className="text-xl font-bold mt-6">User Task Time Entries</h2>
-          {tasks.length > 0 ? (
+          {filteredTasks.length > 0 ? (
             <table className="min-w-full divide-y divide-gray-200 mt-4">
               <thead className="bg-gray-50">
                 <tr>
@@ -353,7 +498,7 @@ const TimeSheet = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {tasks.map((task) => (
+                {filteredTasks.map((task) => (
                   <React.Fragment key={task.id}>
                     <tr
                       onClick={() => toggleTaskRowExpansion(task.id)}
@@ -365,8 +510,8 @@ const TimeSheet = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {task.timeEntries
                           ? task.timeEntries
-                              .filter(entry => entry.userId === user?.uid) // Filter by user ID
-                              .reduce((total, entry) => total + entry.duration, 0) / 60 // Convert to hours
+                            .filter(entry => entry.userId === user?.uid) // Filter by user ID
+                            .reduce((total, entry) => total + entry.duration, 0) / 60 // Convert to hours
                           : 0}{" "}
                         hours
                       </td>
@@ -388,7 +533,7 @@ const TimeSheet = () => {
                     </tr>
                     {expandedTaskRows.has(task.id) && (
                       <tr>
-                        <td colSpan={3} className="px-6 py-4 bg-gray-100">
+                        <td colSpan={4} className="px-6 py-4 bg-gray-100">
                           <div>
                             <h3 className="font-semibold">Task Details:</h3>
                             <p>Description: {task.description}</p>
@@ -436,6 +581,71 @@ const TimeSheet = () => {
           {editingTimeSheetId ? "Edit Time Sheet" : "Add Time Sheet"}
         </h2>
         <form onSubmit={handleAddTimeSheet}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Project (Optional)</label>
+            <select
+              value={newTimeSheet.projectId || ""}
+              onChange={async (e) => {
+                const projectId = e.target.value;
+                setNewTimeSheet({ ...newTimeSheet, projectId, taskIds: [] });
+                if (projectId) {
+                  // Force fetch tasks for the dropdown WITHOUT updating global state
+                  const tasks = await fetchAllTasksWithChildren(projectId, undefined, true, false);
+                  setProjectTasks(tasks);
+                } else {
+                  setProjectTasks([]);
+                }
+              }}
+              className="w-full p-2 border rounded"
+            >
+              <option value="">Select a project...</option>
+              {projects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {newTimeSheet.projectId && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-1">Tasks (Optional)</label>
+              <div className="max-h-40 overflow-y-auto border rounded p-2 bg-white">
+                {projectTasks.length > 0 ? (
+                  projectTasks.map((task) => (
+                    <div key={task.id} className="flex items-center gap-2 mb-1">
+                      <input
+                        type="checkbox"
+                        id={`task-${task.id}`}
+                        checked={newTimeSheet.taskIds?.includes(task.id) || false}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          const currentTaskIds = newTimeSheet.taskIds || [];
+                          if (isChecked) {
+                            setNewTimeSheet({
+                              ...newTimeSheet,
+                              taskIds: [...currentTaskIds, task.id],
+                            });
+                          } else {
+                            setNewTimeSheet({
+                              ...newTimeSheet,
+                              taskIds: currentTaskIds.filter((id) => id !== task.id),
+                            });
+                          }
+                        }}
+                      />
+                      <label htmlFor={`task-${task.id}`} className="text-sm cursor-pointer">
+                        {task.name}
+                      </label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No tasks found for this project.</p>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">Title</label>
             <input
