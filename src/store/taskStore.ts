@@ -50,7 +50,7 @@ interface TaskState {
   tasks: Task[];
   taskNodes: Task[];
   task: Task | null;
-  addOrPencilEdit : boolean;
+  addOrPencilEdit: boolean;
   loading: boolean;
   error: string | null;
   fetchTask: (taskId: string) => Promise<Task | null>;
@@ -90,9 +90,10 @@ interface TaskState {
   ) => Promise<Task[]>;
   getTaskPath: (taskId: string, projectId: string) => Promise<string>;
   fetchTasksByOutsourceTeam: (teamId: string) => Promise<Task[]>;
-  SetaddOrPencilEdit: (check : boolean) => Promise<void>;
+  SetaddOrPencilEdit: (check: boolean) => Promise<void>;
   clearTask: () => void;
   setTask: (task: Task | null) => void;
+  hasIncompleteTasks: (projectId: string) => Promise<boolean>;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -130,8 +131,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
 
-  SetaddOrPencilEdit: async (check : boolean) => {
-    set({ addOrPencilEdit : check })
+  SetaddOrPencilEdit: async (check: boolean) => {
+    set({ addOrPencilEdit: check })
   },
 
   clearTask: () => set({ task: null }),
@@ -261,7 +262,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
 
       console.log("docRef", docRef);
 
-      if (task.parentId === null && task.costPerHour  && task.hours) {
+      if (task.parentId === null && task.costPerHour && task.hours) {
         const totalAmount = task.costPerHour * task.hours;
         const projectRef = doc(db, "projects", task.projectId);
         await updateDoc(projectRef, {
@@ -489,7 +490,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         const duration = Math.floor(
           (new Date(endTime).getTime() -
             new Date(existingEntry.startTime).getTime()) /
-            60000
+          60000
         ); // duration in minutes
 
         existingEntry.duration += duration;
@@ -583,6 +584,21 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return [];
     } finally {
       set({ loading: false });
+    }
+  },
+
+  hasIncompleteTasks: async (projectId: string) => {
+    try {
+      const q = query(
+        collection(db, "tasks"),
+        where("projectId", "==", projectId),
+        where("completed", "==", false)
+      );
+      const querySnapshot = await getDocs(q);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error("Error checking incomplete tasks:", error);
+      return false;
     }
   },
 

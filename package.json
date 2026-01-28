@@ -12,6 +12,7 @@
   "dependencies": {
     "@cloudinary/react": "^1.13.0",
     "@cloudinary/url-gen": "^1.18.0",
+    "@hello-pangea/dnd": "^18.0.1",
     "@hookform/resolvers": "^3.10.0",
     "@octokit/rest": "^21.1.0",
     "@radix-ui/react-label": "^2.1.1",
