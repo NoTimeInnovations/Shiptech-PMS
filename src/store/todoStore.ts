@@ -191,7 +191,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
 
       const todosRef = collection(db, 'todos');
       const q = query(
-        todosRef, 
+        todosRef,
         where('taskId', '==', taskId),
         where('userId', '==', currentUser.uid)
       );
@@ -211,21 +211,9 @@ export const useTodoStore = create<TodoState>((set, get) => ({
 
   // Toggle todo completion status
   toggleTodoComplete: async (id: string) => {
-    const todo = get().todos.find((t) => t.id === id);
+    const todo = get().todos.find((t) => t.id === id) || get().taskTodos.find((t) => t.id === id);
     if (todo) {
       await get().updateTodo(id, { completed: !todo.completed });
-    }
-    // Also update taskTodos if present there
-    const taskTodo = get().taskTodos.find((t) => t.id === id);
-    if (taskTodo) {
-         // Create a new updated list locally to reflect change immediately
-         const updatedTaskTodos = get().taskTodos.map(t => 
-             t.id === id ? { ...t, completed: !t.completed } : t
-         );
-         set({ taskTodos: updatedTaskTodos });
-         // The actual update was done above in updateTodo (via get().updateTodo which calls firestore)
-         // Wait, the toggleTodoComplete calls updateTodo.
-         // updateTodo only updates `todos`. We should update `taskTodos` too in `updateTodo`.
     }
   },
 }));
