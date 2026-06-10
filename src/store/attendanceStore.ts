@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { collection, doc, getDoc, setDoc, updateDoc, getDocs, query, orderBy, deleteField } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, updateDoc, query, orderBy, deleteField, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 
 // Attendance doc IDs are local calendar dates. toISOString() is UTC and shifts
@@ -24,14 +24,10 @@ interface AttendanceState {
   loading: boolean;
   error: string | null;
   records: AttendanceRecord[];
-  // Tracks what the cached `records` contain: the current user's docs only
-  // ('user') or every user's docs ('all'). Prevents the admin fetch from being
-  // skipped just because a member-scoped fetch already populated the cache.
-  lastFetchScope: 'user' | 'all' | null;
   checkAttendance: () => Promise<boolean>;
   markAttendance: (type?: 'full' | 'half') => Promise<void>;
-  fetchAttendanceRecords: () => Promise<void>;
-  fetchAllUsersAttendance: () => Promise<void>;
+  // Live-syncs `records` with Firestore. Returns an unsubscribe function.
+  subscribeAttendance: () => () => void;
   markAttendanceForUser: (userId: string, date: string, type: 'full' | 'half') => Promise<string>;
   updateAttendance: (userId: string, date: Date, type: 'full' | 'half') => Promise<string>;
   removeAttendance: (userId: string, date: Date) => Promise<string>;
@@ -42,7 +38,6 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
   loading: false,
   error: null,
   records: [],
-  lastFetchScope: null,
 
   checkAttendance: async () => {
     try {
@@ -88,6 +83,8 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         type
       };
 
+      // No manual `records` update here — the onSnapshot subscription reflects
+      // local writes immediately and keeps every consumer consistent.
       if (!attendanceDoc.exists()) {
         await setDoc(attendanceRef, {
           date: today,
@@ -95,37 +92,12 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
             [currentUser.uid]: newEntry
           }
         });
-        set(state => ({
-          records: [
-            {
-              date: today,
-              attendance: {
-                [currentUser.uid]: newEntry
-              }
-            },
-            ...state.records
-          ],
-          hasAttendance: true
-        }));
       } else {
         await updateDoc(attendanceRef, {
           [`attendance.${currentUser.uid}`]: newEntry
         });
-        set(state => ({
-          records: [
-            {
-              date: today,
-              attendance: {
-                ...state.records.find(record => record.date === today)?.attendance,
-                [currentUser.uid]: newEntry
-              }
-            },
-            ...state.records.filter(record => record.date !== today)
-          ],
-          hasAttendance: true
-        }));
-
       }
+      set({ hasAttendance: true });
     } catch (error) {
       console.error('Error marking attendance:', error);
       set({ error: (error as Error).message });
@@ -135,56 +107,31 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
     }
   },
 
-  fetchAttendanceRecords: async () => {
-    try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) return;
+  subscribeAttendance: () => {
+    // Real-time listener: every consumer always sees the current Firestore
+    // state, including writes made by other users/devices mid-session. Views
+    // filter by user themselves, so one all-records subscription serves both
+    // the member view and the admin view (no role races, no stale caches).
+    set({ loading: get().records.length === 0, error: null });
 
-      // 'all' is a superset of the current user's records, so both scopes are valid here
-      if (get().lastFetchScope !== null) {
-        return;
+    const attendanceRef = collection(db, 'attendance');
+    const q = query(attendanceRef, orderBy('date', 'desc'));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const records = snapshot.docs
+          .map(doc => ({ ...doc.data() } as AttendanceRecord))
+          .filter(record => record.date && record.attendance);
+        set({ records, loading: false });
+      },
+      (error) => {
+        console.error('Error subscribing to attendance:', error);
+        set({ error: error.message, loading: false });
       }
+    );
 
-      set({ loading: true, error: null });
-
-      const attendanceRef = collection(db, 'attendance');
-      const q = query(attendanceRef, orderBy('date', 'desc'));
-      const querySnapshot = await getDocs(q);
-
-      const records = querySnapshot.docs
-        .map(doc => ({ ...doc.data() } as AttendanceRecord))
-        .filter(record => record.attendance?.[currentUser.uid]);
-
-      set({ records, loading: false, lastFetchScope: 'user' });
-    } catch (error) {
-      console.error('Error fetching attendance records:', error);
-      set({ error: (error as Error).message, loading: false });
-    }
-  },
-
-  fetchAllUsersAttendance: async () => {
-    try {
-      // Refetch if the cache only holds the current user's records ('user' scope),
-      // otherwise the admin view would silently show a single member's data.
-      if (get().lastFetchScope === 'all') {
-        return;
-      }
-
-      set({ loading: true, error: null });
-
-      const attendanceRef = collection(db, 'attendance');
-      const q = query(attendanceRef, orderBy('date', 'desc'));
-      const querySnapshot = await getDocs(q);
-
-      const records = querySnapshot.docs
-        .map(doc => ({ ...doc.data() } as AttendanceRecord))
-        .filter(record => record.date && record.attendance);
-
-      set({ records, loading: false, lastFetchScope: 'all' });
-    } catch (error) {
-      console.error('Error fetching all users attendance:', error);
-      set({ error: (error as Error).message, loading: false });
-    }
+    return unsubscribe;
   },
 
   markAttendanceForUser: async (userId: string, date: string, type: 'full' | 'half' = 'full') => {
@@ -205,6 +152,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const attendanceRef = doc(db, 'attendance', formattedDate);
       const attendanceDoc = await getDoc(attendanceRef);
 
+      // The onSnapshot subscription propagates these writes to `records`
       if (!attendanceDoc.exists()) {
         await setDoc(attendanceRef, {
           date: formattedDate,
@@ -212,33 +160,10 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
             [userId]: newEntry
           }
         });
-        set(state => ({
-          records: [
-            {
-              date: formattedDate,
-              attendance: {
-                [userId]: newEntry
-              }
-            },
-            ...state.records
-          ].sort((a, b) => b.date.localeCompare(a.date))
-        }));
       } else {
         await updateDoc(attendanceRef, {
           [`attendance.${userId}`]: newEntry
         });
-        set(state => ({
-          records: [
-            {
-              date: formattedDate,
-              attendance: {
-                ...state.records.find(record => record.date === formattedDate)?.attendance,
-                [userId]: newEntry
-              }
-            },
-            ...state.records.filter(record => record.date !== formattedDate)
-          ].sort((a, b) => b.date.localeCompare(a.date))
-        }));
       }
       return 'Attendance marked successfully';
     } catch (error) {
@@ -269,26 +194,10 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         throw new Error('No attendance record found for this user');
       }
 
+      // The onSnapshot subscription propagates this write to `records`
       await updateDoc(attendanceRef, {
         [`attendance.${userId}.type`]: type
       });
-
-      set(state => ({
-        records: state.records.map(record => 
-          record.date === formattedDate 
-            ? { 
-                ...record, 
-                attendance: { 
-                  ...record.attendance, 
-                  [userId]: { 
-                    ...record.attendance[userId], 
-                    type 
-                  } 
-                } 
-              } 
-            : record
-        )
-      }));
 
       return 'Attendance updated successfully';
     } catch (error) {
@@ -319,24 +228,10 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
         throw new Error('No attendance record found for this user');
       }
 
+      // The onSnapshot subscription propagates this write to `records`
       await updateDoc(attendanceRef, {
         [`attendance.${userId}`]: deleteField()
       });
-
-      set(state => ({
-        records: state.records.map(record => 
-          record.date === formattedDate 
-            ? { 
-                ...record, 
-                attendance: Object.fromEntries(
-                  Object.entries(record.attendance).filter(([key]) => key !== userId)
-                )
-              } 
-            : record
-        ).filter(record => 
-          Object.keys(record.attendance).length > 0 || record.date !== formattedDate
-        )
-      }));
 
       return 'Attendance removed successfully';
     } catch (error) {

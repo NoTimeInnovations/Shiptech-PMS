@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { db } from '../lib/firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 
 export interface Holiday {
   id: string;
@@ -15,6 +15,8 @@ interface HolidayStore {
     holidays: Holiday[] | null; // Cache for holidays
   };
   fetchHolidays: () => Promise<void>;
+  // Live-syncs holidays with Firestore. Returns an unsubscribe function.
+  subscribeHolidays: () => () => void;
   addHoliday: (name: string, startDate: string, endDate: string) => Promise<void>;
   updateHoliday: (id: string, name: string, startDate: string, endDate: string) => Promise<void>;
   removeHoliday: (id: string) => Promise<void>;
@@ -26,6 +28,21 @@ export const useHolidayStore = create<HolidayStore>((set, get) => ({
     holidays: null, // Initialize cache as null
   },
 
+  subscribeHolidays: () => {
+    const unsubscribe = onSnapshot(
+      collection(db, 'holidays'),
+      (snapshot) => {
+        const holidays = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Holiday[];
+        // Keep the cache in sync so fetchHolidays callers also get live data
+        set({ holidays, cache: { holidays } });
+      },
+      (error) => {
+        console.error("Error subscribing to holidays:", error);
+      }
+    );
+    return unsubscribe;
+  },
+
   // Fetch holidays
   fetchHolidays: async () => {
     // Check if holidays are already cached
@@ -34,9 +51,6 @@ export const useHolidayStore = create<HolidayStore>((set, get) => ({
       set({ holidays: cachedHolidays }); // Use cached data
       return;
     }
-
-    // Log Firestore fetch
-    console.log("Fetching holidays from Firestore");
 
     try {
       const querySnapshot = await getDocs(collection(db, 'holidays'));

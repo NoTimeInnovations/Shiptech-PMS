@@ -8,6 +8,7 @@ import {
   query,
   orderBy,
   deleteDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuthStore } from "./authStore";
@@ -29,6 +30,10 @@ interface OOOState {
   allOOORequests: OOORequest[];
   // Whose requests `oooRequests` currently holds — used to validate the cache
   lastFetchedUserId: string | null;
+  // True while an onSnapshot subscription is keeping the lists live
+  subscribed: boolean;
+  // Live-syncs allOOORequests (and the per-user view) with Firestore
+  subscribeOOORequests: () => () => void;
   requestOOO: (
     startDate: string,
     endDate: string,
@@ -49,6 +54,37 @@ export const useOOOStore = create<OOOState>((set, get) => ({
   oooRequests: [],
   allOOORequests: [],
   lastFetchedUserId: null,
+  subscribed: false,
+
+  subscribeOOORequests: () => {
+    const q = query(collection(db, "ooo"), orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const all = snapshot.docs.map(
+          (doc) => ({ ...doc.data() } as OOORequest)
+        );
+        const target = get().lastFetchedUserId;
+        set({
+          allOOORequests: all,
+          oooRequests: target
+            ? all.filter((request) => request.userId === target)
+            : get().oooRequests,
+          subscribed: true,
+        });
+      },
+      (error) => {
+        console.error("Error subscribing to OOO requests:", error);
+        set({ error: error.message });
+      }
+    );
+
+    return () => {
+      set({ subscribed: false });
+      unsubscribe();
+    };
+  },
 
   // Request OOO
   requestOOO: async (startDate, endDate, reason) => {
@@ -95,6 +131,17 @@ export const useOOOStore = create<OOOState>((set, get) => ({
 
       const targetUserId = userId || user?.uid;
 
+      // With a live subscription the data is already in memory
+      if (get().subscribed) {
+        set({
+          lastFetchedUserId: targetUserId || null,
+          oooRequests: get().allOOORequests.filter(
+            (request) => request.userId === targetUserId
+          ),
+        });
+        return;
+      }
+
       // Cache is valid only if it was fetched for this same user. Peeking at
       // oooRequests[0].userId (as before) misfires once the list holds entries
       // appended for a different user.
@@ -122,6 +169,11 @@ export const useOOOStore = create<OOOState>((set, get) => ({
   // Fetch all OOO requests
   fetchAllOOORequests: async () => {
     try {
+      // The live subscription already maintains this list
+      if (get().subscribed) {
+        return;
+      }
+
       set({ loading: true, error: null });
 
       //check if exists

@@ -8,6 +8,7 @@ import {
   query,
   orderBy,
   deleteDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 
@@ -30,6 +31,10 @@ interface LeaveState {
   allLeaveRequests: LeaveRequest[];
   // Whose requests `leaveRequests` currently holds — used to validate the cache
   lastFetchedUserId: string | null;
+  // True while an onSnapshot subscription is keeping the lists live
+  subscribed: boolean;
+  // Live-syncs allLeaveRequests (and the per-user view) with Firestore
+  subscribeLeaveRequests: () => () => void;
   requestLeave: (
     startDate: string,
     endDate: string,
@@ -57,6 +62,38 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
   leaveRequests: [],
   allLeaveRequests: [],
   lastFetchedUserId: null,
+  subscribed: false,
+
+  subscribeLeaveRequests: () => {
+    const q = query(collection(db, "leaves"), orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const all = snapshot.docs.map(
+          (doc) => ({ ...doc.data() } as LeaveRequest)
+        );
+        const target = get().lastFetchedUserId;
+        set({
+          allLeaveRequests: all,
+          // Keep the per-user view in sync with the live data
+          leaveRequests: target
+            ? all.filter((request) => request.userId === target)
+            : get().leaveRequests,
+          subscribed: true,
+        });
+      },
+      (error) => {
+        console.error("Error subscribing to leave requests:", error);
+        set({ error: error.message });
+      }
+    );
+
+    return () => {
+      set({ subscribed: false });
+      unsubscribe();
+    };
+  },
 
   // Request leave
   requestLeave: async (startDate, endDate, reason, leaveType, session) => {
@@ -104,6 +141,18 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
 
       const targetUserId = userId || currentUser?.uid;
 
+      // With a live subscription the data is already in memory — just point
+      // the per-user view at the requested user.
+      if (get().subscribed) {
+        set({
+          lastFetchedUserId: targetUserId || null,
+          leaveRequests: get().allLeaveRequests.filter(
+            (request) => request.userId === targetUserId
+          ),
+        });
+        return;
+      }
+
       // Cache is valid only if it was fetched for this same user. Checking the
       // array contents instead (as before) breaks for users with no requests
       // (refetch on every call) and can leave another user's data in place.
@@ -131,15 +180,19 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
   // Fetch all leave requests
   fetchAllLeaveRequests: async () => {
     try {
+      // The live subscription already maintains this list
+      if (get().subscribed) {
+        return;
+      }
+
       set({ loading: true, error: null });
 
       // Check if requests are already cached
       if (get().allLeaveRequests.length > 0) {
         set({ loading: false });
         return;
-      } 
+      }
 
-      console.log("Fetching all leave requests from Firestore");
       const leavesRef = collection(db, "leaves");
       const q = query(leavesRef, orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);

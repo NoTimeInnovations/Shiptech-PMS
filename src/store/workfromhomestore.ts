@@ -8,6 +8,7 @@ import {
   query,
   orderBy,
   deleteDoc,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuthStore } from "./authStore";
@@ -29,6 +30,10 @@ interface WorkFromState {
   allWorkFromRequests: WorkFromRequest[];
   // Whose requests `workFromRequests` currently holds — used to validate the cache
   lastFetchedUserId: string | null;
+  // True while an onSnapshot subscription is keeping the lists live
+  subscribed: boolean;
+  // Live-syncs allWorkFromRequests (and the per-user view) with Firestore
+  subscribeWorkFromRequests: () => () => void;
   requestWorkFrom: (
     startDate: string,
     endDate: string,
@@ -49,6 +54,37 @@ export const useWorkFromStore = create<WorkFromState>((set, get) => ({
   workFromRequests: [],
   allWorkFromRequests: [],
   lastFetchedUserId: null,
+  subscribed: false,
+
+  subscribeWorkFromRequests: () => {
+    const q = query(collection(db, "workfrom"), orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const all = snapshot.docs.map(
+          (doc) => ({ ...doc.data() } as WorkFromRequest)
+        );
+        const target = get().lastFetchedUserId;
+        set({
+          allWorkFromRequests: all,
+          workFromRequests: target
+            ? all.filter((request) => request.userId === target)
+            : get().workFromRequests,
+          subscribed: true,
+        });
+      },
+      (error) => {
+        console.error("Error subscribing to work-from-home requests:", error);
+        set({ error: error.message });
+      }
+    );
+
+    return () => {
+      set({ subscribed: false });
+      unsubscribe();
+    };
+  },
 
   // Request work-from-home
   requestWorkFrom: async (startDate, endDate, reason) => {
@@ -94,6 +130,17 @@ export const useWorkFromStore = create<WorkFromState>((set, get) => ({
 
       const targetUserId = userId || user?.uid;
 
+      // With a live subscription the data is already in memory
+      if (get().subscribed) {
+        set({
+          lastFetchedUserId: targetUserId || null,
+          workFromRequests: get().allWorkFromRequests.filter(
+            (request) => request.userId === targetUserId
+          ),
+        });
+        return;
+      }
+
       // Cache is valid only if it was fetched for this same user
       if (get().lastFetchedUserId === targetUserId) {
         return;
@@ -119,6 +166,11 @@ export const useWorkFromStore = create<WorkFromState>((set, get) => ({
   // Fetch all work-from-home requests
   fetchAllWorkFromRequests: async () => {
     try {
+      // The live subscription already maintains this list
+      if (get().subscribed) {
+        return;
+      }
+
       set({ loading: true, error: null });
 
       //check if it already exists

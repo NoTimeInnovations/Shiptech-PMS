@@ -34,8 +34,7 @@ export default function Attendance() {
   const {
     records,
     loading,
-    fetchAttendanceRecords,
-    fetchAllUsersAttendance,
+    subscribeAttendance,
     markAttendance,
   } = useAttendanceStore();
   const { user, userData } = useAuthStore();
@@ -43,25 +42,30 @@ export default function Attendance() {
     requestLeave,
     fetchUserLeaveRequests,
     allLeaveRequests,
-    fetchAllLeaveRequests,
+    subscribeLeaveRequests,
   } = useLeaveStore();
   const {
     requestWorkFrom,
     fetchUserWorkFromRequests,
     allWorkFromRequests,
-    fetchAllWorkFromRequests,
+    subscribeWorkFromRequests,
   } = useWorkFromStore();
   const {
     requestOOO,
     fetchUserOOORequests,
     allOOORequests,
-    fetchAllOOORequests,
+    subscribeOOORequests,
   } = useOOOStore();
   const { addNotification } = useNotificationStore();
   // null = role not resolved yet; prevents fetching member-scoped data for admins
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const { holidays, fetchHolidays, addHoliday, updateHoliday, removeHoliday } =
-    useHolidayStore();
+  const {
+    holidays,
+    subscribeHolidays,
+    addHoliday,
+    updateHoliday,
+    removeHoliday,
+  } = useHolidayStore();
   const [holidayName, setHolidayName] = useState("");
   const [holidayStartDate, setHolidayStartDate] = useState("");
   const [holidayEndDate, setHolidayEndDate] = useState("");
@@ -156,19 +160,25 @@ export default function Attendance() {
     loadUsers();
   }, [user]);
 
+  // Live Firestore subscriptions: every list the calendar renders from stays
+  // in sync for the whole session (marks made by other users/devices included),
+  // regardless of role — views filter by user themselves. Unsubscribed on unmount.
   useEffect(() => {
-    // Wait until the role is resolved, otherwise the member-scoped fetch runs
-    // first for admins and caches a single user's records.
-    if (isAdmin === null) return;
-    if (isAdmin) {
-      fetchAllUsersAttendance();
-      fetchAllLeaveRequests();
-      fetchAllWorkFromRequests();
-      fetchAllOOORequests();
-    } else {
-      fetchAttendanceRecords();
-    }
-  }, [isAdmin, fetchAttendanceRecords, fetchAllUsersAttendance]);
+    const unsubscribers = [
+      subscribeAttendance(),
+      subscribeLeaveRequests(),
+      subscribeWorkFromRequests(),
+      subscribeOOORequests(),
+      subscribeHolidays(),
+    ];
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [
+    subscribeAttendance,
+    subscribeLeaveRequests,
+    subscribeWorkFromRequests,
+    subscribeOOORequests,
+    subscribeHolidays,
+  ]);
 
   useEffect(() => {
     if (isAdmin === null) return;
@@ -241,10 +251,6 @@ export default function Attendance() {
 
     processRecords();
   }, [records, selectedUser, user?.uid]);
-
-  useEffect(() => {
-    fetchHolidays();
-  }, [fetchHolidays]);
 
   const handleMarkAttendance = async () => {
     try {
