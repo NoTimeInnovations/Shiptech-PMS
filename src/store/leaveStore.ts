@@ -28,6 +28,8 @@ interface LeaveState {
   error: string | null;
   leaveRequests: LeaveRequest[];
   allLeaveRequests: LeaveRequest[];
+  // Whose requests `leaveRequests` currently holds — used to validate the cache
+  lastFetchedUserId: string | null;
   requestLeave: (
     startDate: string,
     endDate: string,
@@ -54,6 +56,7 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
   error: null,
   leaveRequests: [],
   allLeaveRequests: [],
+  lastFetchedUserId: null,
 
   // Request leave
   requestLeave: async (startDate, endDate, reason, leaveType, session) => {
@@ -78,13 +81,12 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
       };
 
       await setDoc(newLeaveDoc, leaveRequest);
-      
-      // Update the state of leaveRequests
-      const currentLeaveRequests = get().leaveRequests;
-      const updatedLeaveRequests = [...currentLeaveRequests, leaveRequest];
-      set({ leaveRequests: updatedLeaveRequests });
 
-      // await get().fetchUserLeaveRequests();
+      // Keep both the per-user and the admin (all users) lists in sync
+      set((state) => ({
+        leaveRequests: [...state.leaveRequests, leaveRequest],
+        allLeaveRequests: [...state.allLeaveRequests, leaveRequest],
+      }));
     } catch (error) {
       console.error("Error requesting leave:", error);
       set({ error: (error as Error).message });
@@ -97,25 +99,20 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
   // Fetch leave requests for a specific user
   fetchUserLeaveRequests: async (userId) => {
     try {
-      set({ loading: true, error: null });
       const currentUser = auth.currentUser;
       if (!currentUser && !userId) return;
 
       const targetUserId = userId || currentUser?.uid;
 
-      //check it already exists
-      if (get().leaveRequests.length > 0) {
-        const leaveRequest = get().leaveRequests.filter(
-          (request) => request.userId === targetUserId
-        );
-
-       if(leaveRequest.length > 0) {
-        set({ leaveRequests: leaveRequest, loading: false });
+      // Cache is valid only if it was fetched for this same user. Checking the
+      // array contents instead (as before) breaks for users with no requests
+      // (refetch on every call) and can leave another user's data in place.
+      if (get().lastFetchedUserId === targetUserId) {
         return;
-       }
-      }   
+      }
 
-      console.log("Fetching user leave requests from Firestore");
+      set({ loading: true, error: null });
+
       const leavesRef = collection(db, "leaves");
       const q = query(leavesRef, orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
@@ -124,7 +121,7 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
         .map((doc) => ({ ...doc.data() } as LeaveRequest))
         .filter((leave) => leave.userId === targetUserId);
 
-      set({ leaveRequests, loading: false });
+      set({ leaveRequests, loading: false, lastFetchedUserId: targetUserId || null });
     } catch (error) {
       console.error("Error fetching leave requests:", error);
       set({ error: (error as Error).message, loading: false });
@@ -168,32 +165,32 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
       const leaveRef = doc(db, "leaves", leaveId);
       await updateDoc(leaveRef, { status });
 
-      const leaveRequest = get().leaveRequests;
-      
-      const fillteredLeaveRequests = leaveRequest.map((request) =>
-        request.id === leaveId ? { ...request, status } : request
-      );
-
-      console.log("fillteredLeaveRequests", fillteredLeaveRequests);
-      
-      
-
-      // Update state
-      set({
-        leaveRequests: fillteredLeaveRequests,
-        allLeaveRequests: fillteredLeaveRequests,
-      });
+      // Update each list independently — assigning the per-user list to
+      // allLeaveRequests would wipe every other user's requests from the admin view
+      set((state) => ({
+        leaveRequests: state.leaveRequests.map((request) =>
+          request.id === leaveId ? { ...request, status } : request
+        ),
+        allLeaveRequests: state.allLeaveRequests.map((request) =>
+          request.id === leaveId ? { ...request, status } : request
+        ),
+      }));
 
     } catch (error) {
       console.error("Error updating leave status:", error);
-      set({ error: (error as Error).message });
-      
+      // Invalidate the caches first, otherwise the refetches below are skipped
+      set({
+        error: (error as Error).message,
+        lastFetchedUserId: null,
+        allLeaveRequests: [],
+      });
+
       // Revert by refetching
       await Promise.all([
         get().fetchUserLeaveRequests(),
         get().fetchAllLeaveRequests()
       ]);
-      
+
       throw error;
     } finally {
       set({ loading: false });
@@ -210,14 +207,14 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
       const leaveRef = doc(db, "leaves", leaveId);
       await deleteDoc(leaveRef);
 
-      const fillteredLeaveRequests = get().leaveRequests.filter(
-        (request) => request.id !== leaveId
-      );
-
-      set({
-        leaveRequests: fillteredLeaveRequests,
-        allLeaveRequests: fillteredLeaveRequests,
-      });
+      set((state) => ({
+        leaveRequests: state.leaveRequests.filter(
+          (request) => request.id !== leaveId
+        ),
+        allLeaveRequests: state.allLeaveRequests.filter(
+          (request) => request.id !== leaveId
+        ),
+      }));
     } catch (error) {
       console.error("Error canceling leave request:", error);
       set({ error: (error as Error).message });
@@ -235,14 +232,14 @@ export const useLeaveStore = create<LeaveState>((set, get) => ({
       const leaveRef = doc(db, "leaves", leaveId);
       await updateDoc(leaveRef, { startDate, endDate });
 
-      const leaveRequest = get().leaveRequests.map((request) =>
-        request.id === leaveId ? { ...request, startDate, endDate } : request
-      );
-
-      set({
-        leaveRequests: leaveRequest,
-        allLeaveRequests: leaveRequest,
-      });
+      set((state) => ({
+        leaveRequests: state.leaveRequests.map((request) =>
+          request.id === leaveId ? { ...request, startDate, endDate } : request
+        ),
+        allLeaveRequests: state.allLeaveRequests.map((request) =>
+          request.id === leaveId ? { ...request, startDate, endDate } : request
+        ),
+      }));
 
     } catch (error) {
       console.error("Error updating leave dates:", error);

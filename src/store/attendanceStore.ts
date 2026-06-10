@@ -2,6 +2,11 @@ import { create } from 'zustand';
 import { collection, doc, getDoc, setDoc, updateDoc, getDocs, query, orderBy, deleteField } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 
+// Attendance doc IDs are local calendar dates. toISOString() is UTC and shifts
+// the date for users ahead of UTC (e.g. IST before 5:30 AM), so never use it here.
+export const getLocalDateString = (date: Date = new Date()): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
 interface AttendanceEntry {
   time: string;
   type: 'full' | 'half';
@@ -19,6 +24,10 @@ interface AttendanceState {
   loading: boolean;
   error: string | null;
   records: AttendanceRecord[];
+  // Tracks what the cached `records` contain: the current user's docs only
+  // ('user') or every user's docs ('all'). Prevents the admin fetch from being
+  // skipped just because a member-scoped fetch already populated the cache.
+  lastFetchScope: 'user' | 'all' | null;
   checkAttendance: () => Promise<boolean>;
   markAttendance: (type?: 'full' | 'half') => Promise<void>;
   fetchAttendanceRecords: () => Promise<void>;
@@ -33,6 +42,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
   loading: false,
   error: null,
   records: [],
+  lastFetchScope: null,
 
   checkAttendance: async () => {
     try {
@@ -40,15 +50,19 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const currentUser = auth.currentUser;
       if (!currentUser) return false;
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       const attendanceRef = doc(db, 'attendance', today);
       const attendanceDoc = await getDoc(attendanceRef);
 
-      if (!attendanceDoc.exists()) return false;
+      if (!attendanceDoc.exists()) {
+        set({ hasAttendance: false });
+        return false;
+      }
 
       const attendanceData = attendanceDoc.data();
-      set({ hasAttendance: !!attendanceData.attendance[currentUser.uid] });
-      return !!attendanceData.attendance[currentUser.uid];
+      const marked = !!attendanceData.attendance?.[currentUser.uid];
+      set({ hasAttendance: marked });
+      return marked;
     } catch (error) {
       console.error('Error checking attendance:', error);
       set({ error: (error as Error).message });
@@ -64,7 +78,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error('User not authenticated');
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateString();
       const now = new Date().toISOString();
       const attendanceRef = doc(db, 'attendance', today);
       const attendanceDoc = await getDoc(attendanceRef);
@@ -102,15 +116,15 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
             {
               date: today,
               attendance: {
-                [currentUser.uid]: newEntry,
-                ...state.records.find(record => record.date === today)?.attendance
+                ...state.records.find(record => record.date === today)?.attendance,
+                [currentUser.uid]: newEntry
               }
             },
             ...state.records.filter(record => record.date !== today)
           ],
           hasAttendance: true
         }));
-        
+
       }
     } catch (error) {
       console.error('Error marking attendance:', error);
@@ -126,8 +140,8 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
-      // Check if we already have records in state
-      if (get().records.length > 0) {
+      // 'all' is a superset of the current user's records, so both scopes are valid here
+      if (get().lastFetchScope !== null) {
         return;
       }
 
@@ -136,12 +150,12 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const attendanceRef = collection(db, 'attendance');
       const q = query(attendanceRef, orderBy('date', 'desc'));
       const querySnapshot = await getDocs(q);
-      
+
       const records = querySnapshot.docs
         .map(doc => ({ ...doc.data() } as AttendanceRecord))
-        .filter(record => record.attendance[currentUser.uid]);
+        .filter(record => record.attendance?.[currentUser.uid]);
 
-      set({ records, loading: false });
+      set({ records, loading: false, lastFetchScope: 'user' });
     } catch (error) {
       console.error('Error fetching attendance records:', error);
       set({ error: (error as Error).message, loading: false });
@@ -150,8 +164,9 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
 
   fetchAllUsersAttendance: async () => {
     try {
-      // Check if we already have records in state
-      if (get().records.length > 0) {
+      // Refetch if the cache only holds the current user's records ('user' scope),
+      // otherwise the admin view would silently show a single member's data.
+      if (get().lastFetchScope === 'all') {
         return;
       }
 
@@ -160,12 +175,12 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const attendanceRef = collection(db, 'attendance');
       const q = query(attendanceRef, orderBy('date', 'desc'));
       const querySnapshot = await getDocs(q);
-      
-      const records = querySnapshot.docs.map(doc => ({
-        ...doc.data()
-      })) as AttendanceRecord[];
 
-      set({ records, loading: false });
+      const records = querySnapshot.docs
+        .map(doc => ({ ...doc.data() } as AttendanceRecord))
+        .filter(record => record.date && record.attendance);
+
+      set({ records, loading: false, lastFetchScope: 'all' });
     } catch (error) {
       console.error('Error fetching all users attendance:', error);
       set({ error: (error as Error).message, loading: false });
@@ -178,8 +193,10 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error('Admin not authenticated');
 
-      const timestamp = new Date(date).toISOString();
       const formattedDate = date.split('T')[0];
+      // Anchor the timestamp at local noon so the stored time/date never
+      // shifts to the previous day ("YYYY-MM-DD" alone parses as UTC midnight)
+      const timestamp = new Date(`${formattedDate}T12:00:00`).toISOString();
       const newEntry = {
         time: timestamp,
         type
@@ -204,7 +221,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
               }
             },
             ...state.records
-          ]
+          ].sort((a, b) => b.date.localeCompare(a.date))
         }));
       } else {
         await updateDoc(attendanceRef, {
@@ -215,12 +232,12 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
             {
               date: formattedDate,
               attendance: {
-                [userId]: newEntry,
-                ...state.records.find(record => record.date === formattedDate)?.attendance
+                ...state.records.find(record => record.date === formattedDate)?.attendance,
+                [userId]: newEntry
               }
             },
             ...state.records.filter(record => record.date !== formattedDate)
-          ]
+          ].sort((a, b) => b.date.localeCompare(a.date))
         }));
       }
       return 'Attendance marked successfully';
@@ -239,8 +256,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error('Admin not authenticated');
 
-      const dateObj = new Date(date);
-      const formattedDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+      const formattedDate = getLocalDateString(new Date(date));
       const attendanceRef = doc(db, 'attendance', formattedDate);
       const attendanceDoc = await getDoc(attendanceRef);
 
@@ -249,7 +265,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       }
 
       const attendanceData = attendanceDoc.data();
-      if (!attendanceData.attendance[userId]) {
+      if (!attendanceData.attendance?.[userId]) {
         throw new Error('No attendance record found for this user');
       }
 
@@ -290,8 +306,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       const currentUser = auth.currentUser;
       if (!currentUser) throw new Error('Admin not authenticated');
 
-      const dateObj = new Date(date);
-      const formattedDate = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+      const formattedDate = getLocalDateString(new Date(date));
       const attendanceRef = doc(db, 'attendance', formattedDate);
       const attendanceDoc = await getDoc(attendanceRef);
 
@@ -300,7 +315,7 @@ export const useAttendanceStore = create<AttendanceState>((set, get) => ({
       }
 
       const attendanceData = attendanceDoc.data();
-      if (!attendanceData.attendance[userId]) {
+      if (!attendanceData.attendance?.[userId]) {
         throw new Error('No attendance record found for this user');
       }
 

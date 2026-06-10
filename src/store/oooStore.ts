@@ -27,6 +27,8 @@ interface OOOState {
   error: string | null;
   oooRequests: OOORequest[];
   allOOORequests: OOORequest[];
+  // Whose requests `oooRequests` currently holds — used to validate the cache
+  lastFetchedUserId: string | null;
   requestOOO: (
     startDate: string,
     endDate: string,
@@ -46,6 +48,7 @@ export const useOOOStore = create<OOOState>((set, get) => ({
   error: null,
   oooRequests: [],
   allOOORequests: [],
+  lastFetchedUserId: null,
 
   // Request OOO
   requestOOO: async (startDate, endDate, reason) => {
@@ -69,11 +72,12 @@ export const useOOOStore = create<OOOState>((set, get) => ({
 
       await setDoc(newOOODoc, oooRequest);
 
-      const currentLeaveRequests = get().oooRequests;
-      const updatedLeaveRequests = [...currentLeaveRequests, oooRequest];
-      set({ oooRequests: updatedLeaveRequests });
-
-      await get().fetchUserOOORequests();
+      // Keep both lists in sync locally. Refetching here (as before) targets the
+      // requester and can replace an admin's currently-viewed employee data.
+      set((state) => ({
+        oooRequests: [...state.oooRequests, oooRequest],
+        allOOORequests: [...state.allOOORequests, oooRequest],
+      }));
     } catch (error) {
       console.error("Error requesting OOO:", error);
       set({ error: (error as Error).message });
@@ -86,19 +90,19 @@ export const useOOOStore = create<OOOState>((set, get) => ({
   // Fetch OOO requests for a specific user
   fetchUserOOORequests: async (userId) => {
     try {
-      set({ loading: true, error: null });
       const user = useAuthStore.getState().user;
       if (!user && !userId) return;
 
       const targetUserId = userId || user?.uid;
 
-      //check if exists
-      if(get().oooRequests.length > 0) {
-        if(get().oooRequests[0].userId === targetUserId) {
-          set({ loading: false });
-          return;
-        }
+      // Cache is valid only if it was fetched for this same user. Peeking at
+      // oooRequests[0].userId (as before) misfires once the list holds entries
+      // appended for a different user.
+      if (get().lastFetchedUserId === targetUserId) {
+        return;
       }
+
+      set({ loading: true, error: null });
 
       const oooRef = collection(db, "ooo");
       const q = query(oooRef, orderBy("createdAt", "desc"));
@@ -108,7 +112,7 @@ export const useOOOStore = create<OOOState>((set, get) => ({
         .map((doc) => ({ ...doc.data() } as OOORequest))
         .filter((request) => request.userId === targetUserId);
 
-      set({ oooRequests, loading: false });
+      set({ oooRequests, loading: false, lastFetchedUserId: targetUserId || null });
     } catch (error) {
       console.error("Error fetching OOO requests:", error);
       set({ error: (error as Error).message, loading: false });

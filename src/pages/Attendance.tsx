@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useAttendanceStore } from "../store/attendanceStore";
+import { useAttendanceStore, getLocalDateString } from "../store/attendanceStore";
 import { useAuthStore } from "../store/authStore";
 import { useLeaveStore } from "../store/leaveStore";
 import { useWorkFromStore } from "../store/workfromhomestore";
@@ -37,8 +37,6 @@ export default function Attendance() {
     fetchAttendanceRecords,
     fetchAllUsersAttendance,
     markAttendance,
-    updateAttendance,
-    removeAttendance,
   } = useAttendanceStore();
   const { user, userData } = useAuthStore();
   const {
@@ -60,7 +58,8 @@ export default function Attendance() {
     fetchAllOOORequests,
   } = useOOOStore();
   const { addNotification } = useNotificationStore();
-  const [isAdmin, setIsAdmin] = useState(false);
+  // null = role not resolved yet; prevents fetching member-scoped data for admins
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const { holidays, fetchHolidays, addHoliday, updateHoliday, removeHoliday } =
     useHolidayStore();
   const [holidayName, setHolidayName] = useState("");
@@ -129,20 +128,6 @@ export default function Attendance() {
 
   const [attendanceType, setAttendanceType] = useState<"full" | "half">("full");
 
-  const [showUpdateAttendanceModal, setShowUpdateAttendanceModal] =
-    useState(false);
-  const [selectedAttendanceType, setSelectedAttendanceType] = useState<
-    "full" | "half"
-  >("full");
-  const [selectedAttendanceDate, setSelectedAttendanceDate] =
-    useState<Date | null>(null);
-
-
-  useEffect(() => {
-    console.log("Attendance Records:", records.filter((record) => record.date === "2025-03-29"));
-
-  }, [records]);
-
   useEffect(() => {
     const checkUserRole = async () => {
       if (user) {
@@ -172,6 +157,9 @@ export default function Attendance() {
   }, [user]);
 
   useEffect(() => {
+    // Wait until the role is resolved, otherwise the member-scoped fetch runs
+    // first for admins and caches a single user's records.
+    if (isAdmin === null) return;
     if (isAdmin) {
       fetchAllUsersAttendance();
       fetchAllLeaveRequests();
@@ -183,6 +171,7 @@ export default function Attendance() {
   }, [isAdmin, fetchAttendanceRecords, fetchAllUsersAttendance]);
 
   useEffect(() => {
+    if (isAdmin === null) return;
     const userId = selectedUser || user?.uid;
     if (userId) {
       if (isAdmin && selectedUser) {
@@ -197,6 +186,13 @@ export default function Attendance() {
     }
   }, [selectedUser, isAdmin]);
 
+  // Drop a persisted employee selection that no longer resolves to a valid user
+  useEffect(() => {
+    if (selectedUser && Object.keys(users).length > 0 && !users[selectedUser]) {
+      setSelectedUser(null);
+    }
+  }, [users, selectedUser]);
+
   useEffect(() => {
     const processRecords = () => {
       const userId = selectedUser || user?.uid;
@@ -204,26 +200,29 @@ export default function Attendance() {
 
       const monthlyData: Record<
         string,
-        { date: string; time: string; type: "full" | "half" }[]
+        {
+          name: string;
+          records: { date: string; time: string; type: "full" | "half" }[];
+        }
       > = {};
 
       records
-        .filter((record) => record.attendance[userId])
+        .filter((record) => record.attendance?.[userId])
         .forEach((record) => {
-          const date = new Date(record.date);
-          const monthKey = `${date.getFullYear()}-${String(
-            date.getMonth() + 1
-          ).padStart(2, "0")}`;
-          const monthName = date.toLocaleString("default", {
-            month: "long",
-            year: "numeric",
-          });
+          // record.date is "YYYY-MM-DD"; parse the parts directly so the month
+          // is not shifted by timezone (new Date("YYYY-MM-DD") is UTC midnight)
+          const [year, month] = record.date.split("-").map(Number);
+          const monthKey = record.date.slice(0, 7);
+          const monthName = new Date(year, month - 1, 1).toLocaleString(
+            "default",
+            { month: "long", year: "numeric" }
+          );
 
-          if (!monthlyData[monthName]) {
-            monthlyData[monthName] = [];
+          if (!monthlyData[monthKey]) {
+            monthlyData[monthKey] = { name: monthName, records: [] };
           }
 
-          monthlyData[monthName].push({
+          monthlyData[monthKey].records.push({
             date: record.date,
             time: record.attendance[userId].time,
             type: record.attendance[userId].type || "full",
@@ -231,11 +230,11 @@ export default function Attendance() {
         });
 
       const sortedMonthly = Object.entries(monthlyData)
-        .map(([month, records]) => ({
-          month,
-          records: records.sort((a, b) => b.date.localeCompare(a.date)),
-        }))
-        .sort((a, b) => b.month.localeCompare(a.month));
+        .sort(([keyA], [keyB]) => keyB.localeCompare(keyA))
+        .map(([, data]) => ({
+          month: data.name,
+          records: data.records.sort((a, b) => b.date.localeCompare(a.date)),
+        }));
 
       setMonthlyAttendance(sortedMonthly);
     };
@@ -380,13 +379,13 @@ export default function Attendance() {
   };
 
   const getTotalAttendance = (userId: string) => {
-    return records.filter((record) => record.attendance[userId]).length;
+    return records.filter((record) => record.attendance?.[userId]).length;
   };
 
   const isTodayAttendanceMarked = () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getLocalDateString();
     return records.some(
-      (record) => record.date === today && record.attendance[user?.uid || ""]
+      (record) => record.date === today && record.attendance?.[user?.uid || ""]
     );
   };
 
@@ -412,32 +411,6 @@ export default function Attendance() {
     );
   };
 
-  // Update attendance function
-  const handleUpdateAttendance = async (action: "update" | "remove") => {
-    try {
-      const userId = selectedUser || user?.uid;
-      if (!userId || !selectedAttendanceDate) return;
-
-      if (action === "update") {
-        await updateAttendance(
-          userId,
-          selectedAttendanceDate,
-          selectedAttendanceType
-        );
-        toast.success("Attendance updated successfully");
-      } else {
-        await removeAttendance(userId, selectedAttendanceDate);
-        toast.success("Attendance removed successfully");
-      }
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update attendance"
-      );
-    } finally {
-      setShowUpdateAttendanceModal(false);
-    }
-  };
-
   // Function to handle holiday submission
   const handleHolidaySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -447,15 +420,28 @@ export default function Attendance() {
       ? holidayEndDate
       : holidayStartDate;
 
-    if (selectedHolidayId) {
-      await updateHoliday(
-        selectedHolidayId,
-        holidayName,
-        holidayStartDate,
-        effectiveEndDate
-      );
-    } else {
-      await addHoliday(holidayName, holidayStartDate, effectiveEndDate);
+    if (effectiveEndDate < holidayStartDate) {
+      toast.error("End date cannot be before the start date");
+      return;
+    }
+
+    try {
+      if (selectedHolidayId) {
+        await updateHoliday(
+          selectedHolidayId,
+          holidayName,
+          holidayStartDate,
+          effectiveEndDate
+        );
+        toast.success("Holiday updated successfully");
+      } else {
+        await addHoliday(holidayName, holidayStartDate, effectiveEndDate);
+        toast.success("Holiday added successfully");
+      }
+    } catch (error) {
+      console.error("Holiday save error:", error);
+      toast.error("Failed to save holiday");
+      return;
     }
 
     // Reset the form fields
@@ -473,14 +459,26 @@ export default function Attendance() {
     setHolidayStartDate(holiday.startDate);
     setHolidayEndDate(holiday.endDate);
     setSelectedHolidayId(holiday.id);
+    // Show the end-date input for multi-day holidays, otherwise saving the
+    // edit would silently truncate the holiday to a single day
+    setShowEndDateInput(holiday.endDate !== holiday.startDate);
   };
 
   // Function to handle holiday deletion
   const handleDeleteHoliday = async (id: string) => {
-    await removeHoliday(id);
+    try {
+      await removeHoliday(id);
+      toast.success("Holiday removed");
+    } catch (error) {
+      console.error("Holiday delete error:", error);
+      toast.error("Failed to remove holiday");
+    }
   };
 
-  if (loading) {
+  // Only block the page on the initial load. Every store action toggles
+  // `loading`, and a full-page spinner mid-action unmounts open modals and
+  // makes the view "disappear" while marking/updating attendance.
+  if (loading && records.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -1009,7 +1007,7 @@ export default function Attendance() {
         <AttendanceCalendar
           monthlyAttendance={monthlyAttendance}
           selectedUser={selectedUser}
-          isAdmin={isAdmin}
+          isAdmin={isAdmin === true}
         />
       </div>
 
@@ -1133,49 +1131,6 @@ export default function Attendance() {
         </div>
       )}
 
-      {/* Modal for updating attendance */}
-      {showUpdateAttendanceModal && (
-        <div className="fixed z-[100] inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Update Attendance</h2>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Attendance Type
-              </label>
-              <select
-                value={selectedAttendanceType}
-                onChange={(e) =>
-                  setSelectedAttendanceType(e.target.value as "full" | "half")
-                }
-                className="w-full p-2 border rounded"
-              >
-                <option value="full">Full Day</option>
-                <option value="half">Half Day</option>
-              </select>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowUpdateAttendanceModal(false)}
-                className="px-4 py-2 text-gray-800 bg-transparent rounded border border-gray-500"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleUpdateAttendance("update")}
-                className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
-              >
-                Update
-              </button>
-              <button
-                onClick={() => handleUpdateAttendance("remove")}
-                className="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700"
-              >
-                Delete Attendance
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

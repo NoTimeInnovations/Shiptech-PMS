@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAttendanceStore } from "../store/attendanceStore";
+import { useAttendanceStore, getLocalDateString } from "../store/attendanceStore";
 import toast from "react-hot-toast";
 
 interface User {
@@ -76,7 +76,7 @@ export const AdminAttendanceMarker = ({
               onChange={(e) => setSelectedDate(e.target.value)}
               required
               className="w-full p-2 border rounded"
-              max={new Date().toISOString().split("T")[0]}
+              max={getLocalDateString()}
             />
           </div>
 
@@ -97,6 +97,7 @@ export const AdminAttendanceMarker = ({
 
           <div className="flex justify-end gap-2 pt-4">
             <button
+              type="button"
               className="px-4 py-2 text-gray-800 bg-transparent rounded border border-gray-500"
               onClick={() => setShowAttendanceMarker(false)}
             >

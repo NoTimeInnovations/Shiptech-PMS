@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, CloudCog } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { MonthlyAttendance } from "@/pages/Attendance";
 import { useLeaveStore } from "@/store/leaveStore";
 import { useWorkFromStore } from "@/store/workfromhomestore";
@@ -7,7 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useOOOStore } from "@/store/oooStore";
-import { useAttendanceStore } from "../store/attendanceStore";
+import { useAttendanceStore, getLocalDateString } from "../store/attendanceStore";
 import { toast } from "react-hot-toast";
 import { auth } from "../lib/firebase"; // Import auth from firebase
 import { useHolidayStore } from "@/store/holidayStore"; // Import holiday store
@@ -27,8 +27,6 @@ export default function AttendanceCalendar({
   isAdmin: boolean;
 }) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [startingDate, setstartingDate] = useState<string>("");
-  const [EndingDate, setEndingDate] = useState<string>("");
   const [calendar, setCalendar] = useState<CalendarDay[]>([]);
   const { holidays, fetchHolidays } = useHolidayStore(); // Fetch holidays from the store
   const {
@@ -73,8 +71,6 @@ export default function AttendanceCalendar({
 
   // Generate calendar days for the current month
   useEffect(() => {
-    console.log("useEffect 1");
-
     const generateCalendar = () => {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
@@ -167,30 +163,25 @@ export default function AttendanceCalendar({
     const userId = selectedUser || auth.currentUser?.uid;
     const statuses = [];
 
+    // Normalized copy for range comparisons — never mutate the calendar day itself
+    const compareDate = new Date(date);
+    compareDate.setHours(0, 0, 0, 0);
+    // record.date is already a local "YYYY-MM-DD" string, so compare strings
+    // directly instead of round-tripping through Date (which parses as UTC)
+    const dateString = getLocalDateString(date);
+
     // Check attendance
-    const attendance = monthlyAttendance.some((month) =>
-      month.records.some((record) => {
-        const recordDate = new Date(record.date).toLocaleDateString();
-        const compareDate = date.toLocaleDateString();
-        return recordDate === compareDate;
-      })
-    );
+    const record = monthlyAttendance
+      .flatMap((month) => month.records)
+      .find((record) => record.date === dateString);
 
-    if (attendance) {
-      const record = monthlyAttendance
-        .flatMap((month) => month.records)
-        .find(
-          (record) =>
-            new Date(record.date).toLocaleDateString() ===
-            date.toLocaleDateString()
-        );
-
+    if (record) {
       statuses.push({
         type: "attendance",
         userId: userId,
         date: date.toISOString(),
-        attendanceType: record?.type || "full",
-        session: record?.session || null,
+        attendanceType: record.type || "full",
+        session: record.session || null,
       });
     }
 
@@ -200,8 +191,6 @@ export default function AttendanceCalendar({
       const end = new Date(l.endDate);
       start.setHours(0, 0, 0, 0);
       end.setHours(0, 0, 0, 0);
-      const compareDate = new Date(date);
-      compareDate.setHours(0, 0, 0, 0);
       return compareDate >= start && compareDate <= end && l.userId === userId;
     });
 
@@ -224,8 +213,7 @@ export default function AttendanceCalendar({
       const end = new Date(w.endDate);
       start.setHours(0, 0, 0, 0);
       end.setHours(0, 0, 0, 0);
-      date.setHours(0, 0, 0, 0);
-      return date >= start && date <= end && w.userId === userId;
+      return compareDate >= start && compareDate <= end && w.userId === userId;
     });
     if (workFrom) {
       statuses.push({
@@ -242,8 +230,7 @@ export default function AttendanceCalendar({
       const end = new Date(o.endDate);
       start.setHours(0, 0, 0, 0);
       end.setHours(0, 0, 0, 0);
-      date.setHours(0, 0, 0, 0);
-      return date >= start && date <= end && o.userId === userId;
+      return compareDate >= start && compareDate <= end && o.userId === userId;
     });
     if (ooo) {
       statuses.push({
@@ -260,8 +247,7 @@ export default function AttendanceCalendar({
       const end = new Date(h.endDate);
       start.setHours(0, 0, 0, 0);
       end.setHours(0, 0, 0, 0);
-      date.setHours(0, 0, 0, 0);
-      return date >= start && date <= end;
+      return compareDate >= start && compareDate <= end;
     });
     if (holiday) {
       statuses.push({
@@ -289,8 +275,6 @@ export default function AttendanceCalendar({
   };
 
   useEffect(() => {
-    console.log("useEffect 2");
-
     if (selectedStatus) {
       if (
         approveFromDate != selectedStatus.startDate ||
@@ -323,13 +307,13 @@ export default function AttendanceCalendar({
 
       if (selectedUser && selectedUser !== user?.uid) {
         setShowAdminDialog(true);
-      } else if (!selectedUser) {
+      } else {
         setShowDialog(true);
       }
     } else if (
       status?.type === "leave" ||
       status?.type === "workfrom" ||
-      (status?.type === "ooo" && isAdmin)
+      status?.type === "ooo"
     ) {
       const usr = await getUserFullName((selectedUser as string) ?? user?.uid);
 
@@ -471,10 +455,6 @@ export default function AttendanceCalendar({
     return userData?.fullName || "Unknown User";
   };
 
-  useEffect(() => {
-    console.log("Leves", leaves);
-  }, [leaves]);
-
   const handleUpdateAttendance = async (action: "update" | "remove") => {
     try {
       const userId = selectedUser || user?.uid;
@@ -543,21 +523,6 @@ export default function AttendanceCalendar({
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
 
-    // console.log("startDate", startDate);
-    // console.log("endDate", endDate);
-
-
-    // setstartingDate(startDate.toLocaleDateString('en-US', {
-    //   year: 'numeric',
-    //   month: 'long',
-    //   day: 'numeric'
-    // }));
-    // setEndingDate(endDate.toLocaleDateString('en-US', {
-    //   year: 'numeric',
-    //   month: 'long',
-    //   day: 'numeric'
-    // }));
-
     // Calculate total attendance days
     monthlyAttendance.forEach((month) => {
       month.records.forEach((record) => {
@@ -571,8 +536,8 @@ export default function AttendanceCalendar({
       });
     });
 
-    // Calculate total leaves - accounting for date ranges
-    leaves.forEach((leave) => {
+    // Calculate total leaves - approved only, accounting for date ranges
+    leaves.filter((leave) => leave.status === "approved").forEach((leave) => {
       const leaveStart = new Date(leave.startDate);
       const leaveEnd = new Date(leave.endDate);
       leaveStart.setHours(0, 0, 0, 0);
@@ -590,8 +555,8 @@ export default function AttendanceCalendar({
       }
     });
 
-    // Calculate total work from home days - accounting for date ranges
-    workFromRequests.forEach((request) => {
+    // Calculate total work from home days - approved only, accounting for date ranges
+    workFromRequests.filter((request) => request.status === "approved").forEach((request) => {
       const requestStart = new Date(request.startDate);
       const requestEnd = new Date(request.endDate);
       requestStart.setHours(0, 0, 0, 0);
@@ -609,8 +574,8 @@ export default function AttendanceCalendar({
       }
     });
 
-    // Calculate total out-of-office days - accounting for date ranges
-    oooRequests.forEach((request) => {
+    // Calculate total out-of-office days - approved only, accounting for date ranges
+    oooRequests.filter((request) => request.status === "approved").forEach((request) => {
       const requestStart = new Date(request.startDate);
       const requestEnd = new Date(request.endDate);
       requestStart.setHours(0, 0, 0, 0);
@@ -640,7 +605,6 @@ export default function AttendanceCalendar({
 
       while (currentDate <= endDate) {
         const dayOfWeek = currentDate.getDay(); // 0 is Sunday, 6 is Saturday
-        const dateString = currentDate.toLocaleDateString('en-CA'); // YYYY-MM-DD format
 
         let isWorkingDay = true;
 
@@ -707,20 +671,17 @@ export default function AttendanceCalendar({
 
   const metrics = calculateMetrics();
 
-  useEffect(() => {
-    if (metrics?.dateRange) {
-      setstartingDate(metrics.dateRange.start.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }));
-      setEndingDate(metrics.dateRange.end.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }));
-    }
-  }, [metrics]);
+  const dateRangeFormat: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  };
+  const startingDate = metrics?.dateRange
+    ? metrics.dateRange.start.toLocaleDateString('en-US', dateRangeFormat)
+    : "";
+  const EndingDate = metrics?.dateRange
+    ? metrics.dateRange.end.toLocaleDateString('en-US', dateRangeFormat)
+    : "";
 
   return (
     <div className="">

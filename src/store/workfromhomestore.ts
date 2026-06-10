@@ -27,6 +27,8 @@ interface WorkFromState {
   error: string | null;
   workFromRequests: WorkFromRequest[];
   allWorkFromRequests: WorkFromRequest[];
+  // Whose requests `workFromRequests` currently holds — used to validate the cache
+  lastFetchedUserId: string | null;
   requestWorkFrom: (
     startDate: string,
     endDate: string,
@@ -46,6 +48,7 @@ export const useWorkFromStore = create<WorkFromState>((set, get) => ({
   error: null,
   workFromRequests: [],
   allWorkFromRequests: [],
+  lastFetchedUserId: null,
 
   // Request work-from-home
   requestWorkFrom: async (startDate, endDate, reason) => {
@@ -69,11 +72,11 @@ export const useWorkFromStore = create<WorkFromState>((set, get) => ({
 
       await setDoc(newWorkFromDoc, workFromRequest);
 
-      const currentLeaveRequests = get().workFromRequests;
-      const updatedLeaveRequests = [...currentLeaveRequests, workFromRequest];
-      set({ workFromRequests: updatedLeaveRequests });
-
-      // await get().fetchUserWorkFromRequests();
+      // Keep both the per-user and the admin (all users) lists in sync
+      set((state) => ({
+        workFromRequests: [...state.workFromRequests, workFromRequest],
+        allWorkFromRequests: [...state.allWorkFromRequests, workFromRequest],
+      }));
     } catch (error) {
       console.error("Error requesting work from:", error);
       set({ error: (error as Error).message });
@@ -86,23 +89,17 @@ export const useWorkFromStore = create<WorkFromState>((set, get) => ({
   // Fetch work-from-home requests for a specific user
   fetchUserWorkFromRequests: async (userId) => {
     try {
-      set({ loading: true, error: null });
       const user = useAuthStore.getState().user;
       if (!user && !userId) return;
 
       const targetUserId = userId || user?.uid;
 
-      //check if it already exists
-      if (get().workFromRequests.length > 0) {
-        const userRequests = get().workFromRequests.filter(
-          (request) => request.userId === targetUserId
-        );
-        if (userRequests.length > 0) {
-          set({ loading: false });
-          return;
-        }
+      // Cache is valid only if it was fetched for this same user
+      if (get().lastFetchedUserId === targetUserId) {
+        return;
       }
-      
+
+      set({ loading: true, error: null });
 
       const workFromRef = collection(db, "workfrom");
       const q = query(workFromRef, orderBy("createdAt", "desc"));
@@ -112,7 +109,7 @@ export const useWorkFromStore = create<WorkFromState>((set, get) => ({
         .map((doc) => ({ ...doc.data() } as WorkFromRequest))
         .filter((request) => request.userId === targetUserId);
 
-      set({ workFromRequests, loading: false });
+      set({ workFromRequests, loading: false, lastFetchedUserId: targetUserId || null });
     } catch (error) {
       console.error("Error fetching work-from-home requests:", error);
       set({ error: (error as Error).message, loading: false });

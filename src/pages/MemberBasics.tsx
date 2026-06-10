@@ -18,7 +18,7 @@ export default function MemberBasics() {
   const { fetchUserTasks, tasks: userTasks } = useTaskStore();
   const { loading: tasksLoading, projects } = useProjectStore();
   const { user, userData } = useAuthStore();
-  const { checkAttendance, hasAttendance } = useAttendanceStore();
+  const { checkAttendance } = useAttendanceStore();
   const { todos, loading: todosLoading, fetchUserTodos } = useTodoStore();
   const [hasMarkedAttendance, setHasMarkedAttendance] = React.useState(true);
 
@@ -33,8 +33,10 @@ export default function MemberBasics() {
 
   useEffect(() => {
     const checkUserAttendance = async () => {
-      await checkAttendance();
-      setHasMarkedAttendance(hasAttendance);
+      // Use the returned value — reading `hasAttendance` from the hook here
+      // gives the stale value captured before the check ran
+      const marked = await checkAttendance();
+      setHasMarkedAttendance(marked);
     };
     checkUserAttendance();
   }, [checkAttendance]);

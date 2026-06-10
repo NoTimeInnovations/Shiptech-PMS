@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from 'zustand';
 import { db } from '../lib/firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
@@ -62,6 +62,7 @@ export const useHolidayStore = create<HolidayStore>((set, get) => ({
       }));
     } catch (error) {
       console.error("Error adding holiday:", error);
+      throw error;
     }
   },
 
@@ -84,6 +85,7 @@ export const useHolidayStore = create<HolidayStore>((set, get) => ({
       });
     } catch (error) {
       console.error("Error updating holiday:", error);
+      throw error;
     }
   },
 
@@ -102,6 +104,7 @@ export const useHolidayStore = create<HolidayStore>((set, get) => ({
       });
     } catch (error) {
       console.error("Error removing holiday:", error);
+      throw error;
     }
   },
 }));
