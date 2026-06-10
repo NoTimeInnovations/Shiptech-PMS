@@ -111,7 +111,7 @@ export default function Todos() {
         {todos.map(todo => (
           <Card
             key={todo.id}
-            className={`py-4 ${todo.completed ? 'bg-muted/50' : ''}`}
+            className={`py-4 ${todo.completed ? 'bg-muted' : 'bg-card'}`}
           >
             <CardContent className="px-4">
               <div className="flex items-start justify-between">

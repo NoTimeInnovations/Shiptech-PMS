@@ -50,13 +50,15 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       if (!currentUser) throw new Error('User not authenticated');
 
       const todoRef = collection(db, 'todos');
+      // Firestore rejects documents containing `undefined` field values,
+      // so optional fields must be omitted entirely when not provided
       const newTodo: Omit<Todo, 'id'> = {
         userId: currentUser.uid,
         title,
         description,
         endDate,
-        leadTime,
-        leadTimeUnit,
+        ...(leadTime !== undefined ? { leadTime } : {}),
+        ...(leadTimeUnit !== undefined ? { leadTimeUnit } : {}),
         projectId: projectId || null,
         taskId: taskId || null,
         projectNumber: projectNumber || null,
@@ -81,6 +83,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     } catch (error) {
       console.error('Error adding todo:', error);
       set({ error: (error as Error).message });
+      throw error;
     } finally {
       set({ loading: false });
     }
@@ -111,6 +114,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     } catch (error) {
       console.error('Error updating todo:', error);
       set({ error: (error as Error).message });
+      throw error;
     } finally {
       set({ loading: false });
     }
@@ -137,6 +141,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     } catch (error) {
       console.error('Error deleting todo:', error);
       set({ error: (error as Error).message });
+      throw error;
     } finally {
       set({ loading: false });
     }

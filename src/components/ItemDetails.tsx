@@ -185,20 +185,24 @@ export default function ItemDetails({
       toast.error("Please select an end date or lead time");
       return;
     }
-    await addTodo(
-      toDoData.title,
-      toDoData.description,
-      toDoData.endDate,
-      toDoData.leadTime,
-      toDoData.leadTimeUnit,
-      item.projectId || null,
-      item.id || null,
-      project?.__id || null,
-      project?.name || null,
-      item.name || null
-    );
-    toast.success("To-Do created successfully");
-    setShowToDoModal(false);
+    try {
+      await addTodo(
+        toDoData.title,
+        toDoData.description,
+        toDoData.endDate,
+        toDoData.leadTime,
+        toDoData.leadTimeUnit,
+        item.projectId || null,
+        item.id || null,
+        project?.__id || null,
+        project?.name || null,
+        item.name || null
+      );
+      toast.success("To-Do created successfully");
+      setShowToDoModal(false);
+    } catch (error) {
+      toast.error("Failed to create To-Do");
+    }
   };
 
   const progress = calculateProgress();

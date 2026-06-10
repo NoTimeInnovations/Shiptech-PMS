@@ -996,7 +996,7 @@ export default function Attendance() {
 
       {/* Holiday Marker Modal */}
       <Dialog open={showHolidayMarker} onOpenChange={setShowHolidayMarker}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Manage Holidays</DialogTitle>
           </DialogHeader>

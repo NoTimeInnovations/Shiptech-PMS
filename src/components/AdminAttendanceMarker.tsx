@@ -48,6 +48,7 @@ export const AdminAttendanceMarker = ({
       setSelectedUser("");
       setSelectedDate("");
       setAttendanceType('full');
+      setShowAttendanceMarker(false);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to mark attendance"

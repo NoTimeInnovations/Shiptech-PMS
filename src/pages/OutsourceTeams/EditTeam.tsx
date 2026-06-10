@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function EditTeam() {
   const { id } = useParams<{ id: string }>();
@@ -60,116 +61,120 @@ export default function EditTeam() {
       <h1 className="text-2xl font-heading font-semibold mb-1">Edit Team</h1>
       <p className="text-muted-foreground mb-6">Update the team's details</p>
 
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
-        <div className="space-y-2">
-          <Label htmlFor="edit-team-name">Name</Label>
-          <Input
-            id="edit-team-name"
-            type="text"
-            value={team.name}
-            onChange={(e) => setTeam({ ...team, name: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-team-gst">GST Number</Label>
-          <Input
-            id="edit-team-gst"
-            type="text"
-            value={team.gst}
-            onChange={(e) => setTeam({ ...team, gst: e.target.value })}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-team-address">Address</Label>
-          <Textarea
-            id="edit-team-address"
-            value={team.address}
-            onChange={(e) => setTeam({ ...team, address: e.target.value })}
-            rows={3}
-            required
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="edit-billing-same"
-            checked={team.isBillingAddressSame}
-            onCheckedChange={(checked) =>
-              setTeam({ ...team, isBillingAddressSame: checked === true })
-            }
-          />
-          <Label htmlFor="edit-billing-same">Billing address same as address</Label>
-        </div>
-
-        {!team.isBillingAddressSame && (
-          <div className="space-y-2">
-            <Label htmlFor="edit-billing-address">Billing Address</Label>
-            <Textarea
-              id="edit-billing-address"
-              value={team.billingAddress}
-              onChange={(e) =>
-                setTeam({ ...team, billingAddress: e.target.value })
-              }
-              rows={3}
-              required
-            />
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <Label>Contact Persons</Label>
-          {team.contactPersons.map((person, index) => (
-            <div key={index} className="flex gap-4 mb-2">
+      <Card className="max-w-2xl">
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="edit-team-name">Name</Label>
               <Input
+                id="edit-team-name"
                 type="text"
-                value={person.name}
-                onChange={(e) => {
-                  const newContactPersons = [...team.contactPersons];
-                  newContactPersons[index] = {
-                    ...person,
-                    name: e.target.value,
-                  };
-                  setTeam({ ...team, contactPersons: newContactPersons });
-                }}
-                placeholder="Name"
-              />
-              <Input
-                type="text"
-                value={person.phone}
-                onChange={(e) => {
-                  const newContactPersons = [...team.contactPersons];
-                  newContactPersons[index] = {
-                    ...person,
-                    phone: e.target.value,
-                  };
-                  setTeam({ ...team, contactPersons: newContactPersons });
-                }}
-                placeholder="Phone"
+                value={team.name}
+                onChange={(e) => setTeam({ ...team, name: e.target.value })}
+                required
               />
             </div>
-          ))}
-          <Button
-            type="button"
-            variant="link"
-            className="px-0"
-            onClick={() =>
-              setTeam({
-                ...team,
-                contactPersons: [...team.contactPersons, { name: "", phone: "" }],
-              })
-            }
-          >
-            + Add Contact Person
-          </Button>
-        </div>
+    
+            <div className="space-y-2">
+              <Label htmlFor="edit-team-gst">GST Number</Label>
+              <Input
+                id="edit-team-gst"
+                type="text"
+                value={team.gst}
+                onChange={(e) => setTeam({ ...team, gst: e.target.value })}
+              />
+            </div>
+    
+            <div className="space-y-2">
+              <Label htmlFor="edit-team-address">Address</Label>
+              <Textarea
+                id="edit-team-address"
+                value={team.address}
+                onChange={(e) => setTeam({ ...team, address: e.target.value })}
+                rows={3}
+                required
+              />
+            </div>
+    
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="edit-billing-same"
+                checked={team.isBillingAddressSame}
+                onCheckedChange={(checked) =>
+                  setTeam({ ...team, isBillingAddressSame: checked === true })
+                }
+              />
+              <Label htmlFor="edit-billing-same">Billing address same as address</Label>
+            </div>
+    
+            {!team.isBillingAddressSame && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-billing-address">Billing Address</Label>
+                <Textarea
+                  id="edit-billing-address"
+                  value={team.billingAddress}
+                  onChange={(e) =>
+                    setTeam({ ...team, billingAddress: e.target.value })
+                  }
+                  rows={3}
+                  required
+                />
+              </div>
+            )}
+    
+            <div className="space-y-2">
+              <Label>Contact Persons</Label>
+              {team.contactPersons.map((person, index) => (
+                <div key={index} className="flex gap-4 mb-2">
+                  <Input
+                    type="text"
+                    value={person.name}
+                    onChange={(e) => {
+                      const newContactPersons = [...team.contactPersons];
+                      newContactPersons[index] = {
+                        ...person,
+                        name: e.target.value,
+                      };
+                      setTeam({ ...team, contactPersons: newContactPersons });
+                    }}
+                    placeholder="Name"
+                  />
+                  <Input
+                    type="text"
+                    value={person.phone}
+                    onChange={(e) => {
+                      const newContactPersons = [...team.contactPersons];
+                      newContactPersons[index] = {
+                        ...person,
+                        phone: e.target.value,
+                      };
+                      setTeam({ ...team, contactPersons: newContactPersons });
+                    }}
+                    placeholder="Phone"
+                  />
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="link"
+                className="px-0"
+                onClick={() =>
+                  setTeam({
+                    ...team,
+                    contactPersons: [...team.contactPersons, { name: "", phone: "" }],
+                  })
+                }
+              >
+                + Add Contact Person
+              </Button>
+            </div>
 
-        <div className="flex justify-end">
-          <Button type="submit">Update Team</Button>
-        </div>
-      </form>
+            <div className="flex justify-end">
+              <Button type="submit">Update Team</Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
