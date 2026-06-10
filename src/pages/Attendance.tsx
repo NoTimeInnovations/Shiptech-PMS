@@ -4,7 +4,7 @@ import { useAuthStore } from "../store/authStore";
 import { useLeaveStore } from "../store/leaveStore";
 import { useWorkFromStore } from "../store/workfromhomestore";
 import { useOOOStore } from "../store/oooStore";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
+import { doc, getDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { Loader2, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
@@ -141,24 +141,29 @@ export default function Attendance() {
       }
     };
 
-    const loadUsers = async () => {
-      const querySnapshot = await getDocs(collection(db, "users"));
-      const usersData = querySnapshot.docs.reduce((acc, doc) => {
-        const userData = doc.data();
-        if (userData.verified && userData.role !== "customer") {
-          return {
-            ...acc,
-            [doc.id]: { id: doc.id, ...userData },
-          };
-        }
-        return acc;
-      }, {});
-      setUsers(usersData);
-    };
-
     checkUserRole();
-    loadUsers();
   }, [user]);
+
+  // Live employee list — newly verified/renamed employees appear without a reload
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "users"),
+      (snapshot) => {
+        const usersData: Record<string, User> = {};
+        snapshot.docs.forEach((doc) => {
+          const userData = doc.data();
+          if (userData.verified && userData.role !== "customer") {
+            usersData[doc.id] = { ...userData, id: doc.id } as User;
+          }
+        });
+        setUsers(usersData);
+      },
+      (error) => {
+        console.error("Error subscribing to users:", error);
+      }
+    );
+    return unsubscribe;
+  }, []);
 
   // Live Firestore subscriptions: every list the calendar renders from stays
   // in sync for the whole session (marks made by other users/devices included),
