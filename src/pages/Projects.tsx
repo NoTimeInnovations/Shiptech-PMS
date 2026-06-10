@@ -8,6 +8,17 @@ import toast from "react-hot-toast";
 import ProjectKanban from "@/components/ProjectKanban";
 import { DropResult } from "@hello-pangea/dnd";
 import { useTaskStore } from "@/store/taskStore";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function Projects() {
   const { projects, loading, deleteProject, fetchProjects, updateProjectStatus } = useProjectStore();
@@ -132,59 +143,47 @@ export default function Projects() {
   // Modify the table body to use filteredProjects instead of direct filtering
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-6 flex sm:flex-row flex-col gap-3 justify-between items-center">
-        Projects
+      <div className="mb-6 flex sm:flex-row flex-col gap-3 justify-between items-center">
+        <h2 className="text-2xl font-heading font-semibold">Projects</h2>
         <div className="flex items-center space-x-4">
-          <div className="bg-gray-100 p-1 rounded-lg flex items-center">
-            <button
+          <div className="bg-muted p-1 rounded-lg flex items-center">
+            <Button
+              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+              size="icon-sm"
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'
-                }`}
+              className={viewMode === 'list' ? 'bg-background shadow-sm hover:bg-background' : 'text-muted-foreground'}
               title="List View"
             >
               <List size={20} />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={viewMode === 'board' ? 'secondary' : 'ghost'}
+              size="icon-sm"
               onClick={() => setViewMode('board')}
-              className={`p-2 rounded-md transition-colors ${viewMode === 'board' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-black'
-                }`}
+              className={viewMode === 'board' ? 'bg-background shadow-sm hover:bg-background' : 'text-muted-foreground'}
               title="Board View"
             >
               <LayoutGrid size={20} />
-            </button>
+            </Button>
           </div>
-          <button
-            onClick={() => navigate('/dashboard/projects/new')}
-            className="inline-flex items-center sm:px-4 px-1 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-black"
-          >
-            <Plus className="mr-2" />
+          <Button onClick={() => navigate('/dashboard/projects/new')}>
+            <Plus />
             Create New Project
-          </button>
+          </Button>
         </div>
-      </h2>
+      </div>
 
       {viewMode === 'list' && (
-        <>
-          {/* Tab Navigation */}
-          <div className="border-b border-gray-200 mb-6">
-            <div className="flex space-x-8">
-              <button
-                onClick={() => setActiveTab('in-progress')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2
-              ${activeTab === 'in-progress' ? 'border-black/90 text-black/90' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-              >
-                <span>In Progress</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('completed')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2
-              ${activeTab === 'completed' ? 'border-black/90 text-black/90' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-              >
-                <span>Completed</span>
-              </button>
-            </div>
-          </div>
-        </>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as 'in-progress' | 'completed')}
+          className="mb-6"
+        >
+          <TabsList>
+            <TabsTrigger value="in-progress">In Progress</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+          </TabsList>
+        </Tabs>
       )}
 
       {/* Content */}
@@ -194,104 +193,95 @@ export default function Projects() {
         </div>
       ) : (
         viewMode === 'list' ? (
-          <div className="bg-white w-full shadow-md rounded-lg overflow-hidden">
+          <Card className="w-full overflow-hidden py-0">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                {/* Table Head */}
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Project Number
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created On
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Payment Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                {/* Table Body */}
-                <tbody className="bg-white divide-y divide-gray-200">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-center">Project Number</TableHead>
+                    <TableHead className="text-center">Name</TableHead>
+                    <TableHead className="text-center">Customer</TableHead>
+                    <TableHead className="text-center">Created On</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                    <TableHead className="text-center">Payment Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {
                     filteredProjects.length > 0 ? (
                       <>
                         {filteredProjects.map((project) => (
-                          <tr
+                          <TableRow
                             onClick={() => navigate(`/dashboard/projects/${project.id}`)}
                             key={project.id}
-                            className="hover:bg-gray-50 hover:cursor-pointer text-center"
+                            className="hover:cursor-pointer text-center"
                           >
-                            <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <TableCell className="text-center text-muted-foreground">
                               P-{project.projectNumber}
-                            </td>
-                            <td className="text-center px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            </TableCell>
+                            <TableCell className="text-center font-medium">
                               {project.name.length > 40
                                 ? `${project.name.slice(0, 40)}...`
                                 : project.name}
-                            </td>
-                            <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            </TableCell>
+                            <TableCell className="text-center text-muted-foreground">
                               {project.customer.name}
-                            </td>
-                            <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            </TableCell>
+                            <TableCell className="text-center text-muted-foreground">
                               {new Date(project.createdAt).toLocaleDateString("en-GB")}
-                            </td>
-                            <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            </TableCell>
+                            <TableCell className="text-center text-muted-foreground">
                               <ProjectStatusSelect
                                 project={{
                                   id: project.id as string,
                                   status: project.status,
                                 }}
                               />
-                            </td>
-                            <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            </TableCell>
+                            <TableCell className="text-center text-muted-foreground">
                               {getSettlementStatus(project.customer_id)}
-                            </td>
-                            <td className="text-center px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex justify-end items-center space-x-3">
-                                <Link
-                                  to={`/dashboard/projects/${project.id}`}
-                                  className="text-black/90 hover:text-black/80"
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end items-center space-x-1">
+                                <Button
+                                  asChild
+                                  variant="ghost"
+                                  size="icon-sm"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <ExternalLink className="text-blue-800" size={18} />
-                                </Link>
-                                <button
+                                  <Link to={`/dashboard/projects/${project.id}`}>
+                                    <ExternalLink className="text-blue-800" size={18} />
+                                  </Link>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleDeleteProject(project.id!);
                                   }}
-                                  className="text-red-600 hover:text-red-800"
+                                  className="text-destructive hover:text-destructive"
                                   title="Delete project"
                                 >
                                   <Trash2 size={18} />
-                                </button>
+                                </Button>
                               </div>
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         ))}
                       </>) : (
-                      <tr>
-                        <td colSpan={7} className="text-center py-4">No projects found.</td>
-                      </tr>
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
+                          No projects found.
+                        </TableCell>
+                      </TableRow>
                     )
                   }
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
-          </div>
+          </Card>
         ) : (
           <div className="h-[calc(100vh-200px)]">
             <ProjectKanban projects={projects} onDragEnd={handleDragEnd} />

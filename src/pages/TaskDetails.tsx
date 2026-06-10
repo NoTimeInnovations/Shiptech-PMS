@@ -23,6 +23,35 @@ import { useOutsourceTeamStore } from "../store/outsourceTeamStore";
 import { useSettlementStore } from "../store/settlementStore";
 import { Settlement } from "../store/settlementStore";
 import { useTodoStore } from "../store/todoStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function TaskDetails() {
   const { id: projectId, "*": taskPath } = useParams();
@@ -560,7 +589,7 @@ export default function TaskDetails() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -568,7 +597,7 @@ export default function TaskDetails() {
   if (!task) {
     return (
       <div className="p-6">
-        <p className="text-red-500">Task not found</p>
+        <p className="text-destructive">Task not found</p>
       </div>
     );
   }
@@ -576,37 +605,34 @@ export default function TaskDetails() {
   return (
     <div className="p-6 max-w-5xl mx-auto pb-20">
       <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center space-x-4">
-          <button onClick={() => navigate(-1)}>
-            <ArrowLeft className=" h-7 w-7" />
-          </button>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="size-5" />
+          </Button>
           <div>
-            <h1 className="text-2xl font-bold">{task.name}</h1>
+            <h1 className="text-2xl font-heading font-semibold">{task.name}</h1>
             {task.outsource_team_id && outsourcedTeam && (
-              <div className="mt-1 flex items-center text-sm text-gray-600">
+              <div className="mt-1 flex items-center text-sm text-muted-foreground">
                 <span className="font-medium">Outsourced to:</span>
-                <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                <Badge variant="secondary" className="ml-2">
                   {outsourcedTeam.name}
-                </span>
+                </Badge>
               </div>
             )}
           </div>
         </div>
-        <div className="flex space-x-4">
+        <div className="flex gap-4">
           {exceptionCase && (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               {(isTimerActive || currentDuration > 0) && (
-                <div className="flex items-center space-x-2 bg-blue-50 text-blue-700 px-3 py-2 rounded-md">
+                <div className="flex items-center gap-2 bg-muted text-foreground px-3 py-2 rounded-md">
                   <Clock className="h-4 w-4" />
                   <span className="font-mono">{elapsedTime}</span>
                 </div>
               )}
-              <button
+              <Button
                 onClick={isTimerActive ? handleStopTimer : handleStartTimer}
-                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white ${isTimerActive
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-green-600 hover:bg-green-700"
-                  }`}
+                variant={isTimerActive ? "destructive" : "default"}
               >
                 {isTimerActive ? (
                   <>
@@ -619,34 +645,25 @@ export default function TaskDetails() {
                     Start Timer
                   </>
                 )}
-              </button>
+              </Button>
 
-              <button
-                onClick={handleOpenManualEntry}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
+              <Button onClick={handleOpenManualEntry}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Time
-              </button>
+              </Button>
             </div>
           )}
           {isAdmin && !task?.outsource_team_id && (
-            <button
-              onClick={() => setShowOutsourceModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-            >
+            <Button variant="secondary" onClick={() => setShowOutsourceModal(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Outsource Task
-            </button>
+            </Button>
           )}
           {isAdmin && task?.outsource_team_id && (
-            <button
-              onClick={handleRemoveOutsourceTeam}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-            >
+            <Button variant="secondary" onClick={handleRemoveOutsourceTeam}>
               <Minus className="mr-2 h-4 w-4" />
               Remove Outsource Team
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -668,57 +685,57 @@ export default function TaskDetails() {
       />
 
       {(task.timeEntries?.length ?? 0) > 0 && (
-        <div className="bg-white shadow rounded-lg mb-6">
-          <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Time Spent</h3>
-          </div>
-          <div className="p-6">
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Time Spent</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
               {aggregateTimeByUser(task.timeEntries || []).map((userTime) => (
                 <div
                   key={userTime.email}
                   className="flex items-center justify-between"
                 >
-                  <div className="flex items-center space-x-3">
-                    <User className="h-5 w-5 text-gray-400" />
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-muted-foreground" />
                     <span className="font-medium">{userTime.email}</span>
                   </div>
-                  <div className="flex items-center text-gray-700">
+                  <div className="flex items-center text-muted-foreground">
                     <Clock className="h-4 w-4 mr-2" />
                     {formatDuration(userTime.totalMinutes)}
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {taskTodos.length > 0 && (
-        <div className="bg-white shadow rounded-lg mb-6">
-          <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">To-Dos</h3>
-          </div>
-          <div className="p-6">
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>To-Dos</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-4">
               {taskTodos.map((reminder) => (
                 <div
                   key={reminder.id}
-                  className={`p-4 rounded-lg border ${reminder.completed ? "bg-gray-50" : "bg-white"
+                  className={`p-4 rounded-lg border border-border ${reminder.completed ? "bg-muted" : "bg-card"
                     }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3
-                        className={`text-sm font-semibold ${reminder.completed ? "line-through text-gray-500" : ""
+                        className={`text-sm font-semibold ${reminder.completed ? "line-through text-muted-foreground" : ""
                           }`}
                       >
                         {reminder.title}
                       </h3>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {reminder.description}
                       </p>
-                      <p className="text-xs text-gray-500 mt-2">
+                      <p className="text-xs text-muted-foreground mt-2">
                         Due:{" "}
                         {new Date(reminder.endDate).toLocaleString("en-GB", {
                           year: "numeric",
@@ -731,29 +748,21 @@ export default function TaskDetails() {
                       </p>
                     </div>
                     <div>
-                      {/* We can reuse the toggle functionality or just show status. 
-                             The user didn't explicitly asking for interacting with them here, 
-                             but "fetch it" implies viewing. "Store in same place" implies full todo. 
-                             I'll add a simple checkbox or button to toggle if I imported it. 
-                             I imported toggleTodoComplete as toggleReminderComplete. 
-                         */}
-                      <button
+                      <Button
+                        variant={reminder.completed ? "secondary" : "outline"}
+                        size="sm"
+                        className={reminder.completed ? "text-green-600" : "text-muted-foreground"}
                         onClick={() => toggleReminderComplete(reminder.id)}
-                        className={`p-2 rounded-md ${reminder.completed
-                          ? "text-green-600 bg-green-100"
-                          : "text-gray-400 bg-gray-100 hover:bg-gray-200"
-                          }`}
                       >
-                        {/* Using a simple Check icon or text */}
                         {reminder.completed ? "Completed" : "Mark Complete"}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       <TaskList
@@ -782,203 +791,205 @@ export default function TaskDetails() {
         project={project as Project}
       />
 
-      {showManualEntry && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-medium mb-4">Add Time Manually</h3>
+      <Dialog open={showManualEntry} onOpenChange={setShowManualEntry}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Time Manually</DialogTitle>
+          </DialogHeader>
 
-            <div className="mb-4 p-3 bg-gray-50 rounded-md">
-              <div className="text-sm text-gray-500 mb-1">Current Duration</div>
-              <div className="text-lg font-medium">
-                {Math.floor(currentDuration / 60)}h{" "}
-                {Math.floor(currentDuration % 60)}m
-              </div>
+          <div className="p-3 bg-muted rounded-md">
+            <div className="text-sm text-muted-foreground mb-1">
+              Current Duration
             </div>
-
-            <div className="flex gap-4 mb-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hours to Add
-                </label>
-                <div className="flex items-center">
-                  <button
-                    onClick={() => setManualHours(Math.max(0, manualHours - 1))}
-                    className="p-2 bg-gray-100 rounded-l-md hover:bg-gray-200"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    value={manualHours}
-                    onChange={(e) =>
-                      setManualHours(Math.max(0, parseInt(e.target.value) || 0))
-                    }
-                    className="w-full text-center border-y p-2"
-                  />
-                  <button
-                    onClick={() => setManualHours(manualHours + 1)}
-                    className="p-2 bg-gray-100 rounded-r-md hover:bg-gray-200"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Minutes to Add
-                </label>
-                <div className="flex items-center">
-                  <button
-                    onClick={() =>
-                      setManualMinutes(Math.max(0, manualMinutes - 15))
-                    }
-                    className="p-2 bg-gray-100 rounded-l-md hover:bg-gray-200"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <input
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={manualMinutes}
-                    onChange={(e) =>
-                      setManualMinutes(
-                        Math.max(0, Math.min(59, parseInt(e.target.value) || 0))
-                      )
-                    }
-                    className="w-full text-center border-y p-2"
-                  />
-                  <button
-                    onClick={() =>
-                      setManualMinutes(Math.min(59, manualMinutes + 15))
-                    }
-                    className="p-2 bg-gray-100 rounded-r-md hover:bg-gray-200"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-4 p-3 bg-blue-50 rounded-md">
-              <div className="text-sm text-blue-600 mb-1">
-                New Total Duration
-              </div>
-              <div className="text-lg font-medium text-blue-700">
-                {Math.floor(
-                  (currentDuration + manualHours * 60 + manualMinutes) / 60
-                )}
-                h{" "}
-                {Math.floor(
-                  (currentDuration + manualHours * 60 + manualMinutes) % 60
-                )}
-                m
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowManualEntry(false)}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleManualTimeAdd}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                Add Time
-              </button>
+            <div className="text-lg font-medium">
+              {Math.floor(currentDuration / 60)}h{" "}
+              {Math.floor(currentDuration % 60)}m
             </div>
           </div>
-        </div>
-      )}
 
-      {showOutsourceModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-medium mb-4">Outsource Task</h3>
+          <div className="flex gap-4">
+            <div className="flex-1 space-y-1">
+              <Label>Hours to Add</Label>
+              <div className="flex items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="rounded-r-none"
+                  onClick={() => setManualHours(Math.max(0, manualHours - 1))}
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input
+                  type="number"
+                  min="0"
+                  value={manualHours}
+                  onChange={(e) =>
+                    setManualHours(Math.max(0, parseInt(e.target.value) || 0))
+                  }
+                  className="w-full text-center rounded-none border-x-0"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="rounded-l-none"
+                  onClick={() => setManualHours(manualHours + 1)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Select Team
-              </label>
-              <select
-                value={selectedTeam}
-                onChange={(e) => setSelectedTeam(e.target.value)}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="">Select a team...</option>
+            <div className="flex-1 space-y-1">
+              <Label>Minutes to Add</Label>
+              <div className="flex items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="rounded-r-none"
+                  onClick={() =>
+                    setManualMinutes(Math.max(0, manualMinutes - 15))
+                  }
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <Input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={manualMinutes}
+                  onChange={(e) =>
+                    setManualMinutes(
+                      Math.max(0, Math.min(59, parseInt(e.target.value) || 0))
+                    )
+                  }
+                  className="w-full text-center rounded-none border-x-0"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="rounded-l-none"
+                  onClick={() =>
+                    setManualMinutes(Math.min(59, manualMinutes + 15))
+                  }
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3 bg-accent rounded-md">
+            <div className="text-sm text-muted-foreground mb-1">
+              New Total Duration
+            </div>
+            <div className="text-lg font-medium">
+              {Math.floor(
+                (currentDuration + manualHours * 60 + manualMinutes) / 60
+              )}
+              h{" "}
+              {Math.floor(
+                (currentDuration + manualHours * 60 + manualMinutes) % 60
+              )}
+              m
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowManualEntry(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleManualTimeAdd}>Add Time</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showOutsourceModal} onOpenChange={setShowOutsourceModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Outsource Task</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-1">
+            <Label>Select Team</Label>
+            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a team..." />
+              </SelectTrigger>
+              <SelectContent>
                 {teams.map((team) => (
-                  <option key={team.id} value={team.id}>
+                  <SelectItem key={team.id} value={team.id as string}>
                     {team.name}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount
-              </label>
-              <input
-                type="text"
-                value={outsourceAmount}
-                onChange={(e) => setOutsourceAmount(e.target.value)}
-                placeholder="Enter amount"
-                className="w-full p-2 border rounded-md"
-              />
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowOutsourceModal(false)}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleOutsourceSubmit}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-              >
-                Submit
-              </button>
-            </div>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      )}
 
-      {showDeleteConfirmModal && settlementToDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-lg font-medium text-red-600 mb-4">Warning</h3>
-            <p className="mb-4">
+          <div className="space-y-1">
+            <Label>Amount</Label>
+            <Input
+              type="text"
+              value={outsourceAmount}
+              onChange={(e) => setOutsourceAmount(e.target.value)}
+              placeholder="Enter amount"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowOutsourceModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleOutsourceSubmit}>Submit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={showDeleteConfirmModal && !!settlementToDelete}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDeleteConfirmModal(false);
+            setSettlementToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Warning</AlertDialogTitle>
+            <AlertDialogDescription>
               This task has partial payments recorded. Removing the outsource
               team will delete all payment records. Are you sure you want to
               continue?
-            </p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setShowDeleteConfirmModal(false);
-                  setSettlementToDelete(null);
-                }}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleConfirmRemoveOutsource(settlementToDelete)}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setShowDeleteConfirmModal(false);
+                setSettlementToDelete(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() =>
+                settlementToDelete &&
+                handleConfirmRemoveOutsource(settlementToDelete)
+              }
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import React from "react";
 import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface BackButtonProps {
   onClick: () => void;
@@ -7,8 +7,8 @@ interface BackButtonProps {
 
 export default function BackButton({ onClick }: BackButtonProps) {
   return (
-    <button onClick={onClick}>
-      <ArrowLeft className="h-7 w-7" />
-    </button>
+    <Button variant="ghost" size="icon" onClick={onClick}>
+      <ArrowLeft className="size-6" />
+    </Button>
   );
 }

@@ -6,7 +6,24 @@ import toast from "react-hot-toast";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
-
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -66,99 +83,105 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen watermark flex items-center justify-center">
-      <div className="p-8 bg-white shadow-2xl rounded-lg w-96 h-full">
-        <div className="flex flex-col items-center gap-2">
-          <img src="/logo-192x192.png" alt="ShipTech PMS" className="h-20" />
-          <h2 className="text-2xl font-semibold text-center mb-6">
+    <div className="min-h-screen watermark flex items-center justify-center p-4">
+      <Card className="w-96 shadow-2xl">
+        <CardHeader className="items-center text-center">
+          <img src="/logo-192x192.png" alt="ShipTech PMS" className="h-20 mx-auto" />
+          <CardTitle className="text-2xl font-heading font-semibold">
             Login to <span className="font-bold">ShipTech-ICON</span>
-          </h2>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              placeholder="Enter your email"
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm  p-2"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="...................."
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm  p-2"
-              required
-            />
-          </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-black/90 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 "
-          >
-            {loading ? <Loader2 className="animate-spin" /> : "Login"}
-          </button>
-        </form>
-        <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-blue-600 hover:text-blue-500">
-            Sign up
-          </Link>
-        </p>
-        <button
-          onClick={() => setShowResetPassword(true)}
-          className="text-blue-600 hover:text-blue-500 text-sm justify-center flex w-full"
-        >
-          Forgot Password?
-        </button>
-        {showResetPassword && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-8 rounded-lg shadow-2xl w-96">
-              <h2 className="text-2xl font-semibold mb-6">Reset Password</h2>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={resetEmail}
-                  placeholder="Enter your email"
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm  p-2"
-                  required
-                />
-              </div>
-              {resetError && <p className="text-red-500 text-sm mt-2">{resetError}</p>}
-              <button
-                onClick={handleResetPassword}
-                className="w-full mt-4 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-black/90 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 "
-              >
-                Send Reset Email
-              </button>
-              <button
-                onClick={() => {
-                  setShowResetPassword(false);
-                  setResetError(""); // Clear error when closing modal
-                }}
-                className="w-full mt-2 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 "
-              >
-                Cancel
-              </button>
+          </CardTitle>
+          <CardDescription>Enter your credentials to continue</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="login-email">Email</Label>
+              <Input
+                id="login-email"
+                type="email"
+                value={email}
+                placeholder="Enter your email"
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="login-password">Password</Label>
+              <Input
+                id="login-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="...................."
+                required
+              />
+            </div>
+            {error && <p className="text-destructive text-sm">{error}</p>}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? <Loader2 className="animate-spin" /> : "Login"}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="flex-col gap-2">
+          <p className="text-center text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-primary underline-offset-4 hover:underline">
+              Sign up
+            </Link>
+          </p>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={() => setShowResetPassword(true)}
+          >
+            Forgot Password?
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <Dialog
+        open={showResetPassword}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowResetPassword(false);
+            setResetError(""); // Clear error when closing modal
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-96">
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reset-email">Email</Label>
+            <Input
+              id="reset-email"
+              type="email"
+              value={resetEmail}
+              placeholder="Enter your email"
+              onChange={(e) => setResetEmail(e.target.value)}
+              required
+            />
+            {resetError && <p className="text-destructive text-sm">{resetError}</p>}
           </div>
-        )}
-      </div>
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowResetPassword(false);
+                setResetError(""); // Clear error when closing modal
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleResetPassword}>
+              Send Reset Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -7,6 +7,34 @@ import CustomModal from "@/components/CustomModal"; // Import the custom modal
 import { collection, getDocs } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { Trash2, Edit2Icon, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export interface CustomUserData {
   id: string;
@@ -305,288 +333,326 @@ const TimeSheet = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between">
-        <h1 className="text-2xl font-bold mb-4">Time Sheet</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black/90 hover:bg-black/80"
-        >
-          Add to Time Sheet
-        </button>
+        <div className="mb-4">
+          <h1 className="text-2xl font-heading font-semibold">Time Sheet</h1>
+          <p className="text-muted-foreground text-sm">
+            Track and review time entries across projects and tasks.
+          </p>
+        </div>
+        <Button onClick={() => setShowModal(true)}>Add to Time Sheet</Button>
       </div>
       <div className="flex flex-col sm:flex-row gap-4 mb-6 items-center flex-wrap">
         {userData?.role === "admin" && (
           <div className="flex flex-col gap-1 w-full sm:w-auto">
-            <label className="text-xs font-semibold text-gray-500 uppercase">User</label>
-            <select
-              onChange={handleUserChange}
-              value={selectedUserId}
-              className="p-2 border rounded bg-white min-w-[200px] shadow-sm focus:ring-2 focus:ring-black/5 outline-none"
+            <Label className="text-xs font-semibold text-muted-foreground uppercase">
+              User
+            </Label>
+            <Select
+              value={selectedUserId ?? ""}
+              onValueChange={(value) =>
+                handleUserChange({
+                  target: { value },
+                } as React.ChangeEvent<HTMLSelectElement>)
+              }
             >
-              <option value="">Select a user...</option>
-              {Object.values(users).map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.fullName}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="min-w-[200px] w-full sm:w-auto">
+                <SelectValue placeholder="Select a user..." />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(users).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.fullName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
         <div className="flex flex-col gap-1 w-full sm:w-auto">
-          <label className="text-xs font-semibold text-gray-500 uppercase">Project</label>
-          <select
-            value={filterProjectId}
-            onChange={(e) => {
-              setFilterProjectId(e.target.value);
+          <Label className="text-xs font-semibold text-muted-foreground uppercase">
+            Project
+          </Label>
+          <Select
+            value={filterProjectId || "all"}
+            onValueChange={(value) => {
+              setFilterProjectId(value === "all" ? "" : value);
               setFilterTaskId(""); // Reset task filter when project changes
             }}
-            className="p-2 border rounded bg-white min-w-[200px] shadow-sm focus:ring-2 focus:ring-black/5 outline-none"
           >
-            <option value="">All Projects</option>
-            {projects.map((project) => (
-              <option key={project.id} value={project.id}>
-                {project.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="min-w-[200px] w-full sm:w-auto">
+              <SelectValue placeholder="All Projects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Projects</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id as string}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex flex-col gap-1 w-full sm:w-auto">
-          <label className="text-xs font-semibold text-gray-500 uppercase">Task</label>
-          <select
-            value={filterTaskId}
-            onChange={(e) => setFilterTaskId(e.target.value)}
-            className="p-2 border rounded bg-white min-w-[200px] shadow-sm focus:ring-2 focus:ring-black/5 outline-none disabled:bg-gray-100 disabled:text-gray-400"
+          <Label className="text-xs font-semibold text-muted-foreground uppercase">
+            Task
+          </Label>
+          <Select
+            value={filterTaskId || "all"}
+            onValueChange={(value) =>
+              setFilterTaskId(value === "all" ? "" : value)
+            }
             disabled={!filterProjectId}
           >
-            <option value="">All Tasks</option>
-            {filterProjectTasks.map((task) => (
-              <option key={task.id} value={task.id}>
-                {task.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="min-w-[200px] w-full sm:w-auto">
+              <SelectValue placeholder="All Tasks" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tasks</SelectItem>
+              {filterProjectTasks.map((task) => (
+                <SelectItem key={task.id} value={task.id}>
+                  {task.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <button
+        <Button
           onClick={handleFetchUserTimeSheets}
-          className={`inline-flex items-center px-4 py-2 mt-auto border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-500 transition-colors ${HasChnaged && "animate-pulse"
-            }`}
+          className={`mt-auto ${HasChnaged ? "animate-pulse" : ""}`}
         >
           Fetch Time Sheets
-        </button>
+        </Button>
       </div>
       {filteredTimeSheets.length > 0 ? (
         <>
-          <h2 className="text-xl font-bold my-6">User Extra Time Entries</h2>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Title
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Project
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tasks
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Time Spent
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredTimeSheets.map((sheet) => (
-                <React.Fragment key={sheet.id}>
-                  <tr
-                    onClick={() => toggleRowExpansion(sheet.id)}
-                    className="hover:bg-gray-50 hover:cursor-pointer text-center"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <span className="relative group">{sheet.title}</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {projects.find((p) => p.id === sheet.projectId)?.name || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs overflow-hidden text-ellipsis">
-                      {sheet.taskIds?.map(taskId => {
-                        const taskName = taskLookup.get(taskId) || tasks.find(t => t.id === taskId)?.name;
-                        return taskName || "";
-                      }).filter(Boolean).join(", ") || "-"}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {sheet.hours} Hours {sheet.minutes} Minutes
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex justify-center gap-3">
-                      <button
-                        onClick={() => handleEditTimeSheet(sheet)}
-                        className="text-blue-600 hover:text-blue-900 mr-2"
-                      >
-                        <Edit2Icon size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTimeSheet(sheet.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                      <button
+          <Card className="my-6">
+            <CardHeader>
+              <CardTitle>User Extra Time Entries</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-center">Title</TableHead>
+                    <TableHead className="text-center">Project</TableHead>
+                    <TableHead className="text-center">Tasks</TableHead>
+                    <TableHead className="text-center">Time Spent</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTimeSheets.map((sheet) => (
+                    <React.Fragment key={sheet.id}>
+                      <TableRow
                         onClick={() => toggleRowExpansion(sheet.id)}
-                        className="text-gray-600 hover:text-gray-900"
+                        className="hover:cursor-pointer text-center"
                       >
-                        {expandedRows.has(sheet.id) ? (
-                          <ChevronUp size={18} />
-                        ) : (
-                          <ChevronDown size={18} />
-                        )}
-                      </button>
-                    </td>
-                  </tr>
-                  {expandedRows.has(sheet.id) && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-4 bg-gray-100">
-                        <div>
-                          <h3 className="font-semibold">Details:</h3>
-                          <p>Title: {sheet.title}</p>
-                          <p>Description: {sheet.description}</p>
-                          <p>
-                            Time Taken: {sheet.hours} Hours {sheet.minutes}{" "}
-                            Minutes
-                          </p>
-                          <p>
-                            Created At:{" "}
-                            {sheet.createdAt.toDate().toLocaleString()}
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
-              <tr>
-                <td
-                  colSpan={5}
-                  className="px-6 py-4 bg-green-500 text-md font-semibold text-gray-900 text-right"
-                >
-                  Total Time Spent: {totalTime.hours} hours {totalTime.minutes}{" "}
-                  minutes
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <h2 className="text-xl font-bold mt-6">User Task Time Entries</h2>
-          {filteredTasks.length > 0 ? (
-            <table className="min-w-full divide-y divide-gray-200 mt-4">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Task Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Time Entries
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider flex justify-end">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredTasks.map((task) => (
-                  <React.Fragment key={task.id}>
-                    <tr
-                      onClick={() => toggleTaskRowExpansion(task.id)}
-                      className="hover:bg-gray-50 hover:cursor-pointer"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {task.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {task.timeEntries
-                          ? task.timeEntries
-                            .filter(entry => entry.userId === user?.uid) // Filter by user ID
-                            .reduce((total, entry) => total + entry.duration, 0) / 60 // Convert to hours
-                          : 0}{" "}
-                        hours
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {task.completed ? "completed" : "incomplete"}
-                      </td>
-                      <td className=" py-4 whitespace-nowrap text-sm text-gray-500 flex justify-end items-center pr-12">
-                        <button
-                          onClick={() => toggleRowExpansion(task.id)}
-                          className="text-gray-600 hover:text-gray-900"
-                        >
-                          {expandedRows.has(task.id) ? (
-                            <ChevronUp size={18} />
-                          ) : (
-                            <ChevronDown size={18} />
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                    {expandedTaskRows.has(task.id) && (
-                      <tr>
-                        <td colSpan={4} className="px-6 py-4 bg-gray-100">
-                          <div>
-                            <h3 className="font-semibold">Task Details:</h3>
-                            <p>Description: {task.description}</p>
-                            <p>
-                              Assigned To:{" "}
-                              {task.assignedTo
-                                ?.map((user) => user.name)
-                                .join(", ")}
-                            </p>
-                            <p>
-                              Deadline: {task.deadline || "No deadline set"}
-                            </p>
+                        <TableCell className="font-medium">
+                          <span className="relative group">{sheet.title}</span>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {projects.find((p) => p.id === sheet.projectId)
+                            ?.name || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground max-w-xs overflow-hidden text-ellipsis">
+                          {sheet.taskIds?.map(taskId => {
+                            const taskName = taskLookup.get(taskId) || tasks.find(t => t.id === taskId)?.name;
+                            return taskName || "";
+                          }).filter(Boolean).join(", ") || "-"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {sheet.hours} Hours {sheet.minutes} Minutes
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditTimeSheet(sheet)}
+                            >
+                              <Edit2Icon size={18} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteTimeSheet(sheet.id)}
+                            >
+                              <Trash2 size={18} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => toggleRowExpansion(sheet.id)}
+                            >
+                              {expandedRows.has(sheet.id) ? (
+                                <ChevronUp size={18} />
+                              ) : (
+                                <ChevronDown size={18} />
+                              )}
+                            </Button>
                           </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                ))}
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-6 py-4 bg-green-500 text-md font-semibold text-gray-900 text-right"
-                  >
-                    Total Time Spent on Tasks: {totalTaskTime.hours} hours{" "}
-                    {totalTaskTime.minutes} minutes
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                        </TableCell>
+                      </TableRow>
+                      {expandedRows.has(sheet.id) && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="bg-muted/50">
+                            <div>
+                              <h3 className="font-semibold">Details:</h3>
+                              <p>Title: {sheet.title}</p>
+                              <p>Description: {sheet.description}</p>
+                              <p>
+                                Time Taken: {sheet.hours} Hours {sheet.minutes}{" "}
+                                Minutes
+                              </p>
+                              <p>
+                                Created At:{" "}
+                                {sheet.createdAt.toDate().toLocaleString()}
+                              </p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  ))}
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="bg-muted font-semibold text-right"
+                    >
+                      Total Time Spent: {totalTime.hours} hours{" "}
+                      {totalTime.minutes} minutes
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+          {filteredTasks.length > 0 ? (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>User Task Time Entries</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Task Name</TableHead>
+                      <TableHead>Time Entries</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTasks.map((task) => (
+                      <React.Fragment key={task.id}>
+                        <TableRow
+                          onClick={() => toggleTaskRowExpansion(task.id)}
+                          className="hover:cursor-pointer"
+                        >
+                          <TableCell className="font-medium">
+                            {task.name}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {task.timeEntries
+                              ? task.timeEntries
+                                .filter(entry => entry.userId === user?.uid) // Filter by user ID
+                                .reduce((total, entry) => total + entry.duration, 0) / 60 // Convert to hours
+                              : 0}{" "}
+                            hours
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={task.completed ? "default" : "secondary"}
+                            >
+                              {task.completed ? "completed" : "incomplete"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex justify-end items-center pr-8">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => toggleRowExpansion(task.id)}
+                              >
+                                {expandedRows.has(task.id) ? (
+                                  <ChevronUp size={18} />
+                                ) : (
+                                  <ChevronDown size={18} />
+                                )}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {expandedTaskRows.has(task.id) && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="bg-muted/50">
+                              <div>
+                                <h3 className="font-semibold">Task Details:</h3>
+                                <p>Description: {task.description}</p>
+                                <p>
+                                  Assigned To:{" "}
+                                  {task.assignedTo
+                                    ?.map((user) => user.name)
+                                    .join(", ")}
+                                </p>
+                                <p>
+                                  Deadline: {task.deadline || "No deadline set"}
+                                </p>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    ))}
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="bg-muted font-semibold text-right"
+                      >
+                        Total Time Spent on Tasks: {totalTaskTime.hours} hours{" "}
+                        {totalTaskTime.minutes} minutes
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="bg-white shadow-md rounded-lg p-4 mb-4">
-              <h2 className="text-lg font-semibold">No Tasks Available</h2>
-              <p>Please add tasks to see the entries.</p>
-            </div>
+            <Card className="mt-6 mb-4">
+              <CardHeader>
+                <CardTitle>No Tasks Available</CardTitle>
+                <CardDescription>
+                  Please add tasks to see the entries.
+                </CardDescription>
+              </CardHeader>
+            </Card>
           )}
         </>
       ) : (
-        <div className="bg-white shadow-md rounded-lg p-4 mb-4">
-          <h2 className="text-lg font-semibold">No Time Sheets Available</h2>
-          <p>Please add a time sheet to see the entries.</p>
-        </div>
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle>No Time Sheets Available</CardTitle>
+            <CardDescription>
+              Please add a time sheet to see the entries.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       )}
       <CustomModal isOpen={showModal} onClose={() => setShowModal(false)}>
-        <h2 className="text-xl font-bold mb-4">
+        <h2 className="text-xl font-heading font-semibold mb-4">
           {editingTimeSheetId ? "Edit Time Sheet" : "Add Time Sheet"}
         </h2>
         <form onSubmit={handleAddTimeSheet}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Project (Optional)</label>
-            <select
-              value={newTimeSheet.projectId || ""}
-              onChange={async (e) => {
-                const projectId = e.target.value;
+          <div className="mb-4 space-y-1">
+            <Label>Project (Optional)</Label>
+            <Select
+              value={newTimeSheet.projectId || "none"}
+              onValueChange={async (value) => {
+                const projectId = value === "none" ? "" : value;
                 setNewTimeSheet({ ...newTimeSheet, projectId, taskIds: [] });
                 if (projectId) {
                   // Force fetch tasks for the dropdown WITHOUT updating global state
@@ -596,30 +662,33 @@ const TimeSheet = () => {
                   setProjectTasks([]);
                 }
               }}
-              className="w-full p-2 border rounded"
             >
-              <option value="">Select a project...</option>
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a project..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Select a project...</SelectItem>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id as string}>
+                    {project.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {newTimeSheet.projectId && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Tasks (Optional)</label>
-              <div className="max-h-40 overflow-y-auto border rounded p-2 bg-white">
+            <div className="mb-4 space-y-1">
+              <Label>Tasks (Optional)</Label>
+              <div className="max-h-40 overflow-y-auto border border-border rounded-md p-2 bg-card">
                 {projectTasks.length > 0 ? (
                   projectTasks.map((task) => (
                     <div key={task.id} className="flex items-center gap-2 mb-1">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         id={`task-${task.id}`}
                         checked={newTimeSheet.taskIds?.includes(task.id) || false}
-                        onChange={(e) => {
-                          const isChecked = e.target.checked;
+                        onCheckedChange={(checked) => {
+                          const isChecked = checked === true;
                           const currentTaskIds = newTimeSheet.taskIds || [];
                           if (isChecked) {
                             setNewTimeSheet({
@@ -634,36 +703,40 @@ const TimeSheet = () => {
                           }
                         }}
                       />
-                      <label htmlFor={`task-${task.id}`} className="text-sm cursor-pointer">
+                      <Label
+                        htmlFor={`task-${task.id}`}
+                        className="text-sm cursor-pointer font-normal"
+                      >
                         {task.name}
-                      </label>
+                      </Label>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-gray-500">No tasks found for this project.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No tasks found for this project.
+                  </p>
                 )}
               </div>
             </div>
           )}
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Title</label>
-            <input
+          <div className="mb-4 space-y-1">
+            <Label htmlFor="timesheet-title">Title</Label>
+            <Input
+              id="timesheet-title"
               type="text"
               placeholder="Enter title"
               value={newTimeSheet.title}
               onChange={(e) =>
                 setNewTimeSheet({ ...newTimeSheet, title: e.target.value })
               }
-              className="w-full p-2 border rounded"
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
-              Description
-            </label>
-            <textarea
+          <div className="mb-4 space-y-1">
+            <Label htmlFor="timesheet-description">Description</Label>
+            <Textarea
+              id="timesheet-description"
               placeholder="Enter description"
               value={newTimeSheet.description}
               onChange={(e) =>
@@ -672,13 +745,13 @@ const TimeSheet = () => {
                   description: e.target.value,
                 })
               }
-              className="w-full p-2 border rounded"
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Hours</label>
-            <input
+          <div className="mb-4 space-y-1">
+            <Label htmlFor="timesheet-hours">Hours</Label>
+            <Input
+              id="timesheet-hours"
               type="number"
               placeholder="Enter hours"
               value={newTimeSheet.hours}
@@ -688,13 +761,13 @@ const TimeSheet = () => {
                   hours: Number(e.target.value),
                 })
               }
-              className="w-full p-2 border rounded"
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Minutes</label>
-            <input
+          <div className="mb-4 space-y-1">
+            <Label htmlFor="timesheet-minutes">Minutes</Label>
+            <Input
+              id="timesheet-minutes"
               type="number"
               placeholder="Enter minutes"
               value={newTimeSheet.minutes}
@@ -704,24 +777,18 @@ const TimeSheet = () => {
                   minutes: Number(e.target.value),
                 })
               }
-              className="w-full p-2 border rounded"
               required
             />
           </div>
           <div className="flex justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-gray-600 border rounded"
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-white bg-red-600 rounded"
-            >
-              Submit
-            </button>
+            </Button>
+            <Button type="submit">Submit</Button>
           </div>
         </form>
       </CustomModal>

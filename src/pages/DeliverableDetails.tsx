@@ -161,7 +161,7 @@ export default function DeliverableDetails() {
   if (!item) {
     return (
       <div className="p-6">
-        <p className="text-red-500">Item not found</p>
+        <p className="text-destructive">Item not found</p>
       </div>
     );
   }
@@ -182,7 +182,7 @@ export default function DeliverableDetails() {
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center space-x-4 mb-8">
         <BackButton onClick={() => navigate(-1)} />
-        <h1 className="text-2xl font-bold">{item.name}</h1>
+        <h1 className="text-2xl font-heading font-semibold">{item.name}</h1>
       </div>
 
       <ItemDetails item={itemDetailsData} />

@@ -2,6 +2,7 @@
 // import { Task } from "@/store/taskStore";
 // import { getDoc, doc, setDoc, collection } from "firebase/firestore";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 const Test = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -67,11 +68,11 @@ const Test = () => {
   };
 
   return (
-    <div>
+    <div className="p-6">
       <form onSubmit={submitAction}>
-        <button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading}>
           {isLoading ? "Updating..." : isSubmitSuccessful ? "Updated" : "Update"}
-        </button>
+        </Button>
       </form>
     </div>
   );

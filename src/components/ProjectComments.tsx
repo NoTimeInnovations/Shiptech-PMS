@@ -1,14 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useCommentStore } from "../store/commentStore";
-import {
-  Loader2,
-  Send,
-  Paperclip,
-  X,
-  // FileText,
-  Download,
-  Eye,
-} from "lucide-react";
+import { Loader2, Send, Paperclip, X, Download, Eye } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../store/authStore";
 import { doc, getDoc } from "firebase/firestore";
@@ -17,6 +9,16 @@ import { uploadCommentFilesToGitHub } from "@/lib/githubComments";
 import { useNotificationStore } from "../store/notificationStore";
 import { Timestamp } from "firebase/firestore";
 import { Project } from "@/store/projectStore";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ProjectCommentsProps {
   projectId: string;
@@ -72,7 +74,7 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
 
             // Upload single file
             const uploadedFiles = await uploadCommentFilesToGitHub([selectedFiles[i]], projectId, comments.length);
-            
+
             // Update progress to 100%
             newProgress[i] = 100;
             setUploadProgress(newProgress);
@@ -100,7 +102,7 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
 
       // Add the comment with attachment URLs and names
       await addComment(projectId, newComment, userData?.role as string, attachments);
-      
+
       if(userData?.role !== "admin" && projectData){
         console.log("adding notification")
         await addNotification(
@@ -163,27 +165,12 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
     return date.toLocaleString();
   };
 
-  // const getFileIcon = (url: string) => {
-  //   const extension = url.split(".").pop()?.toLowerCase();
-  //   if (["pdf"].includes(extension || "")) {
-  //     return <FileText className="h-4 w-4" />;
-  //   }
-  //   return <Paperclip className="h-4 w-4" />;
-  // };
-
-  // const handleOpenPdf = (url: string) => {
-  //   const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(
-  //     url
-  //   )}&embedded=true`;
-  //   window.open(viewerUrl, "_blank");
-  // };
-
   const getRevisionNumber = (index: number) => {
     const commentsWithAttachments = comments.filter(
       (comment) => comment.attachments && comment.attachments.length > 0
     );
     const totalRevisions = commentsWithAttachments.length;
-    
+
     // Find position of current comment in the filtered array
     const currentComment = comments[index];
     if (currentComment.attachments && currentComment.attachments.length > 0) {
@@ -221,21 +208,20 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
   };
 
   return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
-      <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
-        <h3 className="text-lg font-medium text-gray-900">Comments</h3>
+    <Card className="gap-0 overflow-hidden py-0">
+      <div className="border-b border-border bg-muted/50 px-6 py-3">
+        <h3 className="text-lg font-medium text-foreground">Comments</h3>
       </div>
 
-      <div className="p-6">
+      <CardContent className="p-6">
         {/* Comment Form */}
 
         <form onSubmit={handleSubmit} className="mb-6">
           <div className="mb-4">
-            <textarea
+            <Textarea
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               rows={3}
             />
           </div>
@@ -245,24 +231,24 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
               {selectedFiles.map((file, index) => (
                 <div
                   key={file.name}
-                  className="flex items-center space-x-2 bg-black/90 p-2 rounded"
+                  className="flex items-center space-x-2 rounded bg-foreground p-2"
                 >
-                  <span className="text-sm text-white">{file.name}</span>
-                  <button
+                  <span className="text-sm text-background">{file.name}</span>
+                  <Button
                     type="button"
-                    onClick={() => handleRemoveFile(file.name)}
+                    variant="ghost"
+                    size="icon-xs"
                     className="text-red-500 hover:text-red-700"
+                    onClick={() => handleRemoveFile(file.name)}
                   >
                     <X className="h-4 w-4" />
-                  </button>
+                  </Button>
                   {uploadProgress[index] > 0 && (
                     <div className="flex-1">
-                      <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div
-                          className="bg-green-600 h-2.5 rounded-full transition-all duration-300"
-                          style={{ width: `${uploadProgress[index]}%` }}
-                        />
-                      </div>
+                      <Progress
+                        value={uploadProgress[index]}
+                        className="h-2.5 [&>div]:bg-green-600"
+                      />
                     </div>
                   )}
                 </div>
@@ -271,17 +257,15 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
           )}
 
           <div className="flex justify-between items-center">
-            {(
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                disabled={submitting}
-              >
-                <Paperclip className="h-4 w-4 mr-2" />
-                Attach Files
-              </button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={submitting}
+            >
+              <Paperclip className="h-4 w-4" />
+              Attach Files
+            </Button>
             <input
               type="file"
               ref={fileInputRef}
@@ -291,18 +275,17 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
               multiple
             />
 
-            <button
+            <Button
               type="submit"
               disabled={submitting || !newComment.trim()}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black/90 hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
               {submitting ? (
-                <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                <Loader2 className="animate-spin h-4 w-4" />
               ) : (
-                <Send className="h-4 w-4 mr-2" />
+                <Send className="h-4 w-4" />
               )}
               Post Comment
-            </button>
+            </Button>
           </div>
         </form>
 
@@ -310,51 +293,52 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
         <div className="grid gap-3">
           {loading ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-black" />
+              <Loader2 className="h-6 w-6 animate-spin text-foreground" />
             </div>
           ) : comments.length === 0 ? (
-            <p className="text-center text-gray-500 py-4">No comments yet</p>
+            <p className="text-center text-muted-foreground py-4">No comments yet</p>
           ) : (
             comments.map((comment, cmtIndex) => {
 
               const revisionNumber = getRevisionNumber(cmtIndex);
 
               return (
-                <div
-                  key={comment.id}
-                  className="border-[1px] p-6 rounded-xl bg-gray-50"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-black/90 flex items-center justify-center">
-                        <span className="text-white font-medium">
-                          {comment.user.name.charAt(0).toUpperCase()}
-                        </span>
+                <Card key={comment.id} size="sm" className="bg-muted/50">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-foreground font-medium text-background">
+                            {comment.user.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="ml-3">
+                          <CardTitle className="text-sm font-medium text-foreground">
+                            {comment.user.name}
+                            <span>
+                              {(comment?.attachments?.length ?? 0) > 0 &&
+                                ` - Revision ${revisionNumber}`}
+                            </span>
+                          </CardTitle>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(comment.createdAt)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          {comment.user.name}
-                          <span>
-                            {(comment?.attachments?.length ?? 0) > 0 &&
-                              ` - Revision ${revisionNumber}`}
-                          </span>
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatDate(comment.createdAt)}
-                        </p>
-                      </div>
+                      {comment.user.id === user?.uid && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteComment(comment.id)}
+                        >
+                          Delete
+                        </Button>
+                      )}
                     </div>
-                    {comment.user.id === user?.uid && (
-                      <button
-                        onClick={() => handleDeleteComment(comment.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                  <div className="mt-5">
-                    <p className="text-black whitespace-pre-wrap">
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-foreground whitespace-pre-wrap">
                       {comment.text}
                     </p>
                     {comment.attachments && comment.attachments.length > 0 && (
@@ -362,9 +346,9 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
                         {comment.attachments.map((attachment, index) => (
                           <div
                             key={index}
-                            className="flex items-center justify-between bg-zinc-800 p-3 rounded-full w-fit gap-5"
+                            className="flex items-center justify-between bg-foreground p-3 rounded-full w-fit gap-5"
                           >
-                            <span className="text-sm text-white">
+                            <span className="text-sm text-background">
                               {attachment.name}
                             </span>
                             {(isAdmin || isMember || cmtIndex == 0) && (
@@ -386,8 +370,7 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
                                         )}&embedded=true`
                                       : attachment.url
                                   }
-                                  // onClick={() => handleOpenPdf(attachment.url)}
-                                  className="text-white hover:text-white/80"
+                                  className="text-background hover:text-background/80"
                                 >
                                   <Eye className="h-4 w-4" />
                                 </a>
@@ -397,7 +380,7 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
                                       attachment.url,
                                     )
                                   }
-                                  className="text-white hover:text-white/80"
+                                  className="text-background hover:text-background/80"
                                 >
                                   <Download className="h-4 w-4" />
                                 </button>
@@ -407,8 +390,8 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
                         ))}
                       </div>
                     )}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               );
             })
           )}
@@ -416,15 +399,15 @@ export default function ProjectComments({ projectId,projectData }: ProjectCommen
 
         {/* Show More Button */}
         <div className="flex justify-center mt-4">
-          <button
+          <Button
+            variant="outline"
             onClick={() => handleShowMore()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             disabled={loading}
           >
             Show More
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

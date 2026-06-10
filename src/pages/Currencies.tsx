@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useCurrencyStore } from '../store/currencyStore';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface CurrencyModalProps {
   isOpen: boolean;
@@ -29,35 +48,24 @@ const CurrencyModal: React.FC<CurrencyModalProps> = ({
     }
   }, [isOpen, initialData]);
 
-  if (!isOpen) return null;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>
             {initialData ? 'Edit Currency' : 'Add Currency'}
-          </h2>
-          <button 
-            type="button"
-            onClick={onClose} 
-            disabled={isSubmitting}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X size={20} />
-          </button>
-        </div>
+          </DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Currency Name
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="currency-name">Currency Name</Label>
+            <Input
+              id="currency-name"
               type="text"
               required
               disabled={isSubmitting}
@@ -65,14 +73,12 @@ const CurrencyModal: React.FC<CurrencyModalProps> = ({
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, name: e.target.value }))
               }
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Symbol
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="currency-symbol">Symbol</Label>
+            <Input
+              id="currency-symbol"
               type="text"
               required
               disabled={isSubmitting}
@@ -80,35 +86,25 @@ const CurrencyModal: React.FC<CurrencyModalProps> = ({
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, symbol: e.target.value }))
               }
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
             />
           </div>
-          <div className="flex justify-end space-x-3 mt-4">
-            <button
+          <DialogFooter>
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-500"
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-black/90 disabled:bg-gray-400 flex items-center"
-            >
-              {isSubmitting && (
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              )}
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="animate-spin" />}
               {initialData ? 'Update' : 'Add'}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -180,60 +176,60 @@ export default function Currencies() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Currencies</h1>
-        <button
-          type="button"
-          onClick={() => handleOpenModal()}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-black/90"
-        >
-          <Plus size={16} className="mr-2" />
+        <h1 className="text-2xl font-heading font-semibold">Currencies</h1>
+        <Button type="button" onClick={() => handleOpenModal()}>
+          <Plus size={16} />
           Add Currency
-        </button>
+        </Button>
       </div>
 
-      <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Symbol
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {currencies.map((currency) => (
-              <tr key={currency.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {currency.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {currency.symbol}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => handleOpenModal(currency)}
-                    className="text-gray-400 hover:text-gray-600 mr-3"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => currency.id && handleDelete(currency.id)}
-                    className="text-gray-400 hover:text-red-600"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card className="overflow-hidden py-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Symbol</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading && currencies.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                </TableCell>
+              </TableRow>
+            ) : (
+              currencies.map((currency) => (
+                <TableRow key={currency.id}>
+                  <TableCell>{currency.name}</TableCell>
+                  <TableCell>{currency.symbol}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleOpenModal(currency)}
+                        className="text-muted-foreground"
+                      >
+                        <Edit2 size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => currency.id && handleDelete(currency.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
 
       <CurrencyModal
         isOpen={isModalOpen}
@@ -244,4 +240,4 @@ export default function Currencies() {
       />
     </div>
   );
-} 
+}

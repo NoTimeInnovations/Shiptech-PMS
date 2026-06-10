@@ -1,5 +1,14 @@
 import { useAttendanceStore } from '../store/attendanceStore';
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface AttendanceModalProps {
   isOpen: boolean;
@@ -8,8 +17,6 @@ interface AttendanceModalProps {
 
 export default function AttendanceModal({ isOpen, onClose }: AttendanceModalProps) {
   const { markAttendance, loading } = useAttendanceStore();
-
-  if (!isOpen) return null;
 
   const handleMarkAttendance = async () => {
     try {
@@ -21,36 +28,35 @@ export default function AttendanceModal({ isOpen, onClose }: AttendanceModalProp
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-        <h2 className="text-xl font-semibold mb-4">Mark Your Attendance</h2>
-        <p className="text-gray-600 mb-6">
-          Would you like to mark your attendance for today?
-        </p>
-        <div className="flex justify-end space-x-4">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800"
-            disabled={loading}
-          >
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Mark Your Attendance</DialogTitle>
+          <DialogDescription>
+            Would you like to mark your attendance for today?
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             No, Later
-          </button>
-          <button
-            onClick={handleMarkAttendance}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center"
-          >
+          </Button>
+          <Button onClick={handleMarkAttendance} disabled={loading}>
             {loading ? (
               <>
-                <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                <Loader2 className="animate-spin" />
                 Marking...
               </>
             ) : (
               "Yes, I'm In"
             )}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

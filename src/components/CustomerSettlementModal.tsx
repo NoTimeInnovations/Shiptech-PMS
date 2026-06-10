@@ -4,6 +4,33 @@ import { Enquiry } from "@/store/enquiryStore";
 import { Project } from "@/store/projectStore";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const CustomerSettlementModal = ({
   customer,
@@ -129,7 +156,10 @@ const CustomerSettlementModal = ({
 
       const totalAmount = calculateSum();
 
-      if (paymentInfo.amount > balanceAmount + settlement.amounts_paid[editIndex].amount) {
+      if (
+        paymentInfo.amount >
+        balanceAmount + settlement.amounts_paid[editIndex].amount
+      ) {
         toast.error("Amount is greater than balance amount");
         return;
       }
@@ -224,259 +254,229 @@ const CustomerSettlementModal = ({
     setBalanceAmount(totalAmount - totalPaid);
   }, [settlement, enquiries]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Customer Settlements</h2>
-          <div className="flex items-center gap-4">
-            {balanceAmount > 0 && (
-              <button
-                onClick={() => setShowCreateSettlementModal(true)}
-                className="bg-blue-500 text-white px-4 py-2 rounded-md mr-2 hover:bg-blue-600"
-              >
+    <>
+      <Dialog open={isOpen} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Customer Settlements</DialogTitle>
+          </DialogHeader>
+          {balanceAmount > 0 && (
+            <div className="flex justify-end">
+              <Button onClick={() => setShowCreateSettlementModal(true)}>
                 Create Settlement
-              </button>
-            )}
-            <button
-              onClick={() => setOpen(false)}
-              className="text-gray-500 hover:text-gray-700 text-4xl"
-            >
-              &times;
-            </button>
+              </Button>
+            </div>
+          )}
+          <div className="mb-4">
+            <p>
+              <strong>Total Amount:</strong> {totalAmount}
+            </p>
+            <p>
+              <strong>Balance:</strong> {balanceAmount}
+            </p>
           </div>
-        </div>
-        <div className="mb-4">
-          <p>
-            <strong>Total Amount:</strong> {totalAmount}
-          </p>
-          <p>
-            <strong>Balance:</strong> {balanceAmount}
-          </p>
-        </div>
-        <div>
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border p-2">Amount</th>
-                <th className="border p-2">Date</th>
-                <th className="border p-2">Payment Reference</th>
-                <th className="border p-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {settlement?.amounts_paid?.map((payment, index) => (
-                <tr key={payment.id} className="border-b">
-                  <td className="border p-2">{payment.amount}</td>
-                  <td className="border p-2">
-                    {new Date(payment.date).toLocaleDateString()}
-                  </td>
-                  <td className="border p-2">{payment.paymentRef}</td>
-                  <td className="border p-2 flex justify-center space-x-2">
-                    <button
-                      onClick={() => openEditModal(index)}
-                      className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 text-sm"
+          <div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Payment Reference</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {settlement?.amounts_paid?.map((payment, index) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>{payment.amount}</TableCell>
+                    <TableCell>
+                      {new Date(payment.date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{payment.paymentRef}</TableCell>
+                    <TableCell>
+                      <div className="flex justify-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditModal(index)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setShowDeleteConfirm(index)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(!settlement ||
+                  !settlement.amounts_paid ||
+                  settlement.amounts_paid.length === 0) && (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="p-4 text-center text-muted-foreground"
                     >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(index)}
-                      className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {(!settlement ||
-                !settlement.amounts_paid ||
-                settlement.amounts_paid.length === 0) && (
-                <tr>
-                  <td colSpan={4} className="text-center p-4">
-                    No settlements made yet!
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                      No settlements made yet!
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Settlement Modal */}
-      {showCreateSettlementModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Add Payment</h2>
-              <button
-                onClick={() => setShowCreateSettlementModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-4xl"
-              >
-                &times;
-              </button>
+      <Dialog
+        open={isOpen && showCreateSettlementModal}
+        onOpenChange={(open) => !open && setShowCreateSettlementModal(false)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="create-payment-date">Date</Label>
+              <Input
+                id="create-payment-date"
+                type="date"
+                value={paymentInfo.date}
+                onChange={(e) =>
+                  setPaymentInfo({ ...paymentInfo, date: e.target.value })
+                }
+              />
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={paymentInfo.date}
-                  onChange={(e) =>
-                    setPaymentInfo({ ...paymentInfo, date: e.target.value })
-                  }
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Payment Reference
-                </label>
-                <input
-                  type="text"
-                  value={paymentInfo.paymentRef}
-                  onChange={(e) =>
-                    setPaymentInfo({
-                      ...paymentInfo,
-                      paymentRef: e.target.value,
-                    })
-                  }
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  value={paymentInfo.amount}
-                  onChange={(e) =>
-                    setPaymentInfo({
-                      ...paymentInfo,
-                      amount: parseFloat(e.target.value),
-                    })
-                  }
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                />
-              </div>
-              <button
-                onClick={handleCreateSettlement}
-                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-              >
-                Submit Payment
-              </button>
+            <div className="space-y-1.5">
+              <Label htmlFor="create-payment-ref">Payment Reference</Label>
+              <Input
+                id="create-payment-ref"
+                type="text"
+                value={paymentInfo.paymentRef}
+                onChange={(e) =>
+                  setPaymentInfo({
+                    ...paymentInfo,
+                    paymentRef: e.target.value,
+                  })
+                }
+              />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="create-payment-amount">Amount</Label>
+              <Input
+                id="create-payment-amount"
+                type="number"
+                value={paymentInfo.amount}
+                onChange={(e) =>
+                  setPaymentInfo({
+                    ...paymentInfo,
+                    amount: parseFloat(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <Button onClick={handleCreateSettlement}>Submit Payment</Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Payment Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Edit Payment</h2>
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditIndex(null);
-                  resetPaymentInfo();
-                }}
-                className="text-gray-500 hover:text-gray-700 text-4xl"
-              >
-                &times;
-              </button>
+      <Dialog
+        open={isOpen && showEditModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowEditModal(false);
+            setEditIndex(null);
+            resetPaymentInfo();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Payment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-payment-date">Date</Label>
+              <Input
+                id="edit-payment-date"
+                type="date"
+                value={paymentInfo.date}
+                onChange={(e) =>
+                  setPaymentInfo({ ...paymentInfo, date: e.target.value })
+                }
+              />
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={paymentInfo.date}
-                  onChange={(e) =>
-                    setPaymentInfo({ ...paymentInfo, date: e.target.value })
-                  }
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Payment Reference
-                </label>
-                <input
-                  type="text"
-                  value={paymentInfo.paymentRef}
-                  onChange={(e) =>
-                    setPaymentInfo({
-                      ...paymentInfo,
-                      paymentRef: e.target.value,
-                    })
-                  }
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Amount
-                </label>
-                <input
-                  type="number"
-                  value={paymentInfo.amount}
-                  onChange={(e) =>
-                    setPaymentInfo({
-                      ...paymentInfo,
-                      amount: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                />
-              </div>
-              <button
-                onClick={handleEditPayment}
-                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-              >
-                Update Payment
-              </button>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-payment-ref">Payment Reference</Label>
+              <Input
+                id="edit-payment-ref"
+                type="text"
+                value={paymentInfo.paymentRef}
+                onChange={(e) =>
+                  setPaymentInfo({
+                    ...paymentInfo,
+                    paymentRef: e.target.value,
+                  })
+                }
+              />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-payment-amount">Amount</Label>
+              <Input
+                id="edit-payment-amount"
+                type="number"
+                value={paymentInfo.amount}
+                onChange={(e) =>
+                  setPaymentInfo({
+                    ...paymentInfo,
+                    amount: parseFloat(e.target.value) || 0,
+                  })
+                }
+              />
+            </div>
+            <Button onClick={handleEditPayment}>Update Payment</Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold">Confirm Deletion</h2>
-              <p className="mt-2">
-                Are you sure you want to delete this payment? This action cannot
-                be undone.
-              </p>
-            </div>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteConfirm(null)}
-                className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeletePayment(showDeleteConfirm)}
-                className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      <AlertDialog
+        open={isOpen && showDeleteConfirm !== null}
+        onOpenChange={(open) => !open && setShowDeleteConfirm(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this payment? This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteConfirm(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => {
+                if (showDeleteConfirm !== null) {
+                  handleDeletePayment(showDeleteConfirm);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

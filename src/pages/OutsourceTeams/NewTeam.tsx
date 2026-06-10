@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOutsourceTeamStore } from '@/store/outsourceTeamStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function NewTeam() {
   const navigate = useNavigate();
@@ -29,44 +34,45 @@ export default function NewTeam() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Add New Outsource Team</h1>
+      <h1 className="text-2xl font-heading font-semibold mb-1">Add New Outsource Team</h1>
+      <p className="text-muted-foreground mb-6">Register a new external team</p>
       <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-        <div>
-          <label className="block mb-2">Team Name</label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="team-name">Team Name</Label>
+          <Input
+            id="team-name"
             type="text"
             value={formData.name}
             onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-            className="w-full p-2 border rounded"
             required
           />
         </div>
 
-        <div>
-          <label className="block mb-2">Address</label>
-          <textarea
+        <div className="space-y-2">
+          <Label htmlFor="team-address">Address</Label>
+          <Textarea
+            id="team-address"
             value={formData.address}
             onChange={e => setFormData(prev => ({ ...prev, address: e.target.value }))}
-            className="w-full p-2 border rounded"
             required
           />
         </div>
 
-        <div>
-          <label className="block mb-2">GST Number</label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="team-gst">GST Number</Label>
+          <Input
+            id="team-gst"
             type="text"
             value={formData.gst}
             onChange={e => setFormData(prev => ({ ...prev, gst: e.target.value }))}
-            className="w-full p-2 border rounded"
           />
         </div>
 
-        <div>
-          <label className="block mb-2">Contact Persons</label>
+        <div className="space-y-2">
+          <Label>Contact Persons</Label>
           {formData.contactPersons.map((person, index) => (
             <div key={index} className="flex gap-4 mb-4">
-              <input
+              <Input
                 type="text"
                 placeholder="Name"
                 value={person.name}
@@ -75,10 +81,9 @@ export default function NewTeam() {
                   newContactPersons[index].name = e.target.value;
                   setFormData(prev => ({ ...prev, contactPersons: newContactPersons }));
                 }}
-                className="w-full p-2 border rounded"
                 required
               />
-              <input
+              <Input
                 type="tel"
                 placeholder="Phone"
                 value={person.phone}
@@ -87,52 +92,41 @@ export default function NewTeam() {
                   newContactPersons[index].phone = e.target.value;
                   setFormData(prev => ({ ...prev, contactPersons: newContactPersons }));
                 }}
-                className="w-full p-2 border rounded"
                 required
               />
             </div>
           ))}
-          <button
-            type="button"
-            onClick={addContactPerson}
-            className="text-blue-600 hover:text-blue-800"
-          >
+          <Button type="button" variant="link" className="px-0" onClick={addContactPerson}>
             + Add Contact Person
-          </button>
+          </Button>
         </div>
 
-        <div>
-          <label className="flex items-center mb-2">
-            <input
-              type="checkbox"
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="billing-same"
               checked={formData.isBillingAddressSame}
-              onChange={e => {
+              onCheckedChange={(checked) => {
+                const isChecked = checked === true;
                 setFormData(prev => ({
                   ...prev,
-                  isBillingAddressSame: e.target.checked,
-                  billingAddress: e.target.checked ? prev.address : ''
+                  isBillingAddressSame: isChecked,
+                  billingAddress: isChecked ? prev.address : ''
                 }));
               }}
-              className="mr-2"
             />
-            Billing Address same as Address
-          </label>
+            <Label htmlFor="billing-same">Billing Address same as Address</Label>
+          </div>
           {!formData.isBillingAddressSame && (
-            <textarea
+            <Textarea
               value={formData.billingAddress}
               onChange={e => setFormData(prev => ({ ...prev, billingAddress: e.target.value }))}
-              className="w-full p-2 border rounded"
               required
             />
           )}
         </div>
 
-        <button
-          type="submit"
-          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-black/80"
-        >
-          Add Team
-        </button>
+        <Button type="submit">Add Team</Button>
       </form>
     </div>
   );

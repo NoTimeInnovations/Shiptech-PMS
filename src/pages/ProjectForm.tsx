@@ -5,6 +5,17 @@ import { useProjectStore } from "../store/projectStore";
 import { useCustomerStore, Customer } from "@/store/customerStore";
 import toast from "react-hot-toast";
 import { useTaskStore , Task } from "@/store/taskStore";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 
 interface FormData {
@@ -66,7 +77,7 @@ export default function ProjectForm() {
             localStorage.removeItem('projectFormData');
 
             const tasks = await fetchAllTasksWithChildren(project.__id);
-            
+
             // Set the form data
             setFormData({
               name: project.name || "",
@@ -84,10 +95,10 @@ export default function ProjectForm() {
               type: "project" as const,
               endClient: project.endClient || "",
             });
-            
+
             // Find and set the selected customer
-            const customer = customers.find(c => 
-              c.name === project.customer?.name && 
+            const customer = customers.find(c =>
+              c.name === project.customer?.name &&
               c.contactPersons[0]?.phone === project.customer?.phone
             );
             if (customer) {
@@ -105,7 +116,7 @@ export default function ProjectForm() {
     if (customers.length === 0) {
       fetchCustomers();
     }
-    
+
     // Only load project data once when id is available
     if (id) {
       loadProject();
@@ -143,7 +154,7 @@ export default function ProjectForm() {
   }, [formData, id]);
 
   // Filter customers based on search term
-  const filteredCustomers = customers.filter((customer: Customer) => 
+  const filteredCustomers = customers.filter((customer: Customer) =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -169,7 +180,7 @@ export default function ProjectForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    
+
     setIsSubmitting(true);
     try {
       if (!selectedCustomer) {
@@ -221,170 +232,172 @@ export default function ProjectForm() {
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-8">
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <button type="button" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-7 w-7" />
-          </button>
-          <h2 className="text-2xl font-bold">
-            {id ? "Edit Project" : "Create New Project"}
-          </h2>
+        <div className="flex items-center gap-3">
+          <Button type="button" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="size-5" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-heading font-semibold">
+              {id ? "Edit Project" : "Create New Project"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {id
+                ? "Update the details of this project"
+                : "Set up a new project and link it to a customer"}
+            </p>
+          </div>
         </div>
-        <div className="flex space-x-4">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black/90 hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
+          </Button>
+          <Button type="submit">
             {id ? "Update Project" : "Create Project"}
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="grid gap-3 px-[10%]">
-        <div className="space-y-6 bg-white border-[1px] rounded-xl px-6 py-10">
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Project Number
-              </label>
-              <input
+      <div className="grid gap-5 px-[10%]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Information</CardTitle>
+            <CardDescription>
+              Basic details that identify this project
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="project-number">Project Number</Label>
+              <Input
+                id="project-number"
                 type="text"
                 name="projectNumber"
                 required
                 value={formData.projectNumber}
                 onChange={handleInputChange}
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Project Name
-              </label>
-              <input
+            <div className="grid gap-2">
+              <Label htmlFor="project-name">Project Name</Label>
+              <Input
+                id="project-name"
                 type="text"
                 name="name"
                 required
                 value={formData.name}
                 onChange={handleInputChange}
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Description
-              </label>
-              <textarea
+            <div className="grid gap-2">
+              <Label htmlFor="project-description">Description</Label>
+              <Textarea
+                id="project-description"
                 name="description"
                 required
                 value={formData.description}
                 onChange={handleInputChange}
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 rows={3}
               />
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white px-6 py-10 border-[1px] rounded-xl">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Customer Details
-          </h3>
-          <div className="relative">
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                placeholder="Search customers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={() => setShowCustomerDropdown(true)}
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                onClick={handleAddNewCustomer}
-                className="mt-1 p-2 text-gray-600 hover:text-gray-900"
-              >
-                <UserPlus size={20} />
-              </button>
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Details</CardTitle>
+            <CardDescription>
+              Search for an existing customer or add a new one
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  placeholder="Search customers..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleAddNewCustomer}
+                  aria-label="Add new customer"
+                >
+                  <UserPlus className="size-5" />
+                </Button>
+              </div>
+
+              {showCustomerDropdown && (
+                <div className="absolute z-10 mt-1 w-full rounded-md border border-border bg-popover text-popover-foreground shadow-md">
+                  {filteredCustomers.map((customer) => (
+                    <div
+                      key={customer.id}
+                      className="px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer first:rounded-t-md last:rounded-b-md"
+                      onClick={() => handleCustomerSelect(customer)}
+                    >
+                      {customer.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            
-            {showCustomerDropdown && (
-              <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-300">
-                {filteredCustomers.map((customer) => (
-                  <div
-                    key={customer.id}
-                    className="p-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => handleCustomerSelect(customer)}
-                  >
-                    {customer.name}
-                  </div>
-                ))}
+
+            {selectedCustomer && (
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="selected-customer-name">Name</Label>
+                  <Input
+                    id="selected-customer-name"
+                    type="text"
+                    readOnly
+                    value={selectedCustomer.name}
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="selected-customer-phone">Phone</Label>
+                  <Input
+                    id="selected-customer-phone"
+                    type="text"
+                    readOnly
+                    value={selectedCustomer.contactPersons[0]?.phone || ""}
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="sm:col-span-2 grid gap-2">
+                  <Label htmlFor="selected-customer-address">Address</Label>
+                  <Textarea
+                    id="selected-customer-address"
+                    readOnly
+                    value={selectedCustomer.address}
+                    className="bg-muted"
+                    rows={2}
+                  />
+                </div>
               </div>
             )}
-          </div>
 
-          {selectedCustomer && (
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={selectedCustomer.name}
-                  className="mt-1 p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Phone
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={selectedCustomer.contactPersons[0]?.phone || ""}
-                  className="mt-1 p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Address
-                </label>
-                <textarea
-                  readOnly
-                  value={selectedCustomer.address}
-                  className="mt-1 p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-                  rows={2}
-                />
-              </div>
+            <div className="mt-6 grid gap-2">
+              <Label htmlFor="end-client">End Client</Label>
+              <Input
+                id="end-client"
+                type="text"
+                value={formData.endClient}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    endClient: e.target.value,
+                  }))
+                }
+              />
             </div>
-          )}
-        </div>
-        <div>
-          <label className="block font-medium text-gray-700">
-            End Client
-          </label>
-          <input
-            type="text"
-            value={formData.endClient}
-            onChange={(e) =>
-              setFormData((prev) => ({
-                ...prev,
-                endClient: e.target.value,
-              }))
-            }
-            className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          />
-          </div>
+          </CardContent>
+        </Card>
       </div>
     </form>
   );

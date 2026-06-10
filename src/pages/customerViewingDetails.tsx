@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Briefcase,
   Image,
   Building,
   MapPin,
@@ -15,6 +14,18 @@ import toast from "react-hot-toast";
 import { useProjectStore } from "@/store/projectStore";
 import { auth } from "@/lib/firebase";
 import { useAuthStore } from "@/store/authStore";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function CustomerViewingDetails() {
   const navigate = useNavigate();
@@ -55,11 +66,13 @@ export default function CustomerViewingDetails() {
   if (userData && !userData.verified) {
     return (
       <div className="flex items-center justify-center h-screen p-6 bg-gradient-to-r from-red-200 to-red-400">
-        <div className="bg-white shadow-lg border border-red-400 text-red-700 px-6 py-4 rounded-lg relative max-w-md w-full">
-          <AlertTriangle className="inline-block h-8 w-8 mr-2" />
-          <strong className="font-bold text-lg">Warning!</strong>
-          <span className="block sm:inline text-md"> Your account is not verified. Please contact ShipTech-ICON team.</span>
-        </div>
+        <Alert variant="destructive" className="max-w-md w-full bg-card shadow-lg">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertTitle>Warning!</AlertTitle>
+          <AlertDescription>
+            Your account is not verified. Please contact ShipTech-ICON team.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -67,23 +80,22 @@ export default function CustomerViewingDetails() {
   if (!customer) {
     return (
       <div className="p-6">
-        <div className="bg-white shadow-md rounded-lg p-8 text-center">
-          <h2 className="text-xl font-semibold text-gray-700">Customer not found</h2>
-          <button
-            onClick={() => navigate("/customer")}
-            className="mt-4 px-4 py-2 bg-black/90 text-white rounded-md hover:bg-black/80"
-          >
-            Back to Customers
-          </button>
-        </div>
+        <Card>
+          <CardContent className="p-8 text-center">
+            <h2 className="text-xl font-semibold text-muted-foreground">Customer not found</h2>
+            <Button className="mt-4" onClick={() => navigate("/customer")}>
+              Back to Customers
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen" style={{ width: '70%', margin: '0 auto' }}>
+    <div className="p-6 bg-background min-h-screen" style={{ width: '70%', margin: '0 auto' }}>
       {/* Customer Information Card */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+      <Card className="overflow-hidden py-0 gap-0">
         <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center">
             <div className="flex items-center space-x-4">
@@ -101,10 +113,7 @@ export default function CustomerViewingDetails() {
                 </div>
               )}
               <div>
-                <h2 className="text-3xl font-bold">{customer.name}</h2>
-                {/* <p className="mt-1 text-blue-100">
-                  {customer.endClient ? `End Client: ${customer.endClient}` : "No end client specified"}
-                </p> */}
+                <h2 className="text-3xl font-heading font-semibold">{customer.name}</h2>
               </div>
             </div>
             <div className="mt-4 md:mt-0 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg">
@@ -114,130 +123,126 @@ export default function CustomerViewingDetails() {
         </div>
 
         {/* Customer Details */}
-        <div className="p-6">
+        <CardContent className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Contact Information */}
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Contact Information</h3>
+              <h3 className="text-lg font-semibold border-b border-border pb-2">Contact Information</h3>
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <User className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <User className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Contact Persons</p>
+                    <p className="font-medium">Contact Persons</p>
                     {customer.contactPersons && customer.contactPersons.length > 0 ? (
                       <div className="space-y-2">
                         {customer.contactPersons.map((contact, index) => (
-                          <div key={index} className="text-gray-600">
+                          <div key={index} className="text-muted-foreground">
                             <span className="font-medium">{contact.name}</span> - {contact.phone}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-gray-600">Not specified</p>
+                      <p className="text-muted-foreground">Not specified</p>
                     )}
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <Mail className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <Mail className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Email</p>
-                    <p className="text-gray-600">{customer.email}</p>
+                    <p className="font-medium">Email</p>
+                    <p className="text-muted-foreground">{customer.email}</p>
                   </div>
                 </div>
-                {/* <div className="flex items-start">
-                  <Briefcase className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
-                  <div>
-                    <p className="font-medium text-gray-700">End Client</p>
-                    <p className="text-gray-600">{customer.endClient || "Not specified"}</p>
-                  </div>
-                </div> */}
               </div>
             </div>
 
             {/* Address Information */}
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Address Information</h3>
+              <h3 className="text-lg font-semibold border-b border-border pb-2">Address Information</h3>
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <Building className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <Building className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Company Name</p>
-                    <p className="text-gray-600">{customer.name}</p>
+                    <p className="font-medium">Company Name</p>
+                    <p className="text-muted-foreground">{customer.name}</p>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <MapPin className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Address</p>
-                    <p className="text-gray-600 whitespace-pre-line">{customer.address}</p>
+                    <p className="font-medium">Address</p>
+                    <p className="text-muted-foreground whitespace-pre-line">{customer.address}</p>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <FileText className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <FileText className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Billing Address</p>
-                    <p className="text-gray-600 whitespace-pre-line">{customer.billingAddress || "Same as address"}</p>
+                    <p className="font-medium">Billing Address</p>
+                    <p className="text-muted-foreground whitespace-pre-line">{customer.billingAddress || "Same as address"}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Projects Section */}
       <div className="mt-8">
-        <div className="bg-white rounded-xl border-[1px] overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Projects</h3>
+        <Card className="overflow-hidden py-0 gap-0">
+          <div className="border-b border-border px-6 py-3">
+            <h3 className="text-lg font-medium">Projects</h3>
           </div>
           <div className="px-6 py-4">
             {projects.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">No projects found for this customer</div>
+              <div className="text-center py-4 text-muted-foreground">No projects found for this customer</div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Number</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Project Number</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>Due Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {projects.map((project) => (
-                      <tr 
+                      <TableRow
                         key={project.id}
                         onClick={() => navigate(`/customer/projects/${project.id}`)}
-                        className="hover:bg-gray-50 cursor-pointer"
+                        className="cursor-pointer"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">p-{project.projectNumber}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            ${project.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                            project.status === 'ongoing' ? 'bg-blue-100 text-blue-800' : 
-                            'bg-gray-100 text-gray-800'}`}>
+                        <TableCell>p-{project.projectNumber}</TableCell>
+                        <TableCell>{project.name}</TableCell>
+                        <TableCell>
+                          <Badge
+                            className={
+                              project.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              project.status === 'ongoing' ? 'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                            }
+                          >
                             {project.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
                           {project.project_start_date ? new Date(project.project_start_date).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
                           {project.project_due_date ? new Date(project.project_due_date).toLocaleDateString() : '-'}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
-} 
+}

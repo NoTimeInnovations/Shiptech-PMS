@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTaskStore } from '../store/taskStore';
+import { Button } from '@/components/ui/button';
 
 const TaskManagement = ({ projectId }) => {
   const { tasks, fetchTasks, addTask, updateTask, deleteTask } = useTaskStore();
@@ -30,15 +31,15 @@ const TaskManagement = ({ projectId }) => {
   };
 
   return (
-    <div>
-      <h1>Task Management</h1>
-      <button onClick={handleAddTask}>Add Task</button>
-      <ul>
+    <div className="p-6 space-y-4">
+      <h1 className="text-2xl font-heading font-semibold">Task Management</h1>
+      <Button onClick={handleAddTask}>Add Task</Button>
+      <ul className="space-y-2">
         {tasks.map(task => (
-          <li key={task.id}>
-            {task.name}
-            <button onClick={() => handleUpdateTask(task.id)}>Complete</button>
-            <button onClick={() => handleDeleteTask(task.id)}>Delete</button>
+          <li key={task.id} className="flex items-center gap-2">
+            <span>{task.name}</span>
+            <Button variant="outline" size="sm" onClick={() => handleUpdateTask(task.id)}>Complete</Button>
+            <Button variant="destructive" size="sm" onClick={() => handleDeleteTask(task.id)}>Delete</Button>
           </li>
         ))}
       </ul>

@@ -4,7 +4,24 @@ import { LogOut, Menu, User } from "lucide-react";
 import { useAuthStore } from "../store/authStore";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import NotificationDropdown from './NotificationDropdown';
+import NotificationDropdown from "./NotificationDropdown";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard" },
@@ -19,7 +36,6 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isAdmin, setIsAdmin] = React.useState(false);
-  // const [isCustomer, setIsCustomer] = React.useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const { userData, user } = useAuthStore();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = React.useState(false);
@@ -30,7 +46,6 @@ export default function Navbar() {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const userData = userDoc.data();
         setIsAdmin(userData?.role === "admin");
-        // setIsCustomer(userData?.role === "customer");
       }
     };
     checkUserRole();
@@ -55,62 +70,42 @@ export default function Navbar() {
     }
   };
 
-  const handleProfileClick = () => {
-    setIsProfileDropdownOpen(!isProfileDropdownOpen);
-  };
+  const navLinkClass = (to: string) =>
+    cn(
+      "px-3 py-2 rounded-full text-sm font-medium transition-all",
+      location.pathname === to
+        ? "bg-primary text-primary-foreground"
+        : "text-muted-foreground hover:bg-primary/90 hover:text-primary-foreground"
+    );
 
   return (
-    <nav className="bg-white border-b-[1px]">
+    <nav className="bg-background border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <img src="/logo.png" alt="ShipTech PMS" className="h-10" />
-              {/* <span className="text-xl font-bold text-gray-900">Shiptech PMS</span> */}
             </Link>
           </div>
 
           <div className="sm:hidden flex items-center">
-            <button onClick={() => setIsSidebarOpen(true)}>
-              <Menu className="h-6 w-6" />
-            </button>
-          </div>
-
-          {isSidebarOpen && (
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 z-50"
-              onClick={() => setIsSidebarOpen(false)}
-            >
-              <div className="absolute right-0 w-64 bg-white h-full shadow-lg p-4 flex flex-col gap-3">
-                <button
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="flex justify-end p-2 rounded-sm text-black w-full"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    className="size-6"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M6 18 18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-                <div className="sm:hidden flex gap-2 space-x-4 flex-col ">
+            <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="size-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-64">
+                <SheetHeader>
+                  <SheetTitle className="sr-only">Menu</SheetTitle>
+                </SheetHeader>
+                <div className="flex flex-col gap-3 p-4">
                   {navLinks.map((link) => (
                     <Link
                       key={link.to}
                       to={link.to}
-                      className={`px-3 py-2 rounded-full text-sm font-medium w-max ${
-                        location.pathname === link.to
-                          ? "text-white bg-black/90"
-                          : "text-gray-700 hover:text-white hover:bg-black/80 transition-all"
-                      }`}
+                      onClick={() => setIsSidebarOpen(false)}
+                      className={cn(navLinkClass(link.to), "w-max")}
                     >
                       {link.label}
                     </Link>
@@ -118,83 +113,75 @@ export default function Navbar() {
                   {isAdmin && (
                     <Link
                       to="/admin"
-                      className={`px-3 py-2 rounded-full text-sm font-medium ${
-                        location.pathname === "/admin"
-                          ? "text-white bg-black/90"
-                          : "text-gray-700 hover:text-white hover:bg-black/80 transition-all"
-                      }`}
+                      onClick={() => setIsSidebarOpen(false)}
+                      className={cn(navLinkClass("/admin"), "w-max")}
                     >
                       Admin Panel
                     </Link>
                   )}
                   {user ? (
-                    <button
+                    <Button
+                      variant="ghost"
                       onClick={handleSignOut}
-                      className="flex items-center space-x-1 px-3 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-black transition-all"
+                      className="w-max rounded-full px-3 text-muted-foreground"
                     >
                       <LogOut className="h-4 w-4" />
                       <span>Sign Out</span>
-                    </button>
+                    </Button>
                   ) : (
                     <Link
                       to="/login"
-                      className="px-3 py-2 rounded-full text-sm font-medium text-gray-700 hover:text-black transition-all"
+                      onClick={() => setIsSidebarOpen(false)}
+                      className="px-3 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground transition-all"
                     >
                       Sign In
                     </Link>
                   )}
                 </div>
-              </div>
-            </div>
-          )}
+              </SheetContent>
+            </Sheet>
+          </div>
 
           <div className="hidden sm:flex items-center space-x-4">
-            <Link
-              to="/dashboard"
-              className={`px-3 py-2 rounded-full text-sm font-medium ${
-                location.pathname === "/dashboard"
-                  ? "text-white bg-black/90"
-                  : "text-gray-700 hover:text-white hover:bg-black/80 transition-all"
-              }`}
-            >
+            <Link to="/dashboard" className={navLinkClass("/dashboard")}>
               Dashboard
             </Link>
 
             {isAdmin && (
-              <Link
-                to="/admin"
-                className={`px-3 py-2 rounded-full text-sm font-medium ${
-                  location.pathname === "/admin"
-                    ? "text-white bg-black/90"
-                    : "text-gray-700 hover:text-white hover:bg-black/80 transition-all"
-                }`}
-              >
+              <Link to="/admin" className={navLinkClass("/admin")}>
                 Admin Panel
               </Link>
             )}
 
-            <button onClick={handleProfileClick} className="relative">
-              <User className="h-6 w-6" />
-              {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white border rounded shadow-lg z-50 flex flex-col">
-                  <div className="p-2 text-gray-800 flex gap-2 justify-center items-center"><User className="h-4 w-4" />{userData?.fullName}</div>
-                  <Link to="/dashboard/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="block w-full text-center px-4 py-2 text-sm text-white hover:bg-gray-100 hover:text-red-500 border-2 hover:border-red-500 bg-red-500"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </button>
-              {
-                userData?.role !== "customer" &&
-                (<NotificationDropdown />)
-              }
+            <DropdownMenu
+              open={isProfileDropdownOpen}
+              onOpenChange={setIsProfileDropdownOpen}
+            >
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <User className="size-6" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="flex items-center justify-center gap-2 font-normal">
+                  <User className="h-4 w-4" />
+                  {userData?.fullName}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/settings">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {userData?.role !== "customer" && <NotificationDropdown />}
           </div>
-
-          
         </div>
       </div>
     </nav>

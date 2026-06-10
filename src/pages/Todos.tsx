@@ -1,7 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useTodoStore } from '../store/todoStore';
-import { Loader2, Plus, Pencil, Trash2, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from '@/components/ui/empty';
 
 interface TodoFormData {
   title: string;
@@ -65,133 +83,144 @@ export default function Todos() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">My To do</h1>
-        <button
+        <div>
+          <h1 className="text-2xl font-heading font-semibold">My To do</h1>
+          <p className="text-muted-foreground">Keep track of your personal tasks</p>
+        </div>
+        <Button
           onClick={() => {
             setFormData({ title: '', description: '', endDate: '' });
             setEditingTodo(null);
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-black/90 text-white rounded-md hover:bg-black/80 flex items-center gap-2"
         >
           <Plus className="h-5 w-5" />
           Add To do
-        </button>
+        </Button>
       </div>
 
       <div className="grid gap-4">
+        {todos.length === 0 && !loading && (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>No to-dos yet</EmptyTitle>
+              <EmptyDescription>Add your first to-do to get started.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
         {todos.map(todo => (
-          <div
+          <Card
             key={todo.id}
-            className={`p-4 rounded-lg border ${todo.completed ? 'bg-gray-50' : 'bg-white'
-              }`}
+            className={`py-4 ${todo.completed ? 'bg-muted/50' : ''}`}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className={`text-lg font-semibold ${todo.completed ? 'line-through text-gray-500' : ''}`}>
-                  {todo.title}
-                </h3>
-                <p className="text-gray-600 mt-1">{todo.description}</p>
-                {todo.projectNumber && todo.projectName && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    Project: {todo.projectNumber} - {todo.projectName}
+            <CardContent className="px-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className={`text-lg font-semibold ${todo.completed ? 'line-through text-muted-foreground' : ''}`}>
+                    {todo.title}
+                  </h3>
+                  <p className="text-muted-foreground mt-1">{todo.description}</p>
+                  {todo.projectNumber && todo.projectName && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Project: {todo.projectNumber} - {todo.projectName}
+                    </p>
+                  )}
+                  {todo.taskName && (
+                    <p className="text-xs text-muted-foreground mt-1">Task: {todo.taskName}</p>
+                  )}
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Due: {new Date(todo.endDate).toLocaleString('en-GB', {
+                      year: 'numeric',
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: false
+                    })}
                   </p>
-                )}
-                {todo.taskName && (
-                  <p className="text-xs text-gray-400 mt-1">Task: {todo.taskName}</p>
-                )}
-                <p className="text-sm text-gray-500 mt-2">
-                  Due: {new Date(todo.endDate).toLocaleString('en-GB', {
-                    year: 'numeric',
-                    month: 'numeric',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: false
-                  })}
-                </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => toggleTodoComplete(todo.id)}
+                    className={todo.completed ? 'bg-green-100 text-green-600 hover:bg-green-200 hover:text-green-700' : ''}
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleEdit(todo)}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleDelete(todo.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => toggleTodoComplete(todo.id)}
-                  className={`p-2 rounded-md ${todo.completed ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'
-                    }`}
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleEdit(todo)}
-                  className="p-2 bg-blue-100 text-blue-600 rounded-md"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(todo.id)}
-                  className="p-2 bg-red-100 text-red-600 rounded-md"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h2 className="text-xl font-bold mb-4">
-              {editingTodo ? 'Edit Todo' : 'Add Todo'}
-            </h2>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full p-2 border rounded"
-                  rows={3}
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">End Date</label>
-                <input
-                  type="datetime-local"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-gray-600 border rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded"
-                >
-                  {editingTodo ? 'Update' : 'Add'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <Dialog open={showModal} onOpenChange={(open) => { if (!open) setShowModal(false); }}>
+        <DialogContent className="sm:max-w-96">
+          <DialogHeader>
+            <DialogTitle>{editingTodo ? 'Edit Todo' : 'Add Todo'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="todo-title">Title</Label>
+              <Input
+                id="todo-title"
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="todo-description">Description</Label>
+              <Textarea
+                id="todo-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="todo-end-date">End Date</Label>
+              <Input
+                id="todo-end-date"
+                type="datetime-local"
+                value={formData.endDate}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                required
+              />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingTodo ? 'Update' : 'Add'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-} 
+}

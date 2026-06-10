@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Project, useProjectStore } from "../store/projectStore";
+import { useProjectStore } from "../store/projectStore";
 import { useTodoStore } from "../store/todoStore";
 import { useAuthStore } from "../store/authStore";
 import { Task, useTaskStore } from "../store/taskStore";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface CalendarItem {
   id?: string;
@@ -27,7 +30,7 @@ interface CalendarDay {
 export default function ProjectCalendar() {
   const navigate = useNavigate();
   const { projects, fetchProjects } = useProjectStore();
-  const { tasks, getTaskPath, fetchAllTasksWithChildren } = useTaskStore();
+  const { tasks, getTaskPath } = useTaskStore();
   const { userData } = useAuthStore();
   const { todos, fetchUserTodos } = useTodoStore();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -224,34 +227,35 @@ export default function ProjectCalendar() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="p-4 border-b border-gray-200">
+    <Card className="gap-0 overflow-hidden py-0">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-foreground">
             Project Calendar
           </h3>
           <div className="flex space-x-2">
-            <button
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
               onClick={goToPreviousMonth}
-              className="p-2 hover:bg-gray-100 rounded-full"
             >
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
-            </button>
-            <button
-              onClick={goToToday}
-              className="px-3 py-1 text-sm bg-black/90 text-white rounded-md hover:bg-black/80"
-            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <Button size="sm" onClick={goToToday}>
               Today
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
               onClick={goToNextMonth}
-              className="p-2 hover:bg-gray-100 rounded-full"
             >
-              <ChevronRight className="h-5 w-5 text-gray-600" />
-            </button>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
           </div>
         </div>
-        <p className="mt-1 text-lg text-gray-900">
+        <p className="mt-1 text-lg text-foreground">
           {currentDate.toLocaleString("default", {
             month: "long",
             year: "numeric",
@@ -286,29 +290,32 @@ export default function ProjectCalendar() {
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-px bg-gray-200">
+      <div className="grid grid-cols-7 gap-px bg-border">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <div
             key={day}
-            className="bg-gray-50 py-2 text-center text-sm font-medium text-gray-500"
+            className="bg-muted py-2 text-center text-sm font-medium text-muted-foreground"
           >
             {day}
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-px bg-gray-200">
+      <div className="grid grid-cols-7 gap-px bg-border">
         {calendar.map((day, index) => (
           <div
             key={index}
-            className={`min-h-[100px] bg-white p-2 ${
-              day.isCurrentMonth ? "text-gray-900" : "text-gray-400"
-            } ${isToday(day.date) ? "bg-blue-50" : ""}`}
+            className={cn(
+              "min-h-[100px] p-2",
+              day.isCurrentMonth ? "text-foreground" : "text-muted-foreground",
+              isToday(day.date) ? "bg-blue-50" : "bg-card"
+            )}
           >
             <div
-              className={`font-medium text-sm mb-1 ${
-                isToday(day.date) ? "text-blue-600" : ""
-              }`}
+              className={cn(
+                "font-medium text-sm mb-1",
+                isToday(day.date) && "text-blue-600"
+              )}
             >
               {day.date.getDate()}
             </div>
@@ -347,6 +354,6 @@ export default function ProjectCalendar() {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

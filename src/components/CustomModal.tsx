@@ -1,4 +1,5 @@
 import React from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface CustomModalProps {
   isOpen: boolean;
@@ -7,16 +8,13 @@ interface CustomModalProps {
 }
 
 const CustomModal: React.FC<CustomModalProps> = ({ isOpen, onClose, children }) => {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white p-4 rounded shadow-lg">
-        <button onClick={onClose} className="absolute top-2 right-2">X</button>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
-export default CustomModal; 
+export default CustomModal;

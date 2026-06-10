@@ -23,6 +23,15 @@ import ProjectComments from "../components/ProjectComments";
 import CustomerCredentialsModal from "../components/CustomerCredentialsModal";
 import ProjectStatusSelect from "@/components/ProjectStatusSelect";
 import { useTaskStore, Task } from "../store/taskStore";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 
 import TaskPopover from "../components/TaskPopover";
 
@@ -343,7 +352,7 @@ export default function ProjectDetails() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -351,24 +360,36 @@ export default function ProjectDetails() {
   if (!project) {
     return (
       <div className="p-6">
-        <p className="text-red-500">Project not found</p>
+        <p className="text-destructive">Project not found</p>
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
-          <button onClick={() => navigate("/dashboard/projects")}>
-            <ArrowLeft className=" h-7 w-7" />
-          </button>
-          <h2 className="text-2xl font-bold">Project Details</h2>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/dashboard/projects")}
+          >
+            <ArrowLeft className="size-5" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-heading font-semibold">
+              Project Details
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Overview, tasks and customer information for this project
+            </p>
+          </div>
         </div>
-        <div className="flex space-x-4">
+        <div className="flex flex-wrap gap-3">
           {isAdmin && (
             <>
-              <button
+              <Button
+                variant="outline"
                 onClick={() => {
                   const customer = customers.find(
                     (c) =>
@@ -378,81 +399,86 @@ export default function ProjectDetails() {
                   setCustomerEmail(customer?.email || "");
                   setShowCredentialsModal(true);
                 }}
-                className="inline-flex items-center px-4 py-2 font-medium rounded-md text-black bg-white border-[1px] hover:opacity-70"
               >
-                <Key className="mr-2 h-4 w-4" />
+                <Key />
                 Customer Credentials
-              </button>
+              </Button>
               <CustomerCredentialsModal
                 isOpen={showCredentialsModal}
                 onClose={() => setShowCredentialsModal(false)}
                 customerEmail={customerEmail}
                 customerName={project.customer.name}
               />
-              <button
+              <Button
+                variant="outline"
                 onClick={() => navigate(`/dashboard/projects/${id}/documents`)}
-                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                <FileText className="w-4 h-4 mr-2" />
+                <FileText />
                 Documents
-              </button>
+              </Button>
             </>
           )}
           {project.status === "completed" && (
-            <button
+            <Button
+              variant="outline"
               // onClick={downloadInvoice}
-              className="inline-flex items-center px-4 py-2   font-medium rounded-md text-black bg-white border-[1px]  hover:opacity-70"
             >
-              <FileDown className="mr-2 h-4 w-4" />
+              <FileDown />
               Download Invoice
-            </button>
+            </Button>
           )}
           {isAdmin && (
-            <button
+            <Button
+              variant="outline"
               onClick={() => navigate(`/dashboard/projects/${id}/edit`)}
-              className="inline-flex items-center px-4 py-2 font-medium rounded-md text-black bg-white border-[1px] hover:opacity-70"
             >
-              <Pencil className="mr-2 h-4 w-4" />
+              <Pencil />
               Edit Project
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {/* Analytics Dashboard */}
-      <div className="mb-6 bg-white rounded-lg shadow p-4">
-        <h2 className="text-2xl font-bold mb-4">Analytics Dashboard</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-blue-100 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold">Total Tasks</h3>
-            <p className="text-2xl font-bold">{totalTasks}</p>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Analytics Dashboard</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-lg border border-border bg-blue-100 p-4">
+              <h3 className="text-sm font-medium">Total Tasks</h3>
+              <p className="mt-1 text-2xl font-semibold">{totalTasks}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-green-100 p-4 cursor-pointer">
+              <h3 className="text-sm font-medium">Completed Tasks</h3>
+              <p className="mt-1 text-2xl font-semibold">{completedTasks}</p>
+            </div>
+            <div
+              className="rounded-lg border border-border bg-yellow-100 p-4 cursor-pointer"
+              onMouseEnter={handleIncompleteTasksHover}
+              onMouseLeave={closePopover}
+            >
+              <h3 className="text-sm font-medium">Incomplete Tasks</h3>
+              <p className="mt-1 text-2xl font-semibold">{incompleteTasks}</p>
+            </div>
+            <div className="rounded-lg border border-border bg-muted p-4">
+              <h3 className="text-sm font-medium">Project Due Date</h3>
+              <p className="mt-1 text-2xl font-semibold">
+                {new Date(projectDueDate).toLocaleDateString("en-GB")}
+              </p>
+            </div>
+            <div
+              className="rounded-lg border border-border bg-red-100 p-4"
+              onMouseEnter={handleOverdueTasksHover}
+              onMouseLeave={closePopover}
+            >
+              <h3 className="text-sm font-medium">Overdue Tasks</h3>
+              <p className="mt-1 text-2xl font-semibold">{overdueTasks}</p>
+            </div>
           </div>
-          <div className="bg-green-100 p-4 rounded-lg cursor-pointer">
-            <h3 className="text-lg font-semibold">Completed Tasks</h3>
-            <p className="text-2xl font-bold">{completedTasks}</p>
-          </div>
-          <div
-            className="bg-yellow-100 p-4 rounded-lg cursor-pointer"
-            onMouseEnter={handleIncompleteTasksHover}
-            onMouseLeave={closePopover}
-          >
-            <h3 className="text-lg font-semibold">Incomplete Tasks</h3>
-            <p className="text-2xl font-bold">{incompleteTasks}</p>
-          </div>
-          <div className="bg-gray-100 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold">Project Due Date</h3>
-            <p className="text-2xl font-bold">{new Date(projectDueDate).toLocaleDateString("en-GB")}</p>
-          </div>
-          <div
-            className="bg-red-100 p-4 rounded-lg"
-            onMouseEnter={handleOverdueTasksHover}
-            onMouseLeave={closePopover}
-          >
-            <h3 className="text-lg font-semibold">Overdue Tasks</h3>
-            <p className="text-2xl font-bold">{overdueTasks}</p>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Render the popover */}
       <TaskPopover
@@ -463,209 +489,219 @@ export default function ProjectDetails() {
 
       <div className="mt-7 flex flex-col gap-5 px-[10%]">
         {/* Project Information */}
-        <div className="bg-white border-[1px] rounded-lg ">
-          <div className="border-b border-gray-200 bg-white px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">
-              Project Information
-            </h3>
-          </div>
-          <div className="px-6 py-4">
-            <table className="w-full">
-              <tbody>
-                <tr>
-                  <td className="py-2 font-medium text-gray-500">ID</td>
-                  <td className="py-2">P-{project.projectNumber}</td>
-                </tr>
-                {/* <tr>
-                  <td className="py-2 font-medium text-gray-500">Created At</td>
-                  <td className="py-2">
-                    {new Date(project.createdAt).toLocaleDateString()}
-                  </td>
-                </tr> */}
-
-
-                <tr>
-  <td className="py-2 font-medium text-gray-500">Created At</td>
-  <td className="py-2">
-    {new Date(project.createdAt).toLocaleDateString('en-GB')}
-  </td>
-</tr>
-                <tr>
-                  <td className="py-2 font-medium text-gray-500">Name</td>
-                  <td className="py-2">{project.name}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 font-medium text-gray-500">
-                    Description
-                  </td>
-                  <td className="py-2">{project.description}</td>
-                </tr>
-                <tr>
-                  <td className="py-2 font-medium text-gray-500">Start Date</td>
-                  <td className="py-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Project Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="divide-y divide-border">
+              <div className="flex items-center gap-4 py-3">
+                <dt className="w-44 shrink-0 text-sm font-medium text-muted-foreground">
+                  ID
+                </dt>
+                <dd className="text-sm">P-{project.projectNumber}</dd>
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <dt className="w-44 shrink-0 text-sm font-medium text-muted-foreground">
+                  Created At
+                </dt>
+                <dd className="text-sm">
+                  {new Date(project.createdAt).toLocaleDateString("en-GB")}
+                </dd>
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <dt className="w-44 shrink-0 text-sm font-medium text-muted-foreground">
+                  Name
+                </dt>
+                <dd className="text-sm">{project.name}</dd>
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <dt className="w-44 shrink-0 text-sm font-medium text-muted-foreground">
+                  Description
+                </dt>
+                <dd className="text-sm">{project.description}</dd>
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <dt className="w-44 shrink-0 text-sm font-medium text-muted-foreground">
+                  Start Date
+                </dt>
+                <dd className="text-sm">
+                  <div className="flex items-center justify-start gap-5">
+                    {isEditingStartDate ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="date"
+                          value={tempStartDate}
+                          onChange={handleStartDateChange}
+                          className="w-auto"
+                        />
+                        {showStartDateConfirm && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={confirmStartDateChange}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <Check className="size-5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={cancelStartDateChange}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <X className="size-5" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-foreground">
+                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                        {project.project_start_date ? (
+                          new Date(
+                            project.project_start_date
+                          ).toLocaleDateString("en-GB")
+                        ) : (
+                          <span className="text-muted-foreground">
+                            No start date set
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {isAdmin && !isEditingStartDate && (
+                      <Button
+                        variant="link"
+                        size="xs"
+                        onClick={() => setIsEditingStartDate(true)}
+                        className="px-0"
+                      >
+                        {project.project_start_date
+                          ? "Change"
+                          : "Set Start Date"}
+                      </Button>
+                    )}
+                  </div>
+                </dd>
+              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-4 py-3">
+                  <dt className="w-44 shrink-0 text-sm font-medium text-muted-foreground">
+                    Due Date
+                  </dt>
+                  <dd className="text-sm">
                     <div className="flex items-center justify-start gap-5">
-                      {isEditingStartDate ? (
-                        <div className="flex items-center space-x-2">
-                          <input
+                      {isEditingDueDate ? (
+                        <div className="flex items-center gap-2">
+                          <Input
                             type="date"
-                            value={tempStartDate}
-                            onChange={handleStartDateChange}
-                            className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                            value={tempDueDate}
+                            onChange={handleDueDateChange}
+                            className="w-auto"
                           />
-                          {showStartDateConfirm && (
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={confirmStartDateChange}
-                                className="p-1 text-green-600 hover:text-green-700"
+                          {showDueDateConfirm && (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={confirmDueDateChange}
+                                className="text-green-600 hover:text-green-700"
                               >
-                                <Check className="h-5 w-5" />
-                              </button>
-                              <button
-                                onClick={cancelStartDateChange}
-                                className="p-1 text-red-600 hover:text-red-700"
+                                <Check className="size-5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={cancelDueDateChange}
+                                className="text-destructive hover:text-destructive"
                               >
-                                <X className="h-5 w-5" />
-                              </button>
+                                <X className="size-5" />
+                              </Button>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="flex items-center text-gray-900">
-                          
-                          <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                          {project.project_start_date ? (
+                        <div className="flex items-center text-foreground">
+                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                          {project.project_due_date ? (
                             new Date(
-                              project.project_start_date
+                              project.project_due_date
                             ).toLocaleDateString("en-GB")
                           ) : (
-                            <span className="text-gray-500">
-                              No start date set
+                            <span className="text-muted-foreground">
+                              No due date set
                             </span>
                           )}
                         </div>
                       )}
-                      {isAdmin && !isEditingStartDate && (
-                        <button
-                          onClick={() => setIsEditingStartDate(true)}
-                          className="text-blue-600 hover:text-blue-700 text-[12px]"
+                      {isAdmin && !isEditingDueDate && (
+                        <Button
+                          variant="link"
+                          size="xs"
+                          onClick={() => setIsEditingDueDate(true)}
+                          className="px-0"
                         >
-                          {project.project_start_date
+                          {project.project_due_date
                             ? "Change"
-                            : "Set Start Date"}
-                        </button>
+                            : "Set Due Date"}
+                        </Button>
                       )}
                     </div>
-                  </td>
-                </tr>
-                {isAdmin && (
-                  <tr>
-                    <td className="py-2 font-medium text-gray-500">Due Date</td>
-                    <td className="py-2">
-                      <div className="flex items-center justify-start gap-5">
-                        {isEditingDueDate ? (
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="date"
-                              value={tempDueDate}
-                              onChange={handleDueDateChange}
-                              className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            />
-                            {showDueDateConfirm && (
-                              <div className="flex space-x-2">
-                                <button
-                                  onClick={confirmDueDateChange}
-                                  className="p-1 text-green-600 hover:text-green-700"
-                                >
-                                  <Check className="h-5 w-5" />
-                                </button>
-                                <button
-                                  onClick={cancelDueDateChange}
-                                  className="p-1 text-red-600 hover:text-red-700"
-                                >
-                                  <X className="h-5 w-5" />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex items-center text-gray-900">
-                            <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                            {project.project_due_date ? (
-                              new Date(
-                                project.project_due_date
-                              ).toLocaleDateString("en-GB")
-                            ) : (
-                              <span className="text-gray-500">
-                                No due date set
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        {isAdmin && !isEditingDueDate && (
-                          <button
-                            onClick={() => setIsEditingDueDate(true)}
-                            className="text-blue-600 hover:text-blue-700 text-[12px]"
-                          >
-                            {project.project_due_date
-                              ? "Change"
-                              : "Set Due Date"}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-                <tr>
-                  <td className="py-2 font-medium text-gray-500">
-                    Project Status
-                  </td>
+                  </dd>
+                </div>
+              )}
+              <div className="flex items-center gap-4 py-3">
+                <dt className="w-44 shrink-0 text-sm font-medium text-muted-foreground">
+                  Project Status
+                </dt>
 
-                  {/* project status */}
+                {/* project status */}
 
-                  <td className="py-2">
-                    <ProjectStatusSelect
-                      project={{
-                        id: project.id as string,
-                        status: project.status,
-                      }}
-                      updateProjectStatus={updateProjectStatus}
-                      tasks={tasks}
+                <dd className="text-sm">
+                  <ProjectStatusSelect
+                    project={{
+                      id: project.id as string,
+                      status: project.status,
+                    }}
+                    updateProjectStatus={updateProjectStatus}
+                    tasks={tasks}
+                  />
+                </dd>
+              </div>
+              <div className="flex items-center gap-4 py-3">
+                <dt className="w-44 shrink-0 text-sm font-medium text-muted-foreground">
+                  Project Completion
+                </dt>
+                <dd className="flex-1 text-sm">
+                  <div className="flex items-center gap-3">
+                    <Progress
+                      value={completedPercentage}
+                      className="flex-1"
                     />
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2 font-medium text-gray-500">
-                    Project Completion
-                  </td>
-                  <td className="py-2">
-                    <div className="w-full bg-gray-200 rounded-full">
-                      <div
-                        className="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full"
-                        style={{ width: `${completedPercentage}%` }}
-                      >
-                        {completedPercentage}%
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    <span className="text-xs font-medium">
+                      {completedPercentage}%
+                    </span>
+                  </div>
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
 
         {/* Customer Details Section */}
-        <div className="bg-white rounded-xl border-[1px] overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">
-              Customer Details
-            </h3>
-          </div>
-          <div className="px-6 py-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Details</CardTitle>
+          </CardHeader>
+          <CardContent>
             {customerDetails ? (
               <div className="grid grid-cols-2 gap-4">
                 {customerDetails.logoUrl && (
                   <div className="col-span-2">
-                    <p className="text-sm font-medium text-gray-500">Logo</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Logo
+                    </p>
                     <img
                       src={customerDetails.logoUrl}
                       alt="Customer Logo"
@@ -674,51 +710,61 @@ export default function ProjectDetails() {
                   </div>
                 )}
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Name</p>
-                  <p className="mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Name
+                  </p>
+                  <p className="mt-1 text-sm">
                     {customerDetails.name || project.customer.name}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p className="mt-1">{customerDetails.email}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Email
+                  </p>
+                  <p className="mt-1 text-sm">{customerDetails.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">
+                  <p className="text-sm font-medium text-muted-foreground">
                     GST Number
                   </p>
-                  <p className="mt-1">{customerDetails.gstNumber}</p>
+                  <p className="mt-1 text-sm">{customerDetails.gstNumber}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">
+                  <p className="text-sm font-medium text-muted-foreground">
                     End Client
                   </p>
-                  <p className="mt-1">{project.endClient}</p>
+                  <p className="mt-1 text-sm">{project.endClient}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">Address</p>
-                  <p className="mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Address
+                  </p>
+                  <p className="mt-1 text-sm">
                     {customerDetails.address || project.customer.address}
                   </p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Billing Address
                   </p>
-                  <p className="mt-1">{customerDetails.billingAddress}</p>
+                  <p className="mt-1 text-sm">
+                    {customerDetails.billingAddress}
+                  </p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Contact Persons
                   </p>
                   <div className="mt-1 space-y-2">
                     {customerDetails.contactPersons.map((person, index) => (
-                      <div key={index} className="flex items-center space-x-4">
-                        <span className="text-sm text-gray-700">
+                      <div key={index} className="flex items-center gap-4">
+                        <span className="text-sm text-foreground">
                           {person.name}
                         </span>
-                        <span className="text-sm text-gray-500">-</span>
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-muted-foreground">
+                          -
+                        </span>
+                        <span className="text-sm text-foreground">
                           {person.phone}
                         </span>
                       </div>
@@ -727,12 +773,12 @@ export default function ProjectDetails() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 No customer details found.
               </p>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Tasks Section */}
         <TaskList

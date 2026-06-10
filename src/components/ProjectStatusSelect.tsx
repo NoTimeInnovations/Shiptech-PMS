@@ -1,9 +1,16 @@
 import { Task, useTaskStore } from "../store/taskStore";
 import { ChevronDown } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import CompletionSummaryModal from "./CompletionSummaryModal";
 import { toast } from "react-hot-toast";
-import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 const statusOptions = [
   {
@@ -37,30 +44,15 @@ const ProjectStatusSelect = ({
   tasks = [],
 }: ProjectStatusSelectProps) => {
   const { fetchAllTasksWithChildren } = useTaskStore();
-  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState(statusOptions[1]);
 
-  // Handle clicks outside dropdown
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
     const currentStatus =
       statusOptions.find((s) => s.value == project?.status) ?? statusOptions[1];
 
     setSelected(currentStatus);
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [project]);
 
   const handleStatusChange = async (option: (typeof statusOptions)[0]) => {
@@ -103,49 +95,64 @@ const ProjectStatusSelect = ({
 
   return (
     <>
-      <div className="relative inline-block" ref={dropdownRef}>
-        {/* Selected Status (Badge) */}
+      <div className="relative inline-block">
         <div className="flex gap-3">
-          <div
-            className={`${
-              updateProjectStatus ? "cursor-pointer text-base" : "text-[12px]"
-            } flex items-center gap-1 justify-center px-4 py-2 rounded-2xl text-sm text-center transition-all ${
-              selected.color
-            }`}
-            onClick={() => {
-              if (updateProjectStatus) setIsOpen(!isOpen);
+          <DropdownMenu
+            open={updateProjectStatus ? isOpen : false}
+            onOpenChange={(open) => {
+              if (updateProjectStatus) setIsOpen(open);
             }}
           >
-            {selected.label}
-
-            {updateProjectStatus && (
-              <ChevronDown
-                className={`${isOpen ? "rotate-180" : ""} transition-all`}
-                size={20}
-              />
-            )}
-          </div>
-          {window.location.pathname !== "/dashboard/projects" && project.status === "completed" && (
-            <button onClick={() => setShowCompletionModal(!showCompletionModal)} className="px-3 py-2 bg-blue-600 rounded-2xl text-white">
-              Show Time Status
-            </button>
-          )}
-        </div>
-
-        {/* Dropdown Menu */}
-        {isOpen && (
-          <div className="absolute mt-2 w-full bg-white shadow-md rounded-md border border-gray-200 z-10">
-            {statusOptions.map((option) => (
-              <div
-                key={option.value}
-                className={`px-4 py-2 cursor-pointer text-sm transition-all hover:bg-gray-100 ${option.color}`}
-                onClick={() => handleStatusChange(option)}
+            {/* Selected Status (Badge) */}
+            <DropdownMenuTrigger asChild disabled={!updateProjectStatus}>
+              <button
+                type="button"
+                className={cn(
+                  updateProjectStatus
+                    ? "cursor-pointer text-base"
+                    : "text-[12px]",
+                  "flex items-center gap-1 justify-center px-4 py-2 rounded-2xl text-sm text-center transition-all outline-hidden",
+                  selected.color
+                )}
               >
-                {option.label}
-              </div>
-            ))}
-          </div>
-        )}
+                {selected.label}
+
+                {updateProjectStatus && (
+                  <ChevronDown
+                    className={cn(isOpen && "rotate-180", "transition-all")}
+                    size={20}
+                  />
+                )}
+              </button>
+            </DropdownMenuTrigger>
+
+            {/* Dropdown Menu */}
+            <DropdownMenuContent align="start" className="min-w-[10rem] p-0">
+              {statusOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  className={cn(
+                    "cursor-pointer rounded-none px-4 py-2 text-sm",
+                    option.color
+                  )}
+                  onClick={() => handleStatusChange(option)}
+                >
+                  {option.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {window.location.pathname !== "/dashboard/projects" &&
+            project.status === "completed" && (
+              <Button
+                onClick={() => setShowCompletionModal(!showCompletionModal)}
+                className="rounded-2xl bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Show Time Status
+              </Button>
+            )}
+        </div>
       </div>
 
       <CompletionSummaryModal

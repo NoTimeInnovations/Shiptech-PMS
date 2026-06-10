@@ -1,6 +1,10 @@
-import { Plus, Pencil, Trash2, CloudCog } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Task, useTaskStore } from "../store/taskStore";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 interface TaskListProps {
   tasks: Task[];
@@ -39,8 +43,6 @@ export default function TaskList({
   }, [tasks]);
 
   const calculateProgress = (children : Task[]) => {
-    // console.log("tasks", tasks);
-    
     if (!children.length) return 0;
 
     const completedProgress = children.reduce((acc, task) => {
@@ -53,26 +55,6 @@ export default function TaskList({
     return Math.round(completedProgress);
   };
 
-  const calculateCompletedPercentage = (task: Task): number => {
-    if (!task.children || task.children.length === 0) {
-      return task.completed ? 100 : 0;
-    }
-
-    const totalAssignedToChildren = task.children.reduce(
-      (sum, child) => sum + (child.percentage || 0),
-      0
-    );
-
-    if (totalAssignedToChildren === 0) return 0;
-
-    const completedSum = task.children.reduce((sum, subtask) => {
-      return sum + (subtask.completed ? subtask.percentage || 0 : 0);
-    }, 0);
-
-    return completedSum;
-    // return Math.round((completedSum / totalAssignedToChildren) * 100);
-  };
-
   // Helper function to get color based on percentage
   const getProgressColor = (percentage: number) => {
     if (percentage >= 75) return "bg-green-600";
@@ -81,31 +63,39 @@ export default function TaskList({
     return "bg-red-600";
   };
 
+  // Static class map so Tailwind can see the indicator colors
+  const getProgressIndicatorClass = (percentage: number) => {
+    if (percentage >= 75) return "[&>div]:bg-green-600";
+    if (percentage >= 50) return "[&>div]:bg-yellow-500";
+    if (percentage >= 25) return "[&>div]:bg-orange-500";
+    return "[&>div]:bg-red-600";
+  };
+
   return (
     <div className="mt-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">Tasks</h3>
         {(isAdmin || parentAccess) && (
-          <button
-            onClick={()=>{
-              SetaddOrPencilEdit(true)
-              onAddClick()
+          <Button
+            size="sm"
+            onClick={() => {
+              SetaddOrPencilEdit(true);
+              onAddClick();
             }}
-            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-black/90"
           >
-            <Plus className="h-4 w-4 mr-1" />
+            <Plus className="h-4 w-4" />
             Add Task
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="bg-white shadow rounded-lg">
+      <Card className="py-0">
         {sortedTasks.length === 0 ? (
-          <p className="p-4 text-gray-500">No tasks yet</p>
+          <p className="p-4 text-muted-foreground">No tasks yet</p>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-border">
             {sortedTasks.map((task) => {
-              
+
               const completedPercentage = !task.children?.length ? (task.completed ? 100 : 0) : calculateProgress(task.children as Task[]);
               const assignedPercentage = task.percentage || 0;
 
@@ -120,7 +110,7 @@ export default function TaskList({
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-medium">{task.name}</h4>
                           <div className="flex items-center gap-3">
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted-foreground">
                               Target: {assignedPercentage}%
                             </span>
                             <span
@@ -131,7 +121,7 @@ export default function TaskList({
                               }`}
                             >
                               {task.completed ? "Completed" : "In Progress"}
-                              :{" "}  
+                              :{" "}
                               {(
                                 (completedPercentage * 100) /
                                 100
@@ -141,16 +131,15 @@ export default function TaskList({
                           </div>
                         </div>
                         {/* Progress bar */}
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
-                          <div
-                            className={`h-1.5 rounded-full transition-all duration-150 ${getProgressColor(
-                              completedPercentage
-                            )}`}
-                            style={{ width: `${completedPercentage}%` }}
-                          />
-                        </div>
+                        <Progress
+                          value={completedPercentage}
+                          className={cn(
+                            "h-1.5",
+                            getProgressIndicatorClass(completedPercentage)
+                          )}
+                        />
                         {task.timeEntries && task.timeEntries.length > 0 && (
-                          <p className="text-xs text-gray-400 mt-2">
+                          <p className="text-xs text-muted-foreground mt-2">
                             {task.timeEntries.length} time entries
                           </p>
                         )}
@@ -158,17 +147,21 @@ export default function TaskList({
                     </div>
                     {(isAdmin || parentAccess) && (
                       <div className="flex items-center space-x-2 ml-4">
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-muted-foreground hover:text-foreground"
                           onClick={() => {
-                            // console.log("current task : ",task)
-                            SetaddOrPencilEdit(true)
+                            SetaddOrPencilEdit(true);
                             onEditClick(task);
                           }}
-                          className="text-gray-600 hover:text-gray-900"
                         >
                           <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => {
                             if (
                               window.confirm(
@@ -178,10 +171,9 @@ export default function TaskList({
                               onDeleteClick(task.id);
                             }
                           }}
-                          className="text-red-600 hover:text-red-800"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -190,7 +182,7 @@ export default function TaskList({
             })}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

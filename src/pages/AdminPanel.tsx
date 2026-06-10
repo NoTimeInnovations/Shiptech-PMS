@@ -1,10 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { collection, getDocs, updateDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { Users, UserCheck, Loader2, UserX } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ChangeDesignationModal from '../components/ChangeDesignationModal';
 import ChangeJoinDateModal from '../components/ChangeJoinDateModal';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface User {
   id: string;
@@ -142,37 +154,30 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-100 py-8 watermark">
+    <div className="min-h-screen bg-background py-8 watermark">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl overflow-hidden shadow-md">
+        <Card className="overflow-hidden py-0 gap-0">
           {/* Header */}
-          <div className="border-b border-gray-200">
-            <div className="flex space-x-8 px-6">
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2
-                  ${activeTab === 'all' ? 'border-black/90 text-black/90' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-              >
-                <Users className="h-5 w-5" />
-                <span>All Members ({users.filter(u => u.verified).length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('unverified')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2
-                  ${activeTab === 'unverified' ? 'border-black/90 text-black/90' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-              >
-                <UserCheck className="h-5 w-5" />
-                <span>Unverified ({users.filter(u => !u.verified).length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('customers')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2
-                  ${activeTab === 'customers' ? 'border-black/90 text-black/90' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-              >
-                <Users className="h-5 w-5" />
-                <span>Customers ({customers.length})</span>
-              </button>
-            </div>
+          <div className="border-b border-border px-6 py-4">
+            <Tabs
+              value={activeTab}
+              onValueChange={(value) => setActiveTab(value as 'all' | 'unverified' | 'customers')}
+            >
+              <TabsList>
+                <TabsTrigger value="all" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>All Members ({users.filter(u => u.verified).length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="unverified" className="gap-2">
+                  <UserCheck className="h-4 w-4" />
+                  <span>Unverified ({users.filter(u => !u.verified).length})</span>
+                </TabsTrigger>
+                <TabsTrigger value="customers" className="gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>Customers ({customers.length})</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
 
           {/* Content */}
@@ -182,94 +187,80 @@ export default function AdminPanel() {
                 <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="text-center px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="text-center px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-center">Name</TableHead>
+                    <TableHead className="text-center">Email</TableHead>
                     {activeTab !== 'customers' && (
-                      <th className="text-center px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Designation
-                      </th>
+                      <TableHead className="text-center">Designation</TableHead>
                     )}
-                    <th className="text-center px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Role
-                    </th>
+                    <TableHead className="text-center">Role</TableHead>
                     {activeTab === 'customers' && (
-                      <th className="text-center px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
+                      <TableHead className="text-center">Status</TableHead>
                     )}
-                    <th className="text-center px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Joined
-                    </th>
-                    <th className="text-center px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                    <TableHead className="text-center">Joined</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {(activeTab === 'customers' ? displayedCustomers : displayedUsers).map((user) => (
-                    <tr key={user.id}>
-                      <td className="text-center px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.fullName}
-                        </div>
-                      </td>
-                      <td className="text-center px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </td>
+                    <TableRow key={user.id}>
+                      <TableCell className="text-center font-medium">
+                        {user.fullName}
+                      </TableCell>
+                      <TableCell className="text-center text-muted-foreground">
+                        {user.email}
+                      </TableCell>
                       {activeTab !== 'customers' && (
-                        <td className="text-center px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">{user.designation ?? "User"}</div>
-                        </td>
+                        <TableCell className="text-center text-muted-foreground">
+                          {user.designation ?? "User"}
+                        </TableCell>
                       )}
-                      <td className="text-center px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{user.role}</div>
-                      </td>
+                      <TableCell className="text-center text-muted-foreground">
+                        {user.role}
+                      </TableCell>
                       {activeTab === 'customers' && (
-                        <td className="text-center px-6 py-4 whitespace-nowrap">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        <TableCell className="text-center">
+                          <Badge variant={user.verified ? 'secondary' : 'outline'}>
                             {user.verified ? 'Verified' : 'Unverified'}
-                          </span>
-                        </td>
+                          </Badge>
+                        </TableCell>
                       )}
-                      <td className="text-center px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <TableCell className="text-center text-muted-foreground">
                         {new Date(user.createdAt).toLocaleDateString('en-GB')}
-                      </td>
-                      <td className="text-center px-6 py-4 whitespace-nowrap text-right text-xs font-medium flex justify-center">
-                        <div className="flex justify-end gap-2">
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center gap-2">
                           {activeTab === 'customers' ? (
-                            <>
-                              <button
-                                onClick={() => {
-                                  user.verified ? unverifyUser(user.id) : verifyUser(user.id);
-                                }}
-                                disabled={processingUser === user.id}
-                                className={`flex items-center space-x-1 ${user.verified ? 'text-red-600 hover:text-red-900' : 'text-blue-600 hover:text-blue-900'}`}
-                              >
-                                {processingUser === user.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : user.verified ? (
-                                  <UserX className="h-4 w-4" />
-                                ) : (
-                                  <UserCheck className="h-4 w-4" />
-                                )}
-                                <span>{user.verified ? 'Unverify' : 'Verify'}</span>
-                              </button>
-                            </>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                user.verified ? unverifyUser(user.id) : verifyUser(user.id);
+                              }}
+                              disabled={processingUser === user.id}
+                              className={user.verified ? 'text-destructive hover:text-destructive' : 'text-blue-600 hover:text-blue-700'}
+                            >
+                              {processingUser === user.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : user.verified ? (
+                                <UserX className="h-4 w-4" />
+                              ) : (
+                                <UserCheck className="h-4 w-4" />
+                              )}
+                              <span>{user.verified ? 'Unverify' : 'Verify'}</span>
+                            </Button>
                           ) : (
-                            <div className='flex gap-3'>
-                              <button
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => {
                                   user.verified ? unverifyUser(user.id) : verifyUser(user.id);
                                 }}
                                 disabled={processingUser === user.id}
-                                className={`flex items-center space-x-1 ${user.verified ? 'text-red-600 hover:text-red-900' : 'text-blue-600 hover:text-blue-900'}`}
+                                className={user.verified ? 'text-destructive hover:text-destructive' : 'text-blue-600 hover:text-blue-700'}
                               >
                                 {processingUser === user.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -277,52 +268,54 @@ export default function AdminPanel() {
                                   <UserX className="h-4 w-4" />
                                 )}
                                 <span>{user.verified ? 'Unverify' : 'Verify'}</span>
-                              </button>
+                              </Button>
                               {user.verified && (
-                                <button
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => {
                                     setSelectedUser(user);
                                     setIsDesignationModalOpen(true);
                                   }}
-                                  className="text-white hover:text-blue-900 hover:bg-white border-2 py-1 px-2 border-blue-600 bg-blue-500 duration-300 rounded-2xl"
                                 >
-                                  Change <br /> Designation
-                                </button>
+                                  Change Designation
+                                </Button>
                               )}
                               {user.verified && (
-                                <button
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => {
                                     setSelectedUser(user);
                                     setIsJoinDateModalOpen(true);
                                   }}
-                                  className="text-white hover:text-purple-900 hover:bg-white border-2 py-1 px-2 border-purple-600 bg-purple-500 duration-300 rounded-2xl"
                                 >
-                                  Change <br /> Join Date
-                                </button>
+                                  Change Join Date
+                                </Button>
                               )}
                               {user.verified && (
-                                <button
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
                                   onClick={() => {
                                     setSelectedUser(user);
                                     toggleUserRole(user.id, user.role);
                                   }}
-                                  className="text-white hover:text-purple-900 hover:bg-white border-2 py-1 px-1 border-purple-600 bg-purple-500 duration-300 rounded-2xl"
                                 >
-                                  {/* promote or demote like wise content for button */}
-                                  {user.role === 'admin'? 'Demote' : 'Promote'}
-                                </button>
+                                  {user.role === 'admin' ? 'Demote' : 'Promote'}
+                                </Button>
                               )}
                             </div>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Add both modals at the end of your JSX */}

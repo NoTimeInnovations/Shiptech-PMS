@@ -13,7 +13,7 @@ import {
   FileQuestion,
   ArrowRight,
   Check,
-
+  Loader2,
   TruckIcon,
   Phone,
 } from "lucide-react";
@@ -23,6 +23,23 @@ import { Image } from "lucide-react";
 import { useProjectStore } from "@/store/projectStore";
 import { useEnquiryStore } from "@/store/enquiryStore";
 import CustomerSettlementModal from "@/components/CustomerSettlementModal";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function CustomerDetails() {
   const { id } = useParams<{ id: string }>();
@@ -39,7 +56,7 @@ export default function CustomerDetails() {
       if (id) {
         const customerData = await fetchCustomer(id);
         setCustomer(customerData);
-        
+
         // Fetch all projects and enquiries
         await fetchProjects();
         await fetchEnquiries();
@@ -83,7 +100,7 @@ export default function CustomerDetails() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -91,17 +108,17 @@ export default function CustomerDetails() {
   if (!customer) {
     return (
       <div className="p-6">
-        <div className="bg-white shadow-md rounded-lg p-8 text-center">
-          <h2 className="text-xl font-semibold text-gray-700">
+        <Card className="p-8 text-center">
+          <h2 className="text-xl font-heading font-semibold">
             Customer not found
           </h2>
-          <button
+          <Button
+            className="mx-auto mt-4"
             onClick={() => navigate("/dashboard/customers")}
-            className="mt-4 px-4 py-2 bg-black/90 text-white rounded-md hover:bg-black/80"
           >
             Back to Customers
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -113,105 +130,115 @@ export default function CustomerDetails() {
 
       {/* Header with back button and actions */}
       <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
-          <button
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => navigate("/dashboard/customers")}
-            className="p-2 rounded-full hover:bg-gray-200 transition-colors"
           >
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-800">Customer Details</h1>
+            <ArrowLeft className="size-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-heading font-semibold">
+              Customer Details
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Profile, projects and enquiries for this customer
+            </p>
+          </div>
         </div>
-        <div className="flex space-x-3">
-        <button
-            onClick={() => setSettlementModalOpen(true)}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-          >
-            <Check size={18} className="mr-2" />
+        <div className="flex gap-3">
+          <Button onClick={() => setSettlementModalOpen(true)}>
+            <Check />
             Settle
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => navigate(`/dashboard/customers/${id}/edit`)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
-            <Edit size={18} className="mr-2" />
+            <Edit />
             Edit
-          </button>
-          <button
-            onClick={handleDelete}
-            className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-          >
-            <Trash2 size={18} className="mr-2" />
+          </Button>
+          <Button variant="destructive" onClick={handleDelete}>
+            <Trash2 />
             Delete
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Analytics Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Total Projects Card */}
-        <div className="bg-gradient-to-br from-blue-300 to-blue-400 rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-black">Total Projects</p>
-              <p className="mt-2 text-3xl font-semibold text-black">{totalProjects}</p>
+        <Card>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Projects
+                </p>
+                <p className="mt-2 text-3xl font-semibold">{totalProjects}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Briefcase className="h-6 w-6 text-blue-700" />
+              </div>
             </div>
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-full">
-              <Briefcase className="h-6 w-6 text-black" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-sm text-black">
+            <div className="mt-4 text-sm text-muted-foreground">
               Active projects with this customer
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Total Enquiries Card */}
-        <div className="bg-yellow-300 rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-black">Total Enquiries</p>
-              <p className="mt-2 text-3xl font-semibold text-black">{totalEnquiries}</p>
+        <Card>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Enquiries
+                </p>
+                <p className="mt-2 text-3xl font-semibold">{totalEnquiries}</p>
+              </div>
+              <div className="p-3 bg-yellow-100 rounded-full">
+                <FileQuestion className="h-6 w-6 text-yellow-700" />
+              </div>
             </div>
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-full">
-              <FileQuestion className="h-6 w-6 text-black" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-sm text-black">
+            <div className="mt-4 text-sm text-muted-foreground">
               All enquiries from this customer
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Converted Enquiries Card */}
-        <div className="bg-gradient-to-br from-green-300 to-green-400 rounded-xl shadow-sm p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-black">Converted to Projects</p>
-              <p className="mt-2 text-3xl font-semibold text-black">{enquiriesMovedToProjects}</p>
+        <Card>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Converted to Projects
+                </p>
+                <p className="mt-2 text-3xl font-semibold">
+                  {enquiriesMovedToProjects}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <ArrowRight className="h-6 w-6 text-green-700" />
+              </div>
             </div>
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-full">
-              <ArrowRight className="h-6 w-6 text-black" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-sm text-black">
+            <div className="mt-4 text-sm text-muted-foreground">
               Enquiries converted to projects
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Customer information card */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+      <Card className="mb-8 overflow-hidden">
         {/* Customer header */}
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center">
-            <div className="flex items-center space-x-4">
+        <CardHeader className="border-b">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div className="flex items-center gap-4">
               {customer.logoUrl ? (
-                <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center overflow-hidden">
+                <div className="h-16 w-16 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden">
                   <img
                     src={customer.logoUrl}
                     alt={`${customer.name} logo`}
@@ -219,147 +246,137 @@ export default function CustomerDetails() {
                   />
                 </div>
               ) : (
-                <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <Image className="h-8 w-8 text-white" />
+                <div className="h-16 w-16 rounded-full border border-border bg-muted flex items-center justify-center">
+                  <Image className="h-8 w-8 text-muted-foreground" />
                 </div>
               )}
-              <div>
-                <h2 className="text-3xl font-bold">{customer.name}</h2>
-              </div>
+              <CardTitle className="text-2xl">{customer.name}</CardTitle>
             </div>
-            <div className="mt-4 md:mt-0 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg">
-              <p className="font-medium">
-                GST: {customer.gstNumber || "Not provided"}
-              </p>
-            </div>
+            <Badge variant="outline" className="h-auto px-3 py-1.5 text-sm">
+              GST: {customer.gstNumber || "Not provided"}
+            </Badge>
           </div>
-        </div>
+        </CardHeader>
 
         {/* Customer details */}
-        <div className="p-6">
+        <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Contact Information */}
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
+            <div className="space-y-4">
+              <h3 className="text-lg font-heading font-semibold">
                 Contact Information
               </h3>
+              <Separator />
 
               <div className="space-y-4">
-                {/* <div className="flex items-start">
-                  <User className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
-                  <div>
-                    <p className="font-medium text-gray-700">Contact Persons</p>
+                <div className="flex items-start">
+                  <User className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
+                  <div className="w-full">
+                    <p className="font-medium">Contact Persons</p>
                     {customer.contactPersons &&
                     customer.contactPersons.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="space-y-3 mt-1">
                         {customer.contactPersons.map((contact, index) => (
-                          <div key={index} className="text-gray-600">
-                            <span className="font-medium">{contact.name}</span>{":  "}
-                             {contact.countryCode+" "+contact.phone}
+                          <div
+                            key={index}
+                            className="text-muted-foreground border-b border-border pb-2 last:border-0"
+                          >
+                            <div className="font-medium text-foreground mb-1">
+                              {contact.name}
+                            </div>
+                            <div className="flex items-center gap-1 text-sm">
+                              <Phone className="h-4 w-4" />
+                              <span>
+                                {contact.countryCode} {contact.phone}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-sm mt-1">
+                              <Mail className="h-4 w-4" />
+                              <span>
+                                {contact.email || "Email not specified"}
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>
                     ) : customer.contactPersons &&
                       customer.contactPersons.length === 1 ? (
-                      <p className="text-gray-600">
-                        {customer.contactPersons[0].name}
-                      </p>
+                      <div className="text-muted-foreground">
+                        <div className="font-medium text-foreground">
+                          {customer.contactPersons[0].name}
+                        </div>
+                        <div className="flex items-center gap-1 text-sm">
+                          <Phone className="h-4 w-4" />
+                          <span>
+                            {customer.contactPersons[0].countryCode}{" "}
+                            {customer.contactPersons[0].phone}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm mt-1">
+                          <Mail className="h-4 w-4" />
+                          <span>
+                            {customer.contactPersons[0].email ||
+                              "Email not specified"}
+                          </span>
+                        </div>
+                      </div>
                     ) : (
-                      <p className="text-gray-600">Not specified</p>
+                      <p className="text-muted-foreground">Not specified</p>
                     )}
                   </div>
-                </div> */}
+                </div>
 
-<div className="flex items-start">
-      <User className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
-      <div className="w-full">
-        <p className="font-medium text-gray-700">Contact Persons</p>
-        {customer.contactPersons &&
-        customer.contactPersons.length > 0 ? (
-          <div className="space-y-3 mt-1">
-            {customer.contactPersons.map((contact, index) => (
-              <div key={index} className="text-gray-600 border-b border-gray-200 pb-2 last:border-0">
-                <div className="font-medium text-gray-700 mb-1">{contact.name}</div>
-                <div className="flex items-center space-x-1 text-sm">
-                  <Phone className="h-4 w-4 text-gray-500" />
-                  <span>{contact.countryCode} {contact.phone}</span>
-                </div>
-                <div className="flex items-center space-x-1 text-sm mt-1">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span>{contact.email || "Email not specified"}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : customer.contactPersons &&
-          customer.contactPersons.length === 1 ? (
-          <div className="text-gray-600">
-            <div className="font-medium">{customer.contactPersons[0].name}</div>
-            <div className="flex items-center space-x-1 text-sm">
-              <Phone className="h-4 w-4 text-gray-500" />
-              <span>{customer.contactPersons[0].countryCode} {customer.contactPersons[0].phone}</span>
-            </div>
-            <div className="flex items-center space-x-1 text-sm mt-1">
-              <Mail className="h-4 w-4 text-gray-500" />
-              <span>{customer.contactPersons[0].email || "Email not specified"}</span>
-            </div>
-          </div>
-        ) : (
-          <p className="text-gray-600">Not specified</p>
-        )}
-      </div>
-    </div>
-   
                 <div className="flex items-start">
-                  <Mail className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <Mail className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Email</p>
-                    <p className="text-gray-600">{customer.email}</p>
+                    <p className="font-medium">Email</p>
+                    <p className="text-muted-foreground">{customer.email}</p>
                   </div>
                 </div>
               </div>
             </div>
             {/* Address Information - no changes needed */}
 
-            <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
+            <div className="space-y-4">
+              <h3 className="text-lg font-heading font-semibold">
                 Address Information
               </h3>
+              <Separator />
 
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <Building className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <Building className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Company Name</p>
-                    <p className="text-gray-600">{customer.name}</p>
+                    <p className="font-medium">Company Name</p>
+                    <p className="text-muted-foreground">{customer.name}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start">
-                  <MapPin className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <MapPin className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Address</p>
-                    <p className="text-gray-600 whitespace-pre-line">
+                    <p className="font-medium">Address</p>
+                    <p className="text-muted-foreground whitespace-pre-line">
                       {customer.address}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start">
-                  <FileText className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <FileText className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Billing Address</p>
-                    <p className="text-gray-600 whitespace-pre-line">
+                    <p className="font-medium">Billing Address</p>
+                    <p className="text-muted-foreground whitespace-pre-line">
                       {customer.billingAddress || "Same as address"}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start">
-                  <TruckIcon className="h-5 w-5 text-gray-500 mt-0.5 mr-3" />
+                  <TruckIcon className="h-5 w-5 text-muted-foreground mt-0.5 mr-3" />
                   <div>
-                    <p className="font-medium text-gray-700">Shipping Address</p>
-                    <p className="text-gray-600 whitespace-pre-line">
+                    <p className="font-medium">Shipping Address</p>
+                    <p className="text-muted-foreground whitespace-pre-line">
                       {customer.shippingAddress || "Same as address"}
                     </p>
                   </div>
@@ -368,132 +385,146 @@ export default function CustomerDetails() {
               </div>
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Projects Section */}
-        <div className="mt-8 px-[3%]">
-          <div className="bg-white rounded-xl border-[1px] overflow-hidden">
-            <div className="border-b border-gray-200 px-6 py-3">
-              <h3 className="text-lg font-medium text-gray-900">Projects</h3>
+      {/* Projects Section */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Projects</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {customerProjects.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              No projects found for this customer
             </div>
-            <div className="px-6 py-4">
-              {customerProjects.length === 0 ? (
-                <div className="text-center py-4 text-gray-500">
-                  No projects found for this customer
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project Number</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Payment</th>
-                        {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th> */}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {customerProjects.map((project) => (
-                        <tr 
-                          key={project.id}
-                          onClick={() => navigate(`/dashboard/projects/${project.id}`)}
-                          className="hover:bg-gray-50 cursor-pointer"
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Project Number</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead>Total Payment</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customerProjects.map((project) => (
+                    <TableRow
+                      key={project.id}
+                      onClick={() => navigate(`/dashboard/projects/${project.id}`)}
+                      className="cursor-pointer"
+                    >
+                      <TableCell>p-{project.projectNumber}</TableCell>
+                      <TableCell>{project.name}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            project.status === "completed"
+                              ? "border-transparent bg-green-100 text-green-800"
+                              : project.status === "ongoing"
+                              ? "border-transparent bg-blue-100 text-blue-800"
+                              : "border-transparent bg-muted text-muted-foreground"
+                          }
                         >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            p-{project.projectNumber}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{project.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                              ${project.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                              project.status === 'ongoing' ? 'bg-blue-100 text-blue-800' : 
-                              'bg-gray-100 text-gray-800'}`}>
-                              {project.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.project_start_date ? new Date(project.project_start_date).toLocaleDateString("en-GB") : '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.project_due_date ? new Date(project.project_due_date).toLocaleDateString("en-GB") : '-'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {project.total_amount}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                          {project.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {project.project_start_date
+                          ? new Date(
+                              project.project_start_date
+                            ).toLocaleDateString("en-GB")
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {project.project_due_date
+                          ? new Date(
+                              project.project_due_date
+                            ).toLocaleDateString("en-GB")
+                          : "-"}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {project.total_amount}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          </div>
-        </div>
+          )}
+        </CardContent>
+      </Card>
 
-        {/* Enquiries Section */}
-        <div className="mt-8 mb-6 px-[3%]">
-          <div className="bg-white rounded-xl border-[1px] overflow-hidden">
-            <div className="border-b border-gray-200 px-6 py-3">
-              <h3 className="text-lg font-medium text-gray-900">Enquiries</h3>
+      {/* Enquiries Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Enquiries</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {customerEnquiries.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">
+              No enquiries found for this customer
             </div>
-            <div className="px-6 py-4">
-              {customerEnquiries.length === 0 ? (
-                <div className="text-center py-4 text-gray-500">
-                  No enquiries found for this customer
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enquiry Number</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Value</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {customerEnquiries.map((enquiry) => (
-                        <tr 
-                          key={enquiry.id}
-                          onClick={() => navigate(`/dashboard/enquiries/${enquiry.id}`)}
-                          className="hover:bg-gray-50 cursor-pointer"
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Enquiry Number</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created At</TableHead>
+                    <TableHead className="text-right">Total Value</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customerEnquiries.map((enquiry) => (
+                    <TableRow
+                      key={enquiry.id}
+                      onClick={() => navigate(`/dashboard/enquiries/${enquiry.id}`)}
+                      className="cursor-pointer"
+                    >
+                      <TableCell>E-{enquiry.enquiryNumber}</TableCell>
+                      <TableCell>{enquiry.name}</TableCell>
+                      <TableCell className="text-muted-foreground max-w-xs truncate">
+                        {enquiry.description}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            enquiry.status === "moved to projects"
+                              ? "border-transparent bg-green-100 text-green-800"
+                              : enquiry.status === "on hold"
+                              ? "border-transparent bg-yellow-100 text-yellow-800"
+                              : enquiry.status === "cancelled"
+                              ? "border-transparent bg-red-100 text-red-800"
+                              : "border-transparent bg-blue-100 text-blue-800"
+                          }
                         >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            E-{enquiry.enquiryNumber}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{enquiry.name}</td>
-                          <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{enquiry.description}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                              ${enquiry.status === 'moved to projects' ? 'bg-green-100 text-green-800' : 
-                              enquiry.status === 'on hold' ? 'bg-yellow-100 text-yellow-800' : 
-                              enquiry.status === 'cancelled' ? 'bg-red-100 text-red-800' : 
-                              'bg-blue-100 text-blue-800'}`}>
-                              {enquiry.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(enquiry.createdAt).toLocaleDateString("en-GB")}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                            ₹{enquiry.deliverables.reduce((sum, d) => sum + d.total, 0)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                          {enquiry.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(enquiry.createdAt).toLocaleDateString("en-GB")}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ₹{enquiry.deliverables.reduce((sum, d) => sum + d.total, 0)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          </div>
-        </div>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

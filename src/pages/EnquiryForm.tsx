@@ -6,6 +6,11 @@ import { useCustomerStore, Customer } from "@/store/customerStore";
 import toast from "react-hot-toast";
 import RichTextEditor, { ToolbarConfig } from "react-rte";
 import Currency from "../components/Currency";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Deliverable {
   id: string;
@@ -440,27 +445,24 @@ export default function EnquiryForm() {
   return (
     <form onSubmit={handleSubmit} className=" p-6 space-y-8 ">
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <button type="button" onClick={() => navigate(-1)}>
-            <ArrowLeft className=" h-7 w-7" />
-          </button>
-          <h2 className="text-2xl font-bold">
+        <div className="flex items-center gap-4">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="size-5" />
+          </Button>
+          <h2 className="text-2xl font-heading font-semibold">
             {id ? "Edit Enquiry" : "Create New Enquiry"}
           </h2>
         </div>
-        <div className="flex space-x-4">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
+        <div className="flex gap-4">
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting || storeLoading}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black/90 hover:bg-black/80 focus:outline-none"
-          >
+          </Button>
+          <Button type="submit" disabled={isSubmitting || storeLoading}>
             {isSubmitting || storeLoading ? (
               <>
                 <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
@@ -471,183 +473,174 @@ export default function EnquiryForm() {
             ) : (
               "Create Enquiry"
             )}
-          </button>
-          <button
-            type="button"
-            onClick={clearDraft}
-            className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
+          </Button>
+          <Button type="button" variant="outline" onClick={clearDraft}>
             Clear Draft
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="flex flex-col gap-3 justify-center px-[10%]">
-        <div className=" bg-white border-[1px] rounded-xl px-6 py-10 ">
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <label className="block font-medium text-gray-700">
-                Enquiry Number
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.enquiryNumber}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    enquiryNumber: e.target.value,
-                  }))
-                }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
+        <Card>
+          <CardHeader>
+            <CardTitle>Enquiry Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-1">
+                <Label htmlFor="enquiry-number">Enquiry Number</Label>
+                <Input
+                  id="enquiry-number"
+                  type="text"
+                  required
+                  value={formData.enquiryNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      enquiryNumber: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="enquiry-name">Enquiry Name</Label>
+                <Input
+                  id="enquiry-name"
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="enquiry-description">Description</Label>
+                <Textarea
+                  id="enquiry-description"
+                  required
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      description: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="enquiry-deadline">Deadline</Label>
+                <Input
+                  id="enquiry-deadline"
+                  type="date"
+                  value={formData.deadLine}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      deadLine: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-1">
+                {/* changed scope of work label to deliverables */}
+                <Label>Deliverables</Label>
+                <RichTextEditor
+                  value={formData.scopeOfWork}
+                  onChange={(value) =>
+                    setFormData((prev) => ({ ...prev, scopeOfWork: value }))
+                  }
+                  toolbarConfig={toolbarConfig}
+                  editorStyle={editorStyle}
+                  className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block font-medium text-gray-700">
-                Enquiry Name
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block font-medium text-gray-700">
-                Description
-              </label>
-              <textarea
-                required
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-                className="mt-1 block w-full p-2 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                rows={3}
-              />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  placeholder="Search customers..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleAddNewCustomer}
+                >
+                  <UserPlus size={20} />
+                </Button>
+              </div>
+
+              {showCustomerDropdown && (
+                <div className="absolute z-10 mt-1 w-full bg-popover text-popover-foreground shadow-lg rounded-md border border-border">
+                  {filteredCustomers.map((customer) => (
+                    <div
+                      key={customer.id}
+                      className="p-2 hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                      onClick={() => handleCustomerSelect(customer)}
+                    >
+                      {customer.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div>
-              <label className="block font-medium text-gray-700">
-                Deadline
-              </label>
-              <input
-                type="date"
-                value={formData.deadLine}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    deadLine: e.target.value,
-                  }))
-                }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              {/* changed scope of work label to deliverables */}
-              <label className="block font-medium text-gray-700">
-                Deliverables
-              </label>
-              <RichTextEditor
-                value={formData.scopeOfWork}
-                onChange={(value) =>
-                  setFormData((prev) => ({ ...prev, scopeOfWork: value }))
-                }
-                toolbarConfig={toolbarConfig}
-                editorStyle={editorStyle}
-                className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border-[1px] rounded-xl px-6 py-10">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            Customer Details
-          </h3>
-          <div className="relative">
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                placeholder="Search customers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onFocus={() => setShowCustomerDropdown(true)}
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-              <button
-                type="button"
-                onClick={handleAddNewCustomer}
-                className="mt-1 p-2 text-gray-600 hover:text-gray-900"
-              >
-                <UserPlus size={20} />
-              </button>
-            </div>
-
-            {showCustomerDropdown && (
-              <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-300">
-                {filteredCustomers.map((customer) => (
-                  <div
-                    key={customer.id}
-                    className="p-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => handleCustomerSelect(customer)}
-                  >
-                    {customer.name}
-                  </div>
-                ))}
+            {selectedCustomer && (
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="customer-name">Name</Label>
+                  <Input
+                    id="customer-name"
+                    type="text"
+                    readOnly
+                    value={selectedCustomer.name}
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="customer-email">Email</Label>
+                  <Input
+                    id="customer-email"
+                    type="email"
+                    readOnly
+                    value={selectedCustomer.email}
+                    className="bg-muted"
+                  />
+                </div>
+                <div className="sm:col-span-2 space-y-1">
+                  <Label htmlFor="customer-address">Address</Label>
+                  <Textarea
+                    id="customer-address"
+                    readOnly
+                    value={selectedCustomer.address}
+                    className="bg-muted"
+                    rows={2}
+                  />
+                </div>
               </div>
             )}
-          </div>
-
-          {selectedCustomer && (
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={selectedCustomer.name}
-                  className="mt-1 p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  readOnly
-                  value={selectedCustomer.email}
-                  className="mt-1 p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Address
-                </label>
-                <textarea
-                  readOnly
-                  value={selectedCustomer.address}
-                  className="mt-1 p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
-                  rows={2}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-        <div>
-          <label className="block font-medium text-gray-700">End Client</label>
-          <input
+          </CardContent>
+        </Card>
+        <div className="space-y-1">
+          <Label htmlFor="end-client">End Client</Label>
+          <Input
+            id="end-client"
             type="text"
             value={formData.endClient}
             onChange={(e) =>
@@ -656,274 +649,271 @@ export default function EnquiryForm() {
                 endClient: e.target.value,
               }))
             }
-            className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           />
         </div>
 
-        <div className="bg-white border-[1px] rounded-xl px-6 py-10">
-          <Currency
-            addCurrency={handleCurrencyChange}
-            initialCurrency={formData.currency}
-          />
-        </div>
+        <Card>
+          <CardContent>
+            <Currency
+              addCurrency={handleCurrencyChange}
+              initialCurrency={formData.currency}
+            />
+          </CardContent>
+        </Card>
 
-        <div className="bg-white border-[1px] rounded-xl px-6 py-10">
-          <div className="flex justify-between items-center mb-4">
-            {/* changed deliverables title to scope of work  */}
-            <h3 className="text-lg font-medium text-gray-900">Scope of Work</h3>
-            <button
-              type="button"
-              onClick={addDeliverable}
-              className="inline-flex items-center px-3 border border-transparent text-sm font-medium rounded-md text-white bg-black/90 hover:bg-black/80 py-2"
-            >
-              <Plus size={16} className="mr-1" />
-              Add Scope of Work
-            </button>
-          </div>
-          <div className="space-y-4">
-            {formData.deliverables.map((deliverable) => (
-              <div
-                key={deliverable.id}
-                className="grid grid-cols-1 gap-4 border-b pb-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={deliverable.name}
-                    onChange={(e) =>
-                      updateDeliverable(deliverable.id, "name", e.target.value)
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Hours
-                    </label>
-                    <input
-                      type="number"
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              {/* changed deliverables title to scope of work  */}
+              <CardTitle>Scope of Work</CardTitle>
+              <Button type="button" size="sm" onClick={addDeliverable}>
+                <Plus size={16} className="mr-1" />
+                Add Scope of Work
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {formData.deliverables.map((deliverable) => (
+                <div
+                  key={deliverable.id}
+                  className="grid grid-cols-1 gap-4 border-b border-border pb-4"
+                >
+                  <div className="space-y-1">
+                    <Label>Name</Label>
+                    <Input
+                      type="text"
                       required
-                      min="0"
-                      value={deliverable.hours}
+                      value={deliverable.name}
                       onChange={(e) =>
                         updateDeliverable(
                           deliverable.id,
-                          "hours",
-                          parseFloat(e.target.value)
+                          "name",
+                          e.target.value
                         )
                       }
-                      className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Cost/Hour
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      value={deliverable.costPerHour}
-                      onChange={(e) =>
-                        updateDeliverable(
-                          deliverable.id,
-                          "costPerHour",
-                          parseFloat(e.target.value)
-                        )
-                      }
-                      className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div className="flex items-end space-x-2">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Total
-                      </label>
-                      <input
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <Label>Hours</Label>
+                      <Input
                         type="number"
-                        readOnly
-                        value={deliverable.total}
-                        className="mt-1 p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                        required
+                        min="0"
+                        value={deliverable.hours}
+                        onChange={(e) =>
+                          updateDeliverable(
+                            deliverable.id,
+                            "hours",
+                            parseFloat(e.target.value)
+                          )
+                        }
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeDeliverable(deliverable.id)}
-                      className="mb-1 p-2 text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <div className="space-y-1">
+                      <Label>Cost/Hour</Label>
+                      <Input
+                        type="number"
+                        required
+                        min="0"
+                        value={deliverable.costPerHour}
+                        onChange={(e) =>
+                          updateDeliverable(
+                            deliverable.id,
+                            "costPerHour",
+                            parseFloat(e.target.value)
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1 space-y-1">
+                        <Label>Total</Label>
+                        <Input
+                          type="number"
+                          readOnly
+                          value={deliverable.total}
+                          className="bg-muted"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="mb-1 text-destructive hover:text-destructive"
+                        onClick={() => removeDeliverable(deliverable.id)}
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label>Description</Label>
+                    <RichTextEditor
+                      value={deliverable.description}
+                      onChange={(value) =>
+                        handleDeliverableDescriptionChange(
+                          deliverable.id,
+                          value
+                        )
+                      }
+                      toolbarConfig={toolbarConfig}
+                      className="min-h-[100px] w-full"
+                    />
                   </div>
                 </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <RichTextEditor
-                    value={deliverable.description}
-                    onChange={(value) =>
-                      handleDeliverableDescriptionChange(deliverable.id, value)
-                    }
-                    toolbarConfig={toolbarConfig}
-                    className="min-h-[100px] w-full"
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Exclusions</CardTitle>
+              <Button type="button" size="sm" onClick={addExclusion}>
+                <Plus size={16} className="mr-1" />
+                Add Exclusion
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {formData.exclusions.map((exclusion, index) => (
+                <div key={index} className="flex items-end gap-2">
+                  <Input
+                    type="text"
+                    required
+                    value={exclusion}
+                    onChange={(e) => updateExclusion(index, e.target.value)}
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => removeExclusion(index)}
+                  >
+                    <Trash2 size={18} />
+                  </Button>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white border-[1px] rounded-xl px-6 py-10">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Exclusions</h3>
-            <button
-              type="button"
-              onClick={addExclusion}
-              className="inline-flex items-center px-3 border border-transparent text-sm font-medium rounded-md text-white bg-black/90 hover:bg-black/80 py-2"
-            >
-              <Plus size={16} className="mr-1" />
-              Add Exclusion
-            </button>
-          </div>
-          <div className="space-y-4">
-            {formData.exclusions.map((exclusion, index) => (
-              <div key={index} className="flex items-end space-x-2">
-                <input
-                  type="text"
-                  required
-                  value={exclusion}
-                  onChange={(e) => updateExclusion(index, e.target.value)}
-                  className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeExclusion(index)}
-                  className="mb-1 p-2 text-red-600 hover:text-red-900"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* New Inputs Required Section */}
-        <div className="bg-white border-[1px] rounded-xl px-6 py-10">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium text-gray-900">
-              Inputs Required
-            </h3>
-            <button
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Inputs Required</CardTitle>
+              <Button type="button" size="sm" onClick={addInputRequired}>
+                <Plus size={16} className="mr-1" />
+                Add Input
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {formData.inputsRequired.map((input, index) => (
+                <div key={index} className="flex items-end gap-2">
+                  <Input
+                    type="text"
+                    required
+                    value={input}
+                    onChange={(e) => updateInputRequired(index, e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => removeInputRequired(index)}
+                  >
+                    <Trash2 size={18} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Charges Included</CardTitle>
+              <Button type="button" size="sm" onClick={addCharge}>
+                <Plus size={16} className="mr-1" />
+                Add Charge
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {formData.charges.map((charge, index) => (
+                <div key={index} className="flex items-end gap-2">
+                  <Input
+                    type="text"
+                    required
+                    value={charge}
+                    onChange={(e) => updateCharge(index, e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => removeCharge(index)}
+                  >
+                    <Trash2 size={18} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Buttons container with same width as white div above */}
+        <div className="mt-4">
+          <div className="flex gap-4">
+            <Button
               type="button"
-              onClick={addInputRequired}
-              className="inline-flex items-center px-3 border border-transparent text-sm font-medium rounded-md text-white bg-black/90 hover:bg-black/80 py-2"
+              variant="outline"
+              className="flex-1"
+              onClick={() => navigate(-1)}
             >
-              <Plus size={16} className="mr-1" />
-              Add Input
-            </button>
-          </div>
-          <div className="space-y-4">
-            {formData.inputsRequired.map((input, index) => (
-              <div key={index} className="flex items-end space-x-2">
-                <input
-                  type="text"
-                  required
-                  value={input}
-                  onChange={(e) => updateInputRequired(index, e.target.value)}
-                  className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeInputRequired(index)}
-                  className="mb-1 p-2 text-red-600 hover:text-red-900"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1"
+              disabled={isSubmitting || storeLoading}
+            >
+              {isSubmitting || storeLoading ? (
+                <>
+                  <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                  {id ? "Updating..." : "Creating..."}
+                </>
+              ) : id ? (
+                "Update Enquiry"
+              ) : (
+                "Create Enquiry"
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={clearDraft}
+            >
+              Clear Draft
+            </Button>
           </div>
         </div>
-
-   <div className="bg-white border-[1px] rounded-xl px-6 py-10">
-  <div className="flex justify-between items-center mb-4">
-    <h3 className="text-lg font-medium text-gray-900">
-      Charges Included
-    </h3>
-    <button
-      type="button"
-      onClick={addCharge}
-      className="inline-flex items-center px-3 border border-transparent text-sm font-medium rounded-md text-white bg-black/90 hover:bg-black/80 py-2"
-    >
-      <Plus size={16} className="mr-1" />
-      Add Charge
-    </button>
-  </div>
-  <div className="space-y-4">
-    {formData.charges.map((charge, index) => (
-      <div key={index} className="flex items-end space-x-2">
-        <input
-          type="text"
-          required
-          value={charge}
-          onChange={(e) => updateCharge(index, e.target.value)}
-          className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-        />
-        <button
-          type="button"
-          onClick={() => removeCharge(index)}
-          className="mb-1 p-2 text-red-600 hover:text-red-900"
-        >
-          <Trash2 size={18} />
-        </button>
       </div>
-    ))}
-  </div>
-</div>
-
-{/* Buttons container with same width as white div above */}
-<div className="mt-4">
-  <div className="flex gap-4">
-    <button
-      type="button"
-      onClick={() => navigate(-1)}
-      className="flex-1 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-    >
-      Cancel
-    </button>
-    <button
-      type="submit"
-      disabled={isSubmitting || storeLoading}
-      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black/90 hover:bg-black/80 focus:outline-none"
-    >
-      {isSubmitting || storeLoading ? (
-        <>
-          <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-          {id ? "Updating..." : "Creating..."}
-        </>
-      ) : id ? (
-        "Update Enquiry"
-      ) : (
-        "Create Enquiry"
-      )}
-    </button>
-    <button
-      type="button"
-      onClick={clearDraft}
-      className="flex-1 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-    >
-      Clear Draft
-    </button>
-  </div>
-</div>
-</div>
-
     </form>
   );
 }

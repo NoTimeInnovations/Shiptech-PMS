@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { MonthlyAttendance } from "@/pages/Attendance";
 import { useLeaveStore } from "@/store/leaveStore";
 import { useWorkFromStore } from "@/store/workfromhomestore";
@@ -11,6 +11,27 @@ import { useAttendanceStore, getLocalDateString } from "../store/attendanceStore
 import { toast } from "react-hot-toast";
 import { auth } from "../lib/firebase"; // Import auth from firebase
 import { useHolidayStore } from "@/store/holidayStore"; // Import holiday store
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CalendarDay {
   date: Date;
@@ -375,7 +396,10 @@ export default function AttendanceCalendar({
   const getStatusStyle = (status: any) => {
     if (status.type === "attendance") {
       return {
-        bg: status.attendanceType === "half" ? "bg-green-100" : "bg-green-200",
+        bg:
+          status.attendanceType === "half"
+            ? "bg-green-100 text-green-800"
+            : "bg-green-200 text-green-900",
         text: status.attendanceType === "half" ? "Present (Half)" : "Present",
       };
     }
@@ -386,17 +410,17 @@ export default function AttendanceCalendar({
           : "";
       if (status.status === "pending") {
         return {
-          bg: "bg-red-200 animate-pulse",
+          bg: "bg-red-200 text-red-900 animate-pulse",
           text: `Leave${leaveTypeText} Pending`,
         };
       } else if (status.status === "approved") {
         return {
-          bg: "bg-red-200",
+          bg: "bg-red-200 text-red-900",
           text: `Leave${leaveTypeText} Approved`,
         };
       } else {
         return {
-          bg: "bg-red-100",
+          bg: "bg-red-100 text-red-800",
           text: `Leave${leaveTypeText} Rejected`,
         };
       }
@@ -404,46 +428,46 @@ export default function AttendanceCalendar({
     if (status.type === "workfrom") {
       if (status.status === "pending") {
         return {
-          bg: "bg-violet-200 animate-pulse",
+          bg: "bg-violet-200 text-violet-900 animate-pulse",
           text: "WFH Pending",
         };
       } else if (status.status === "approved") {
         return {
-          bg: "bg-violet-200",
+          bg: "bg-violet-200 text-violet-900",
           text: "WFH Approved",
         };
       } else {
         return {
-          bg: "bg-violet-100",
+          bg: "bg-violet-100 text-violet-800",
           text: "WFH Rejected",
         };
       }
     }
     if (status.type === "holiday") {
       return {
-        bg: "bg-blue-400",
+        bg: "bg-blue-400 text-white",
       };
     }
     if (status.type === "ooo") {
       if (status.status === "pending") {
         return {
-          bg: "bg-purple-200 animate-pulse",
+          bg: "bg-purple-200 text-purple-900 animate-pulse",
           text: "OOO Pending",
         };
       } else if (status.status === "approved") {
         return {
-          bg: "bg-purple-200",
+          bg: "bg-purple-200 text-purple-900",
           text: "OOO Approved",
         };
       } else {
         return {
-          bg: "bg-purple-100",
+          bg: "bg-purple-100 text-purple-800",
           text: "OOO Rejected",
         };
       }
     }
     return {
-      bg: "bg-white",
+      bg: "bg-card",
       text: "",
     };
   };
@@ -685,34 +709,35 @@ export default function AttendanceCalendar({
 
   return (
     <div className="">
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 border-b border-gray-200">
+      <Card className="overflow-hidden p-0 gap-0">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-heading font-semibold text-foreground">
               Attendance Calendar
             </h3>
-            <div className="flex space-x-2">
-              <button
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={goToPreviousMonth}
-                className="p-2 hover:bg-gray-100 rounded-full"
+                aria-label="Previous month"
               >
-                <ChevronLeft className="h-5 w-5 text-gray-600" />
-              </button>
-              <button
-                onClick={goToToday}
-                className="px-3 py-1 text-sm bg-black/90 text-white rounded-md hover:bg-black/80"
-              >
+                <ChevronLeft />
+              </Button>
+              <Button size="sm" onClick={goToToday}>
                 Today
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={goToNextMonth}
-                className="p-2 hover:bg-gray-100 rounded-full"
+                aria-label="Next month"
               >
-                <ChevronRight className="h-5 w-5 text-gray-600" />
-              </button>
+                <ChevronRight />
+              </Button>
             </div>
           </div>
-          <p className="mt-1 text-lg text-gray-900">
+          <p className="mt-1 text-lg text-foreground">
             {currentDate.toLocaleString("default", {
               month: "long",
               year: "numeric",
@@ -720,28 +745,28 @@ export default function AttendanceCalendar({
           </p>
         </div>
 
-        <div className="grid grid-cols-7 gap-px bg-gray-200">
+        <div className="grid grid-cols-7 gap-px bg-border">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
             <div
               key={day}
-              className="bg-gray-50 py-2 text-center text-sm font-medium text-gray-500"
+              className="bg-muted py-2 text-center text-sm font-medium text-muted-foreground"
             >
               {day}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-px bg-gray-200">
+        <div className="grid grid-cols-7 gap-px bg-border border-b border-border">
           {calendar.map((day, index) => {
             const statuses = getDateStatuses(day.date);
             const isCurrentDay = isToday(day.date);
-            const baseClasses = `min-h-[100px] p-2 ${day.isCurrentMonth ? "text-gray-900" : "text-gray-400"
-              } ${isCurrentDay ? "bg-blue-100" : "bg-white"} cursor-pointer`;
+            const baseClasses = `min-h-[100px] p-2 ${day.isCurrentMonth ? "text-foreground" : "text-muted-foreground/60"
+              } ${isCurrentDay ? "bg-primary/10" : "bg-card"} cursor-pointer`;
 
             return (
               <div key={index} className={baseClasses}>
                 <div
-                  className={`font-medium text-sm mb-1 ${isCurrentDay ? "text-blue-600" : ""
+                  className={`font-medium text-sm mb-1 ${isCurrentDay ? "text-primary" : ""
                     }`}
                 >
                   {day.date.getDate()}
@@ -750,15 +775,18 @@ export default function AttendanceCalendar({
                   {statuses.map((status, idx) => {
                     const style = getStatusStyle(status);
                     return (
-                      <div
+                      <Badge
                         key={idx}
                         onClick={(e) => handleClick(e, status)}
-                        className={`${style.bg} text-xs p-1 rounded`}
+                        className={cn(
+                          "w-full max-w-full min-w-0 justify-start truncate rounded cursor-pointer border-transparent",
+                          style.bg
+                        )}
                       >
                         {status.type === "holiday"
                           ? `holiday : ${status.name}`
                           : style.text}
-                      </div>
+                      </Badge>
                     );
                   })}
                 </div>
@@ -767,352 +795,356 @@ export default function AttendanceCalendar({
           })}
         </div>
 
-        {showDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-              <h3 className="text-lg font-medium mb-4">Cancel Request</h3>
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-medium">Employee:</span>{" "}
-                  {requestUserName}
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Cancel Request</DialogTitle>
+            </DialogHeader>
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                <span className="font-medium text-foreground">Employee:</span>{" "}
+                {requestUserName}
+              </p>
+              {selectedStatus?.type === "leave" && (
+                <>
+                  <p className="text-sm text-muted-foreground mb-2 capitalize">
+                    <span className="font-medium text-foreground">
+                      Leave Type:
+                    </span>{" "}
+                    {selectedStatus.leaveType === "half"
+                      ? `Half Day ${selectedStatus.session}`
+                      : "Full Day"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    <span className="font-medium text-foreground">
+                      Reason for Leave:
+                    </span>{" "}
+                    {selectedStatus.reason}
+                  </p>
+                </>
+              )}
+              {selectedStatus?.type === "workfrom" && (
+                <p className="text-sm text-muted-foreground mb-2">
+                  <span className="font-medium text-foreground">
+                    Reason for WFH:
+                  </span>{" "}
+                  {selectedStatus.reason}
                 </p>
-                {selectedStatus?.type === "leave" && (
-                  <>
-                    <p className="text-sm text-gray-600 mb-2 capitalize">
-                      <span className="font-medium">Leave Type:</span>{" "}
-                      {selectedStatus.leaveType === "half"
-                        ? `Half Day ${selectedStatus.session}`
-                        : "Full Day"}
-                    </p>
-                    <p className="text-sm text-gray-600 mb-2">
-                      <span className="font-medium">Reason for Leave:</span>{" "}
-                      {selectedStatus.reason}
-                    </p>
-                  </>
-                )}
-                {selectedStatus?.type === "workfrom" && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">Reason for WFH:</span>{" "}
-                    {selectedStatus.reason}
-                  </p>
-                )}
-                {selectedStatus?.type === "ooo" && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">Reason for OOO:</span>{" "}
-                    {selectedStatus.reason}
-                  </p>
-                )}
-              </div>
+              )}
+              {selectedStatus?.type === "ooo" && (
+                <p className="text-sm text-muted-foreground mb-2">
+                  <span className="font-medium text-foreground">
+                    Reason for OOO:
+                  </span>{" "}
+                  {selectedStatus.reason}
+                </p>
+              )}
+            </div>
 
-              {/* Date Range Inputs for Admin */}
-              {userData?.role == "admin" &&
+            {/* Date Range Inputs for Admin */}
+            {userData?.role == "admin" &&
+              selectedStatus?.type === "leave" && (
+                <div className="space-y-2">
+                  <Label htmlFor="cancel-approve-from">
+                    Approve Leave From:
+                  </Label>
+                  <Input
+                    id="cancel-approve-from"
+                    type="date"
+                    value={approveFromDate}
+                    onChange={(e) => setApproveFromDate(e.target.value)}
+                  />
+                  <Label htmlFor="cancel-approve-to">To:</Label>
+                  <Input
+                    id="cancel-approve-to"
+                    type="date"
+                    value={approveToDate}
+                    onChange={(e) => setApproveToDate(e.target.value)}
+                  />
+                </div>
+              )}
+
+            <p>Are you sure you want to cancel this request?</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDialog(false)}>
+                Cancel
+              </Button>
+              {!dontShowReject && (
+                <Button variant="destructive" onClick={handleCancel}>
+                  Ok
+                </Button>
+              )}
+              {userData?.role === "admin" &&
+                selectedStatus?.status === "pending" && (
+                  <Button
+                    onClick={() => handleAdminAction("approve")}
+                    disabled={isApproving}
+                  >
+                    {isApproving ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      "Approve as Admin"
+                    )}
+                  </Button>
+                )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAdminDialog} onOpenChange={setShowAdminDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Review Request</DialogTitle>
+            </DialogHeader>
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                <span className="font-medium text-foreground">Employee:</span>{" "}
+                {requestUserName}
+              </p>
+              {selectedStatus?.type === "leave" && (
+                <>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    <span className="font-medium text-foreground">
+                      Leave Type:
+                    </span>{" "}
+                    {selectedStatus.leaveType === "half"
+                      ? `Half Day ${selectedStatus.session}`
+                      : "Full Day"}
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    <span className="font-medium text-foreground">
+                      Reason for Leave:
+                    </span>{" "}
+                    {selectedStatus.reason}
+                  </p>
+                </>
+              )}
+
+              {userData?.role === "admin" &&
                 selectedStatus?.type === "leave" && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="space-y-2 mb-4">
+                    <Label htmlFor="review-approve-from">
                       Approve Leave From:
-                    </label>
-                    <input
+                    </Label>
+                    <Input
+                      id="review-approve-from"
                       type="date"
                       value={approveFromDate}
                       onChange={(e) => setApproveFromDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
-                    <label className="block text-sm font-medium text-gray-700 mt-2 mb-1">
-                      To:
-                    </label>
-                    <input
+                    <Label htmlFor="review-approve-to">To:</Label>
+                    <Input
+                      id="review-approve-to"
                       type="date"
                       value={approveToDate}
                       onChange={(e) => setApproveToDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 )}
 
-              <p className="mb-6">
-                Are you sure you want to cancel this request?
-              </p>
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={() => setShowDialog(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                >
-                  Cancel
-                </button>
-                {!dontShowReject && (
-                  <button
-                    onClick={handleCancel}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                  >
-                    Ok
-                  </button>
-                )}
-                {userData?.role === "admin" &&
-                  selectedStatus.status === "pending" && (
-                    <button
-                      onClick={() => handleAdminAction("approve")}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                      disabled={isApproving}
-                    >
-                      {isApproving ? (
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-                      ) : (
-                        "Approve as Admin"
-                      )}
-                    </button>
-                  )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showAdminDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-              <h3 className="text-lg font-medium mb-4">Review Request</h3>
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-medium">Employee:</span>{" "}
-                  {requestUserName}
+              {selectedStatus?.type === "workfrom" && (
+                <p className="text-sm text-muted-foreground mb-2">
+                  <span className="font-medium text-foreground">
+                    Reason for WFH:
+                  </span>{" "}
+                  {selectedStatus.reason}
                 </p>
-                {selectedStatus?.type === "leave" && (
-                  <>
-                    <p className="text-sm text-gray-600 mb-2">
-                      <span className="font-medium">Leave Type:</span>{" "}
-                      {selectedStatus.leaveType === "half"
-                        ? `Half Day ${selectedStatus.session}`
-                        : "Full Day"}
-                    </p>
-                    <p className="text-sm text-gray-600 mb-2">
-                      <span className="font-medium">Reason for Leave:</span>{" "}
-                      {selectedStatus.reason}
-                    </p>
-                  </>
-                )}
-
-                {userData?.role === "admin" &&
-                  selectedStatus?.type === "leave" && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Approve Leave From:
-                      </label>
-                      <input
-                        type="date"
-                        value={approveFromDate}
-                        onChange={(e) => setApproveFromDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <label className="block text-sm font-medium text-gray-700 mt-2 mb-1">
-                        To:
-                      </label>
-                      <input
-                        type="date"
-                        value={approveToDate}
-                        onChange={(e) => setApproveToDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  )}
-
-                {selectedStatus?.type === "workfrom" && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">Reason for WFH:</span>{" "}
-                    {selectedStatus.reason}
-                  </p>
-                )}
-                {selectedStatus?.type === "ooo" && (
-                  <p className="text-sm text-gray-600 mb-2">
-                    <span className="font-medium">Reason for OOO:</span>{" "}
-                    {selectedStatus.reason}
-                  </p>
-                )}
-              </div>
-              <p className="mb-6">
-                What would you like to do with this request?
-              </p>
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={() => setShowAdminDialog(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                >
-                  Cancel
-                </button>
-                {!dontShowReject && (
-                  <button
-                    onClick={() => handleAdminAction("reject")}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                    disabled={isApproving}
-                  >
-                    Reject
-                  </button>
-                )}
-                <button
-                  onClick={() => handleAdminAction("approve")}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              )}
+              {selectedStatus?.type === "ooo" && (
+                <p className="text-sm text-muted-foreground mb-2">
+                  <span className="font-medium text-foreground">
+                    Reason for OOO:
+                  </span>{" "}
+                  {selectedStatus.reason}
+                </p>
+              )}
+            </div>
+            <p>What would you like to do with this request?</p>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowAdminDialog(false)}
+              >
+                Cancel
+              </Button>
+              {!dontShowReject && (
+                <Button
+                  variant="destructive"
+                  onClick={() => handleAdminAction("reject")}
                   disabled={isApproving}
                 >
-                  {isApproving ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  ) : (
-                    "Approve"
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                  Reject
+                </Button>
+              )}
+              <Button
+                onClick={() => handleAdminAction("approve")}
+                disabled={isApproving}
+              >
+                {isApproving ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  "Approve"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Update Attendance Modal */}
-        {showUpdateAttendanceModal && (
-          <div className="fixed z-[100] inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg w-96">
-              <h2 className="text-xl font-bold mb-4">Update Attendance</h2>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Attendance Type
-                </label>
-                <select
-                  value={selectedAttendanceType}
-                  onChange={(e) =>
-                    setSelectedAttendanceType(e.target.value as "full" | "half")
-                  }
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="full">Full Day</option>
-                  <option value="half">Half Day</option>
-                </select>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setShowUpdateAttendanceModal(false)}
-                  className="px-4 py-2 text-gray-800 bg-transparent rounded border border-gray-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleUpdateAttendance("remove")}
-                  className="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700"
-                >
-                  Remove Attendance
-                </button>
-                <button
-                  onClick={() => handleUpdateAttendance("update")}
-                  className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
-                >
-                  Update
-                </button>
-              </div>
+        <Dialog
+          open={showUpdateAttendanceModal}
+          onOpenChange={setShowUpdateAttendanceModal}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Update Attendance</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="update-attendance-type">Attendance Type</Label>
+              <Select
+                value={selectedAttendanceType}
+                onValueChange={(value) =>
+                  setSelectedAttendanceType(value as "full" | "half")
+                }
+              >
+                <SelectTrigger id="update-attendance-type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">Full Day</SelectItem>
+                  <SelectItem value="half">Half Day</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-        )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowUpdateAttendanceModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleUpdateAttendance("remove")}
+              >
+                Remove Attendance
+              </Button>
+              <Button onClick={() => handleUpdateAttendance("update")}>
+                Update
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Analytics Dashboard */}
-        <div className="p-4 border-t border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="p-4 border-t border-border">
+          <h3 className="text-lg font-heading font-semibold text-foreground">
             Attendance Analytics
           </h3>
-          <div className="flex space-x-4 mt-4">
-            <button
-              onClick={() => setActiveTab("overall")}
-              className={`px-4 py-2 rounded ${activeTab === "overall"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200"
-                }`}
-            >
-              Overall
-            </button>
-            <button
-              onClick={() => setActiveTab("custom")}
-              className={`px-4 py-2 rounded ${activeTab === "custom"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200"
-                }`}
-            >
-              Custom Range
-            </button>
-            <button
-              onClick={() => setActiveTab("lastYear")}
-              className={`px-4 py-2 rounded ${activeTab === "lastYear"
-                ? "bg-blue-500 text-white"
-                : "bg-gray-200"
-                }`}
-            >
-              Last Year
-            </button>
-          </div>
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) =>
+              setActiveTab(value as "overall" | "custom" | "lastYear")
+            }
+            className="mt-4"
+          >
+            <TabsList>
+              <TabsTrigger value="overall">Overall</TabsTrigger>
+              <TabsTrigger value="custom">Custom Range</TabsTrigger>
+              <TabsTrigger value="lastYear">Last Year</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {
             startingDate && EndingDate && (
-              <div className="bg-gray-50 p-4 rounded-lg my-4 shadow-sm">
-                <div className="flex flex-col md:flex-row justify-between items-center space-y-2 md:space-y-0">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-600 font-medium">From:</span>
-                    <span className="text-blue-600 font-semibold">{startingDate}</span>
+              <Card size="sm" className="my-4">
+                <CardContent>
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-medium">
+                        From:
+                      </span>
+                      <span className="text-primary font-semibold">
+                        {startingDate}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-medium">
+                        To:
+                      </span>
+                      <span className="text-primary font-semibold">
+                        {EndingDate}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-600 font-medium">To:</span>
-                    <span className="text-blue-600 font-semibold">{EndingDate}</span>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             )
           }
 
           {activeTab === "custom" && (
-            <div className="bg-gray-50 p-4 rounded-lg my-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={customDateRange.startDate}
-                    onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+            <Card size="sm" className="my-4">
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="analytics-start-date">Start Date</Label>
+                    <Input
+                      id="analytics-start-date"
+                      type="date"
+                      value={customDateRange.startDate}
+                      onChange={(e) => setCustomDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="analytics-end-date">End Date</Label>
+                    <Input
+                      id="analytics-end-date"
+                      type="date"
+                      value={customDateRange.endDate}
+                      onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={customDateRange.endDate}
-                    onChange={(e) => setCustomDateRange(prev => ({ ...prev, endDate: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
           {metrics && (
             <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="bg-green-100 p-4 rounded-lg">
-                <h4 className="font-medium">Total Attendance Days</h4>
-                <p className="text-2xl">{metrics.totalAttendanceDays}</p>
-              </div>
-              <div className="bg-yellow-100 p-4 rounded-lg">
-                <h4 className="font-medium">Total Leaves Taken</h4>
-                <p className="text-2xl">{metrics.totalLeaves}</p>
-              </div>
-              <div className="bg-purple-100 p-4 rounded-lg">
-                <h4 className="font-medium">Total WFH Days</h4>
-                <p className="text-2xl">{metrics.totalWFH}</p>
-              </div>
-              <div className="bg-red-100 p-4 rounded-lg">
-                <h4 className="font-medium">Total OOO Days</h4>
-                <p className="text-2xl">{metrics.totalOOO}</p>
-              </div>
-              <div className="bg-blue-100 p-4 rounded-lg">
-                <h4 className="font-medium">Total Working Days</h4>
-                <p className="text-2xl">{metrics.totalWorkingDays}</p>
-              </div>
+              <Card size="sm" className="bg-green-100 dark:bg-green-950">
+                <CardContent>
+                  <h4 className="font-medium">Total Attendance Days</h4>
+                  <p className="text-2xl">{metrics.totalAttendanceDays}</p>
+                </CardContent>
+              </Card>
+              <Card size="sm" className="bg-yellow-100 dark:bg-yellow-950">
+                <CardContent>
+                  <h4 className="font-medium">Total Leaves Taken</h4>
+                  <p className="text-2xl">{metrics.totalLeaves}</p>
+                </CardContent>
+              </Card>
+              <Card size="sm" className="bg-purple-100 dark:bg-purple-950">
+                <CardContent>
+                  <h4 className="font-medium">Total WFH Days</h4>
+                  <p className="text-2xl">{metrics.totalWFH}</p>
+                </CardContent>
+              </Card>
+              <Card size="sm" className="bg-red-100 dark:bg-red-950">
+                <CardContent>
+                  <h4 className="font-medium">Total OOO Days</h4>
+                  <p className="text-2xl">{metrics.totalOOO}</p>
+                </CardContent>
+              </Card>
+              <Card size="sm" className="bg-blue-100 dark:bg-blue-950">
+                <CardContent>
+                  <h4 className="font-medium">Total Working Days</h4>
+                  <p className="text-2xl">{metrics.totalWorkingDays}</p>
+                </CardContent>
+              </Card>
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

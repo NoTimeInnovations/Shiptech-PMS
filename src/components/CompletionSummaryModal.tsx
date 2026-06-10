@@ -1,6 +1,22 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Task } from '@/store/taskStore';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface TimeData {
   taskId: string;
@@ -28,8 +44,6 @@ export default function CompletionSummaryModal({
 }: CompletionSummaryModalProps) {
   const [expandedTaskIds, setExpandedTaskIds] = useState<Record<string, boolean>>({});
 
-  if (!isOpen) return null;
-
   const toggleTaskExpand = (taskId: string) => {
     setExpandedTaskIds(prev => ({
       ...prev,
@@ -43,27 +57,27 @@ export default function CompletionSummaryModal({
       const taskActualHours = task.timeEntries?.reduce((total, entry) => {
         return total + (entry.duration || 0);
       }, 0) || 0;
-  
+
       const hasSubtasks = !!task.children?.length;
-      
+
       // Process children first to get their data
       let childrenData: TimeData[] = [];
       let subtasksActualHours = 0;
-      
+
       if (task.children) {
         childrenData = calculateTimeData(task.children, true);
         subtasksActualHours = childrenData.reduce(
-          (sum, child) => sum + child.actualHours + (child.subtasksActualHours || 0), 
+          (sum, child) => sum + child.actualHours + (child.subtasksActualHours || 0),
           0
         );
       }
-  
+
       // Calculate total actual hours for this task
       // If it has subtasks, include subtask hours in the parent's actual hours
-      const totalActualHours = hasSubtasks && !isChild 
+      const totalActualHours = hasSubtasks && !isChild
         ? (taskActualHours / 60) + subtasksActualHours
         : taskActualHours / 60;
-  
+
       const timeData: TimeData = {
         taskId: task.id,
         taskName: task.name,
@@ -74,7 +88,7 @@ export default function CompletionSummaryModal({
         children: childrenData,
         subtasksActualHours
       };
-  
+
       return timeData;
     });
   };
@@ -95,7 +109,7 @@ export default function CompletionSummaryModal({
   const renderTimeDifference = (difference: number) => {
     const absoluteDiff = Math.abs(difference);
     if (difference === 0) {
-      return <span className="text-gray-500">On time</span>;
+      return <span className="text-muted-foreground">On time</span>;
     }
     return (
       <span className={difference < 0 ? 'text-red-500' : 'text-green-500'}>
@@ -114,112 +128,100 @@ export default function CompletionSummaryModal({
     }
   };
 
-  const renderTaskRow = (data: TimeData, index: number, level = 0) => {
+  const renderTaskRow = (data: TimeData, _index: number, level = 0) => {
     const difference = calculateTaskDifference(data);
     const hasChildren = data.children && data.children.length > 0;
     const isExpanded = expandedTaskIds[data.taskId];
 
     return (
-      <>
-        <tr 
-          key={`${data.taskId}-${level}`} 
-          className={`${level > 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-gray-100`}
-        >
-          <td className="px-6 py-4 text-sm text-gray-900 flex items-center gap-2">
+      <Fragment key={`${data.taskId}-${level}`}>
+        <TableRow className={level > 0 ? 'bg-muted/50' : undefined}>
+          <TableCell className="text-sm">
             <div style={{ paddingLeft: `${level * 20}px` }} className="flex items-center">
               {hasChildren && (
-                <button 
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="mr-1 h-6 w-6 text-muted-foreground"
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleTaskExpand(data.taskId);
                   }}
-                  className="mr-1 text-gray-500 hover:text-gray-700"
                 >
                   {isExpanded ? (
                     <ChevronDown size={16} />
                   ) : (
                     <ChevronRight size={16} />
                   )}
-                </button>
+                </Button>
               )}
               {data.taskName}
             </div>
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+          </TableCell>
+          <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
             {data.estimatedHours.toFixed(2)}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+          </TableCell>
+          <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
             {data.actualHours.toFixed(2)}
-          </td>
-          <td className="px-6 py-4 whitespace-nowrap text-sm">
+          </TableCell>
+          <TableCell className="whitespace-nowrap text-sm">
             {data.estimatedHours > 0 ? renderTimeDifference(difference) : '-'}
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
         {isExpanded && hasChildren && data.children?.map(
           (child, childIndex) => renderTaskRow(child, childIndex, level + 1)
         )}
-      </>
+      </Fragment>
     );
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Project Time Summary</h2>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Project Time Summary</DialogTitle>
+        </DialogHeader>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Task
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estimated Hours
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actual Hours
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Time Difference
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Task</TableHead>
+                <TableHead>Estimated Hours</TableHead>
+                <TableHead>Actual Hours</TableHead>
+                <TableHead>Time Difference</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {timeData.map((data, index) => renderTaskRow(data, index))}
-              <tr className="bg-gray-100 font-medium">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <TableRow className="bg-muted font-medium">
+                <TableCell className="whitespace-nowrap text-sm">
                   Project Total
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm">
                   {totalEstimated.toFixed(2)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm">
                   {totalActual.toFixed(2)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm">
                   {renderTimeDifference(totalDifference)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
 
-        <div className="mt-6 flex justify-end space-x-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-          >
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            onClick={onComplete}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
+          </Button>
+          <Button onClick={onComplete}>
             Complete Project
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

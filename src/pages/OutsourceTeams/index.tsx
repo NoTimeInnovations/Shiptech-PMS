@@ -8,11 +8,21 @@ import { Settlement, useSettlementStore } from "@/store/settlementStore";
 import NewTeam from "./NewTeam";
 import TeamDetails from "./TeamDetails";
 import EditTeam from "./EditTeam";
-import { Edit, ExternalLink, Trash } from "lucide-react";
-import toast from "react-hot-toast";
+import { Edit, ExternalLink, Loader2, Trash } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function TeamsList() {
-  const { teams, loading, fetchTeams, deleteTeam, error } = useOutsourceTeamStore();
+  const { teams, loading, fetchTeams, deleteTeam } = useOutsourceTeamStore();
   const { fetchTeamSettlements } = useSettlementStore();
   const [paymentStatuses, setPaymentStatuses] = useState<{
     [teamId: string]: string;
@@ -47,7 +57,7 @@ function TeamsList() {
     return (
       <div>
         <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full size-6 border-t-2 border-b-2 border-gray-900"></div>
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       </div>
     );
@@ -55,41 +65,41 @@ function TeamsList() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Outsource Teams</h1>
-        <Link
-          to="new"
-          className="bg-black text-white px-4 py-2 rounded-lg hover:bg-black/80"
-        >
-          Add New Team
-        </Link>
+        <div>
+          <h1 className="text-2xl font-heading font-semibold">Outsource Teams</h1>
+          <p className="text-muted-foreground">Manage external teams and their payments</p>
+        </div>
+        <Button asChild>
+          <Link to="new">Add New Team</Link>
+        </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <table className="min-w-full">
-          <thead>
-            <tr className="border-b">
-              <th className="px-6 py-3 text-center">Name</th>
-              <th className="px-6 py-3 text-center">GST</th>
-              <th className="px-6 py-3 text-center">Contact Persons</th>
-              <th className="px-6 py-3 text-center">Payment Status</th>
-              <th className="px-6 py-3 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <Card className="py-0 overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-center">Name</TableHead>
+              <TableHead className="text-center">GST</TableHead>
+              <TableHead className="text-center">Contact Persons</TableHead>
+              <TableHead className="text-center">Payment Status</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {teams.map((team) => (
-              <tr key={team.id} className="border-b text-center">
-                <td className="px-6 py-4 ">{team.name}</td>
-                <td className="px-6 py-4">{team.gst ? team.gst : "Not provided"}</td>
-                <td className="px-6 py-4">
+              <TableRow key={team.id} className="text-center">
+                <TableCell>{team.name}</TableCell>
+                <TableCell>{team.gst ? team.gst : "Not provided"}</TableCell>
+                <TableCell>
                   {team.contactPersons.map((person, index) => (
                     <div key={index}>
                       {person.name} - {person.phone}
                     </div>
                   ))}
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`px-3 rounded-lg py-1 ${
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    className={`${
                       paymentStatuses[team.id as string] === "Pending payment"
                         ? "bg-yellow-500"
                         : paymentStatuses[team.id as string] ===
@@ -102,34 +112,45 @@ function TeamsList() {
                     } text-white`}
                   >
                     {paymentStatuses[team.id as string] || "Loading..."}
-                  </span>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex justify-center gap-3">
-                    <Link
-                      to={`${team.id}`}
-                      className="text-blue-600 hover:text-blue-800"
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-center gap-1">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      className="text-blue-600 hover:text-blue-700"
                     >
-                      <ExternalLink size={18} />
-                    </Link>
-                    <Link
-                      to={`${team.id}/edit`}
-                      className="text-blue-600 hover:text-blue-800"
+                      <Link to={`${team.id}`}>
+                        <ExternalLink size={18} />
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      className="text-green-600 hover:text-green-700"
                     >
-                      <Edit className="text-green-600" size={18} />
-                    </Link>
-                    <button onClick={()=> deleteTeam(team.id as string)}
-                      className="text-blue-600 hover:text-blue-800"
+                      <Link to={`${team.id}/edit`}>
+                        <Edit size={18} />
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteTeam(team.id as string)}
+                      className="text-destructive hover:text-destructive"
                     >
-                      <Trash className="text-red-600" size={18} />
-                    </button>
+                      <Trash size={18} />
+                    </Button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </Card>
     </div>
   );
 }

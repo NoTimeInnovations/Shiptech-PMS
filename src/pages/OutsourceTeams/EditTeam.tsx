@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useOutsourceTeamStore, OutsourceTeam } from "@/store/outsourceTeamStore";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function EditTeam() {
   const { id } = useParams<{ id: string }>();
@@ -33,103 +38,92 @@ export default function EditTeam() {
     return (
       <div>
         <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full size-6 border-t-2 border-b-2 border-gray-900"></div>
+          <Loader2 className="size-6 animate-spin text-muted-foreground" />
         </div>
       </div>
     );
   }
 
-  if (!team) return <div>Team not found</div>;
+  if (!team) return <div className="p-6 text-muted-foreground">Team not found</div>;
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <Link
-          to={`/dashboard/outsource-teams/${id}`}
-          className="inline-flex items-center text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft size={20} className="mr-2" />
-          Back to Details
-        </Link>
+        <Button asChild variant="ghost">
+          <Link to={`/dashboard/outsource-teams/${id}`}>
+            <ArrowLeft size={20} />
+            Back to Details
+          </Link>
+        </Button>
       </div>
 
-      <h1 className="text-2xl font-bold mb-6">Edit Team</h1>
+      <h1 className="text-2xl font-heading font-semibold mb-1">Edit Team</h1>
+      <p className="text-muted-foreground mb-6">Update the team's details</p>
 
       <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Name</label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="edit-team-name">Name</Label>
+          <Input
+            id="edit-team-name"
             type="text"
             value={team.name}
             onChange={(e) => setTeam({ ...team, name: e.target.value })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             required
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            GST Number
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="edit-team-gst">GST Number</Label>
+          <Input
+            id="edit-team-gst"
             type="text"
             value={team.gst}
             onChange={(e) => setTeam({ ...team, gst: e.target.value })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Address
-          </label>
-          <textarea
+        <div className="space-y-2">
+          <Label htmlFor="edit-team-address">Address</Label>
+          <Textarea
+            id="edit-team-address"
             value={team.address}
             onChange={(e) => setTeam({ ...team, address: e.target.value })}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
             rows={3}
             required
           />
         </div>
 
-        <div>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              checked={team.isBillingAddressSame}
-              onChange={(e) =>
-                setTeam({ ...team, isBillingAddressSame: e.target.checked })
-              }
-              className="rounded border-gray-300"
-            />
-            <span className="ml-2">Billing address same as address</span>
-          </label>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="edit-billing-same"
+            checked={team.isBillingAddressSame}
+            onCheckedChange={(checked) =>
+              setTeam({ ...team, isBillingAddressSame: checked === true })
+            }
+          />
+          <Label htmlFor="edit-billing-same">Billing address same as address</Label>
         </div>
 
         {!team.isBillingAddressSame && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Billing Address
-            </label>
-            <textarea
+          <div className="space-y-2">
+            <Label htmlFor="edit-billing-address">Billing Address</Label>
+            <Textarea
+              id="edit-billing-address"
               value={team.billingAddress}
               onChange={(e) =>
                 setTeam({ ...team, billingAddress: e.target.value })
               }
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
               rows={3}
               required
             />
           </div>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Contact Persons
-          </label>
+        <div className="space-y-2">
+          <Label>Contact Persons</Label>
           {team.contactPersons.map((person, index) => (
             <div key={index} className="flex gap-4 mb-2">
-              <input
+              <Input
                 type="text"
                 value={person.name}
                 onChange={(e) => {
@@ -141,9 +135,8 @@ export default function EditTeam() {
                   setTeam({ ...team, contactPersons: newContactPersons });
                 }}
                 placeholder="Name"
-                className="rounded-md border border-gray-300 px-3 py-2"
               />
-              <input
+              <Input
                 type="text"
                 value={person.phone}
                 onChange={(e) => {
@@ -155,33 +148,28 @@ export default function EditTeam() {
                   setTeam({ ...team, contactPersons: newContactPersons });
                 }}
                 placeholder="Phone"
-                className="rounded-md border border-gray-300 px-3 py-2"
               />
             </div>
           ))}
-          <button
+          <Button
             type="button"
+            variant="link"
+            className="px-0"
             onClick={() =>
               setTeam({
                 ...team,
                 contactPersons: [...team.contactPersons, { name: "", phone: "" }],
               })
             }
-            className="text-sm text-blue-600 hover:text-blue-800"
           >
             + Add Contact Person
-          </button>
+          </Button>
         </div>
 
         <div className="flex justify-end">
-          <button
-            type="submit"
-            className="bg-black text-white px-4 py-2 rounded-lg hover:bg-black/80"
-          >
-            Update Team
-          </button>
+          <Button type="submit">Update Team</Button>
         </div>
       </form>
     </div>
   );
-} 
+}

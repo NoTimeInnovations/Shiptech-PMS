@@ -12,6 +12,18 @@ import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
 import { uploadToGitHub } from "@/lib/github";
 import { Image } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 import CountryCodeSelector from "@/components/CountryCode";
 
@@ -35,7 +47,7 @@ export default function CustomerForm() {
     email: "",
     logoUrl: "",
   });
-  
+
   // Store the original nickname to detect changes
   const [originalNickname, setOriginalNickname] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
@@ -89,11 +101,11 @@ export default function CustomerForm() {
             email: customer.email || "",
             logoUrl: customer.logoUrl || "",
           });
-          
+
           // Store the original nickname and userId for comparison later
           setOriginalNickname(customer.nickname);
           setUserId(customer.email);
-          
+
           // Set logo preview if exists
           if (customer.logoUrl) {
             setLogoPreview(customer.logoUrl);
@@ -128,7 +140,7 @@ export default function CustomerForm() {
       setLogoPreview(previewUrl);
     }
   };
-  
+
   const uploadLogo = async (customerId: string): Promise<string | null> => {
     if (!logoFile) return formData.logoUrl || null;
 
@@ -144,7 +156,7 @@ export default function CustomerForm() {
       return null;
     }
   };
-  
+
   // Function to update user password in Firebase Auth
   const updateUserPassword = async (email: string, newPassword: string) => {
     try {
@@ -158,20 +170,20 @@ export default function CustomerForm() {
           newPassword
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update password');
       }
-      
+
       return data;
     } catch (error) {
       console.error('Failed to update user password:', error);
       throw error;
     }
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -199,16 +211,16 @@ export default function CustomerForm() {
       if (id) {
         // Check if nickname has changed
         const nicknameChanged = originalNickname !== formData.nickname;
-        
+
         // Upload logo if changed
         const logoUrl = await uploadLogo(id);
-        
+
         // Update customer data
         await updateCustomer(id, {
           ...filteredData,
           logoUrl: logoUrl || filteredData.logoUrl,
         });
-        
+
         // If nickname has changed, update the password in Firebase Auth
         if (nicknameChanged && userId) {
           try {
@@ -219,7 +231,7 @@ export default function CustomerForm() {
             toast.error("Failed to update customer password");
           }
         }
-        
+
         toast.success("Customer updated successfully");
       } else {
         const cus = await signUpCustomer(
@@ -321,30 +333,29 @@ export default function CustomerForm() {
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-8">
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <button type="button" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-7 w-7" />
-          </button>
-          <h2 className="text-2xl font-bold">
-            {id ? "Edit Customer" : "Create New Customer"}
-          </h2>
+        <div className="flex items-center gap-3">
+          <Button type="button" variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="size-5" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-heading font-semibold">
+              {id ? "Edit Customer" : "Create New Customer"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {id
+                ? "Update this customer's details and contacts"
+                : "Add a new customer with contact and address details"}
+            </p>
+          </div>
         </div>
-        <div className="flex space-x-4">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" onClick={() => navigate(-1)}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black/90 hover:bg-black/80 focus:outline-none"
-          >
+          </Button>
+          <Button type="submit" disabled={loading}>
             {loading ? (
               <>
-                <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                <Loader2 className="animate-spin" />
                 {id ? "Updating..." : "Creating..."}
               </>
             ) : id ? (
@@ -352,98 +363,99 @@ export default function CustomerForm() {
             ) : (
               "Create Customer"
             )}
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 justify-center px-[10%]">
-        <div className="bg-white border-[1px] rounded-xl px-6 py-10">
-          <div className="grid grid-cols-1 gap-6">
-            <div>
-              <label className="block font-medium text-gray-700">
-                Customer Name
-              </label>
-              <input
+      <div className="flex flex-col gap-5 justify-center px-[10%]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Information</CardTitle>
+            <CardDescription>
+              Basic identity and login details for this customer
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="customer-name">Customer Name</Label>
+              <Input
+                id="customer-name"
                 type="text"
                 required
                 value={formData.name}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
-            <div>
-              <label className="block font-medium text-gray-700">
-                Nickname
-              </label>
-              <input
+            <div className="grid gap-2">
+              <Label htmlFor="customer-nickname">Nickname</Label>
+              <Input
+                id="customer-nickname"
                 type="text"
                 value={formData.nickname}
                 required
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, nickname: e.target.value }))
                 }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
-            <div>
-              <label className="block font-medium text-gray-700">Email</label>
-              <input
+            <div className="grid gap-2">
+              <Label htmlFor="customer-email">Email</Label>
+              <Input
+                id="customer-email"
                 type="email"
                 required
                 value={formData.email}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, email: e.target.value }))
                 }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
-            <div>
-              <label className="block font-medium text-gray-700">
-                {id && originalNickname !== formData.nickname 
-                  ? "New Generated Password" 
+            <div className="grid gap-2">
+              <Label htmlFor="customer-password">
+                {id && originalNickname !== formData.nickname
+                  ? "New Generated Password"
                   : "Generated Password"}
-              </label>
-              <div className="mt-1 flex items-center space-x-2">
-                <input
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="customer-password"
                   type="text"
                   value={generatedPassword}
                   readOnly
-                  className="p-2 block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                  className="bg-muted"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={() => {
                     navigator.clipboard.writeText(generatedPassword);
                     toast.success("Password copied to clipboard");
                   }}
-                  className="px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200"
                 >
                   Copy
-                </button>
+                </Button>
               </div>
               {id && originalNickname !== formData.nickname ? (
-                <p className="mt-1 text-sm text-red-500">
+                <p className="text-sm text-destructive">
                   Password will be updated when you save changes
                 </p>
               ) : (
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   This password will be used for customer login
                 </p>
               )}
             </div>
 
             {/* Logo Upload Section */}
-            <div>
-              <label className="block font-medium text-gray-700">
-                Company Logo
-              </label>
-              <div className="mt-1 flex items-center space-x-4">
-                <div className="flex-shrink-0 h-20 w-20 border border-gray-300 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+            <div className="grid gap-2">
+              <Label htmlFor="customer-logo">Company Logo</Label>
+              <div className="flex items-center gap-4">
+                <div className="shrink-0 h-20 w-20 border border-border rounded-md overflow-hidden bg-muted flex items-center justify-center">
                   {logoPreview ? (
                     <img
                       src={logoPreview}
@@ -451,130 +463,27 @@ export default function CustomerForm() {
                       className="h-full w-full object-contain"
                     />
                   ) : (
-                    <Image className="h-10 w-10 text-gray-400" />
+                    <Image className="h-10 w-10 text-muted-foreground" />
                   )}
                 </div>
                 <div className="flex-1">
-                  <input
+                  <Input
+                    id="customer-logo"
                     type="file"
                     accept="image/*"
                     onChange={handleLogoChange}
-                    className="block w-full text-sm text-gray-500
-                      file:mr-4 file:py-2 file:px-4
-                      file:rounded-md file:border-0
-                      file:text-sm file:font-medium
-                      file:bg-blue-50 file:text-blue-700
-                      hover:file:bg-blue-100"
                   />
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     PNG, JPG, GIF up to 5MB
                   </p>
                 </div>
               </div>
             </div>
-            {/* Contact Persons Section */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block font-medium text-gray-700">
-                  Contact Persons
-                </label>
-                <button
-                  type="button"
-                  onClick={addContactPerson}
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
-                >
-                  <Plus size={16} className="mr-1" />
-                  Add Contact
-                </button>
-              </div>
 
-              <div className="space-y-3">
-                {formData.contactPersons.map((contact, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start space-x-2 p-3 border border-gray-200 rounded-md bg-gray-50"
-                  >
-                    <div className="flex-grow flex flex-row items-start gap-3">
-                      <div className="w-1/4">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Name
-                        </label>
-                        <input
-                          type="text"
-                          required={index === 0}
-                          value={contact.name}
-                          onChange={(e) =>
-                            updateContactPerson(index, "name", e.target.value)
-                          }
-                          className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                      </div>
-
-                      <div className="w-1/6">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Country Code
-                        </label>
-                        <CountryCodeSelector
-                          value={contact.countryCode || "+91"}
-                          onChange={(value) =>
-                            updateContactPerson(index, "countryCode", value)
-                          }
-                          className="mt-1 block w-full"
-                        />
-                      </div>
-
-                      <div className="w-1/4">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Phone
-                        </label>
-                        <input
-                          type="tel"
-                          required={index === 0}
-                          value={contact.phone}
-                          onChange={(e) =>
-                            updateContactPerson(index, "phone", e.target.value)
-                          }
-                          className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                      </div>
-
-                      <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Email
-                        </label>
-                        <input
-                          type="email"
-                          required={index === 0}
-                          value={contact.email || ""}
-                          onChange={(e) =>
-                            updateContactPerson(index, "email", e.target.value)
-                          }
-                          className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeContactPerson(index)}
-                      className="mt-7 p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
-                      aria-label="Remove contact"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <p className="mt-1 text-sm text-gray-500">
-                At least one contact person is required
-              </p>
-            </div>
-
-            <div>
-              <label className="block font-medium text-gray-700">
-                GST Number
-              </label>
-              <input
+            <div className="grid gap-2">
+              <Label htmlFor="customer-gst">GST Number</Label>
+              <Input
+                id="customer-gst"
                 type="text"
                 value={formData.gstNumber}
                 onChange={(e) =>
@@ -583,28 +492,124 @@ export default function CustomerForm() {
                     gstNumber: e.target.value,
                   }))
                 }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
+          </CardContent>
+        </Card>
 
-            <div>
-              <label className="block font-medium text-gray-700">Address</label>
-              <textarea
+        {/* Contact Persons Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Persons</CardTitle>
+            <CardDescription>
+              At least one contact person is required
+            </CardDescription>
+            <CardAction>
+              <Button type="button" variant="secondary" size="sm" onClick={addContactPerson}>
+                <Plus />
+                Add Contact
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {formData.contactPersons.map((contact, index) => (
+                <div
+                  key={index}
+                  className="flex items-start gap-2 p-3 border border-border rounded-md bg-muted/50"
+                >
+                  <div className="grow flex flex-row items-start gap-3">
+                    <div className="w-1/4 grid gap-2">
+                      <Label htmlFor={`contact-name-${index}`}>Name</Label>
+                      <Input
+                        id={`contact-name-${index}`}
+                        type="text"
+                        required={index === 0}
+                        value={contact.name}
+                        onChange={(e) =>
+                          updateContactPerson(index, "name", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="w-1/6 grid gap-2">
+                      <Label>Country Code</Label>
+                      <CountryCodeSelector
+                        value={contact.countryCode || "+91"}
+                        onChange={(value) =>
+                          updateContactPerson(index, "countryCode", value)
+                        }
+                        className="block w-full"
+                      />
+                    </div>
+
+                    <div className="w-1/4 grid gap-2">
+                      <Label htmlFor={`contact-phone-${index}`}>Phone</Label>
+                      <Input
+                        id={`contact-phone-${index}`}
+                        type="tel"
+                        required={index === 0}
+                        value={contact.phone}
+                        onChange={(e) =>
+                          updateContactPerson(index, "phone", e.target.value)
+                        }
+                      />
+                    </div>
+
+                    <div className="flex-1 grid gap-2">
+                      <Label htmlFor={`contact-email-${index}`}>Email</Label>
+                      <Input
+                        id={`contact-email-${index}`}
+                        type="email"
+                        required={index === 0}
+                        value={contact.email || ""}
+                        onChange={(e) =>
+                          updateContactPerson(index, "email", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => removeContactPerson(index)}
+                    className="mt-6 text-destructive hover:text-destructive"
+                    aria-label="Remove contact"
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Addresses</CardTitle>
+            <CardDescription>
+              Registered, billing and shipping addresses
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="customer-address">Address</Label>
+              <Textarea
+                id="customer-address"
                 required
                 value={formData.address}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, address: e.target.value }))
                 }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 rows={3}
               />
             </div>
 
-            <div>
-              <label className="block font-medium text-gray-700">
-                Billing Address
-              </label>
-              <textarea
+            <div className="grid gap-2">
+              <Label htmlFor="customer-billing-address">Billing Address</Label>
+              <Textarea
+                id="customer-billing-address"
                 value={formData.billingAddress}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -612,19 +617,19 @@ export default function CustomerForm() {
                     billingAddress: e.target.value,
                   }))
                 }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 rows={3}
               />
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Leave empty if same as address
               </p>
             </div>
 
-            <div>
-              <label className="block font-medium text-gray-700">
+            <div className="grid gap-2">
+              <Label htmlFor="customer-shipping-address">
                 Shipping Address
-              </label>
-              <textarea
+              </Label>
+              <Textarea
+                id="customer-shipping-address"
                 value={formData.shippingAddress}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -632,15 +637,14 @@ export default function CustomerForm() {
                     shippingAddress: e.target.value,
                   }))
                 }
-                className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 rows={3}
               />
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Leave empty if same as address
               </p>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </form>
   );

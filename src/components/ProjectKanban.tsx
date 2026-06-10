@@ -2,6 +2,9 @@ import React from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Project } from '../store/projectStore';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface ProjectKanbanProps {
     projects: Project[];
@@ -15,8 +18,8 @@ const ProjectKanban: React.FC<ProjectKanbanProps> = ({ projects, onDragEnd }) =>
         'not-started': {
             title: 'Not Started',
             items: projects.filter((p) => p.status === 'not-started' && p.id),
-            color: 'bg-gray-100',
-            titleColor: 'text-gray-700'
+            color: 'bg-muted',
+            titleColor: 'text-foreground'
         },
         'ongoing': {
             title: 'In Progress',
@@ -36,12 +39,16 @@ const ProjectKanban: React.FC<ProjectKanbanProps> = ({ projects, onDragEnd }) =>
         <DragDropContext onDragEnd={onDragEnd}>
             <div className="flex flex-col md:flex-row gap-6 h-full overflow-x-auto pb-4">
                 {(Object.entries(columns) as [string, typeof columns['not-started']][]).map(([columnId, column]) => (
-                    <div key={columnId} className={`flex-1 min-w-[300px] rounded-lg p-4 ${column.color}`}>
-                        <h3 className={`font-semibold mb-4 ${column.titleColor} flex items-center justify-between`}>
+                    <Card
+                        key={columnId}
+                        size="sm"
+                        className={cn('flex-1 min-w-[300px] gap-4 p-4 shadow-none ring-0', column.color)}
+                    >
+                        <h3 className={cn('font-semibold', column.titleColor, 'flex items-center justify-between')}>
                             {column.title}
-                            <span className="bg-white px-2 py-0.5 rounded-full text-xs shadow-sm">
+                            <Badge variant="outline" className="bg-background shadow-sm">
                                 {column.items.length}
-                            </span>
+                            </Badge>
                         </h3>
 
                         <Droppable droppableId={columnId}>
@@ -59,36 +66,42 @@ const ProjectKanban: React.FC<ProjectKanbanProps> = ({ projects, onDragEnd }) =>
                                                     {...provided.draggableProps}
                                                     {...provided.dragHandleProps}
                                                     onClick={() => navigate(`/dashboard/projects/${project.id}`)}
-                                                    className={`bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer ${snapshot.isDragging ? 'shadow-lg ring-2 ring-blue-500 ring-opacity-50 rotate-2' : ''
-                                                        }`}
                                                     style={{
                                                         ...provided.draggableProps.style,
                                                     }}
                                                 >
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                                            P-{project.projectNumber}
-                                                        </span>
-                                                        {project.project_due_date && (
-                                                            <span className="text-xs text-gray-500">
-                                                                Due: {new Date(project.project_due_date).toLocaleDateString()}
-                                                            </span>
+                                                    <Card
+                                                        size="sm"
+                                                        className={cn(
+                                                            'gap-0 rounded-lg p-4 transition-shadow cursor-pointer hover:shadow-md',
+                                                            snapshot.isDragging && 'shadow-lg ring-2 ring-blue-500/50 rotate-2'
                                                         )}
-                                                    </div>
-
-                                                    <h4 className="font-medium text-gray-900 mb-1 line-clamp-2">
-                                                        {project.name}
-                                                    </h4>
-
-                                                    <div className="text-sm text-gray-600 mb-2 truncate">
-                                                        {project.customer.name}
-                                                    </div>
-
-                                                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
-                                                        <div className="text-xs text-gray-400">
-                                                            {new Date(project.createdAt).toLocaleDateString()}
+                                                    >
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <Badge variant="secondary" className="text-muted-foreground">
+                                                                P-{project.projectNumber}
+                                                            </Badge>
+                                                            {project.project_due_date && (
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    Due: {new Date(project.project_due_date).toLocaleDateString()}
+                                                                </span>
+                                                            )}
                                                         </div>
-                                                    </div>
+
+                                                        <h4 className="font-medium text-foreground mb-1 line-clamp-2">
+                                                            {project.name}
+                                                        </h4>
+
+                                                        <div className="text-sm text-muted-foreground mb-2 truncate">
+                                                            {project.customer.name}
+                                                        </div>
+
+                                                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-border">
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {new Date(project.createdAt).toLocaleDateString()}
+                                                            </div>
+                                                        </div>
+                                                    </Card>
                                                 </div>
                                             )}
                                         </Draggable>
@@ -97,7 +110,7 @@ const ProjectKanban: React.FC<ProjectKanbanProps> = ({ projects, onDragEnd }) =>
                                 </div>
                             )}
                         </Droppable>
-                    </div>
+                    </Card>
                 ))}
             </div>
         </DragDropContext>

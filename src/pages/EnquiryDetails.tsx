@@ -9,6 +9,29 @@ import toast from "react-hot-toast";
 import InvoiceDownloader from "@/components/InvoiceDocument";
 import { useCustomerStore, Customer } from "../store/customerStore";
 import { dropdownData } from "../const/enquiryDropdown";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function EnquiryDetails() {
   const { id } = useParams<{ id: string }>();
@@ -100,7 +123,7 @@ export default function EnquiryDetails() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -108,7 +131,7 @@ export default function EnquiryDetails() {
   if (!enquiry) {
     return (
       <div className="p-6">
-        <p className="text-red-500">Enquiry not found</p>
+        <p className="text-destructive">Enquiry not found</p>
       </div>
     );
   }
@@ -116,31 +139,39 @@ export default function EnquiryDetails() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
-          <button onClick={() => navigate("/dashboard/enquiries")}>
-            <ArrowLeft className="h-7 w-7" />
-          </button>
-          <h2 className="text-2xl font-bold">Enquiry Details</h2>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/dashboard/enquiries")}
+          >
+            <ArrowLeft className="size-5" />
+          </Button>
+          <div>
+            <h2 className="text-2xl font-heading font-semibold">
+              Enquiry Details
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Review the scope, customer and commercial details of this enquiry
+            </p>
+          </div>
         </div>
 
-        <div className="flex space-x-4">
+        <div className="flex gap-3">
           <InvoiceDownloader enquiry={enquiry} />
           {isAdmin && (
             <>
-              <button
+              <Button
+                variant="outline"
                 onClick={() => navigate(`/dashboard/enquiries/${id}/edit`)}
-                className="inline-flex items-center px-4 py-2  text-sm font-medium rounded-md text-black bg-white border-[1px]"
               >
-                <Pencil className="mr-2 h-4 w-4" />
+                <Pencil />
                 Edit
-              </button>
-              <button
-                onClick={handleConvertToProject}
-                className="inline-flex items-center px-4 py-2  text-sm font-medium rounded-md text-black bg-white border-[1px]"
-              >
-                <ArrowRight className="mr-2 h-4 w-4" />
+              </Button>
+              <Button variant="outline" onClick={handleConvertToProject}>
+                <ArrowRight />
                 Move to Projects
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -148,89 +179,107 @@ export default function EnquiryDetails() {
 
       <div className="space-y-6 px-[10%] mt-10">
         {/* Basic Information Section */}
-     <div className="bg-white border-[1px] rounded-lg overflow-hidden">
-  <div className="border-b border-gray-200 px-6 py-3">
-    <h3 className="text-lg font-medium text-gray-900">
-      Basic Information
-    </h3>
-  </div>
-  <div className="px-6 py-4">
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <p className="text-sm font-medium text-gray-500">ID</p>
-        <p className="mt-1">E-{enquiry.enquiryNumber}</p>
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-500">Created At</p>
-        <p className="mt-1">
-          {new Date(enquiry.createdAt).toLocaleDateString('en-GB')}
-        </p>
-      </div>
-      
-      <div>
-        <p className="text-sm font-medium text-gray-500">Deadline</p>
-        <p className="mt-1">
-        {new Date(enquiry.deadLine).toLocaleDateString('en-GB')}
-        </p>
-      </div>
-      
-      <div className="col-span-2">
-        <p className="text-sm font-medium text-gray-500">Name</p>
-        <p className="mt-1">{enquiry.name}</p>
-      </div>
-      <div className="col-span-2">
-        <p className="text-sm font-medium text-gray-500">Description</p>
-        <p className="mt-1">{enquiry.description}</p>
-      </div>
-      {isAdmin && (
-        <div className="col-span-1">
-          <p className="text-sm font-medium text-gray-500">Status</p>
-          <select
-            value={enquiry?.status || dropdownData[0]}
-            onChange={handleStatusChange}
-            className={`mt-1 w-max border-1 py-2 px-1 rounded-md shadow-sm focus:ring-1 text-white ${
-              enquiry?.status === "cancelled"
-                ? "bg-red-500 border-red-500 focus:border-red-400 focus:ring-red-400"
-                : enquiry?.status === "on hold"
-                ? "bg-yellow-500 border-yellow-500 focus:border-yellow-400 focus:ring-yellow-400"
-                : enquiry?.status === "moved to projects"
-                ? "bg-green-500 border-green-500 focus:border-green-400 focus:ring-green-400"
-                : "bg-blue-600 border-blue-600 focus:border-blue-500 focus:ring-blue-500"
-            } sm:text-sm`}
-          >
-            {dropdownData.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      <div className="col-span-1">
-        <p className="text-sm font-medium text-gray-500">
-          Currency Used
-        </p>
-        <p className="mt-1">
-          {enquiry.currency?.name} ({enquiry.currency?.symbol})
-        </p>
-      </div>
-    </div>
-  </div>
-</div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">ID</p>
+                <p className="mt-1 text-sm">E-{enquiry.enquiryNumber}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Created At
+                </p>
+                <p className="mt-1 text-sm">
+                  {new Date(enquiry.createdAt).toLocaleDateString('en-GB')}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Deadline
+                </p>
+                <p className="mt-1 text-sm">
+                  {new Date(enquiry.deadLine).toLocaleDateString('en-GB')}
+                </p>
+              </div>
+
+              <div className="col-span-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Name
+                </p>
+                <p className="mt-1 text-sm">{enquiry.name}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Description
+                </p>
+                <p className="mt-1 text-sm">{enquiry.description}</p>
+              </div>
+              {isAdmin && (
+                <div className="col-span-1">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </p>
+                  <Select
+                    value={enquiry?.status || dropdownData[0]}
+                    onValueChange={(value) =>
+                      handleStatusChange({
+                        target: { value },
+                      } as React.ChangeEvent<HTMLSelectElement>)
+                    }
+                  >
+                    <SelectTrigger
+                      className={`mt-1 w-max border-transparent text-white *:data-[slot=select-value]:text-white [&_svg:not([class*='text-'])]:text-white ${
+                        enquiry?.status === "cancelled"
+                          ? "bg-red-500 hover:bg-red-500"
+                          : enquiry?.status === "on hold"
+                          ? "bg-yellow-500 hover:bg-yellow-500"
+                          : enquiry?.status === "moved to projects"
+                          ? "bg-green-500 hover:bg-green-500"
+                          : "bg-blue-600 hover:bg-blue-600"
+                      }`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dropdownData.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="col-span-1">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Currency Used
+                </p>
+                <p className="mt-1 text-sm">
+                  {enquiry.currency?.name} ({enquiry.currency?.symbol})
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Customer Details Section */}
-        <div className="bg-white border-[1px] rounded-xl overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">
-              Customer Details
-            </h3>
-          </div>
-          <div className="px-6 py-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Details</CardTitle>
+          </CardHeader>
+          <CardContent>
             {customerDetails ? (
               <div className="grid grid-cols-2 gap-4">
                 {customerDetails.logoUrl && (
                   <div className="col-span-2">
-                    <p className="text-sm font-medium text-gray-500">Logo</p>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Logo
+                    </p>
                     <img
                       src={customerDetails.logoUrl}
                       alt="Customer Logo"
@@ -239,47 +288,57 @@ export default function EnquiryDetails() {
                   </div>
                 )}
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Name</p>
-                  <p className="mt-1">{customerDetails.name}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Name
+                  </p>
+                  <p className="mt-1 text-sm">{customerDetails.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Email</p>
-                  <p className="mt-1">{customerDetails.email}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Email
+                  </p>
+                  <p className="mt-1 text-sm">{customerDetails.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">
+                  <p className="text-sm font-medium text-muted-foreground">
                     GST Number
                   </p>
-                  <p className="mt-1">{customerDetails.gstNumber}</p>
+                  <p className="mt-1 text-sm">{customerDetails.gstNumber}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">
+                  <p className="text-sm font-medium text-muted-foreground">
                     End Client
                   </p>
-                  <p className="mt-1">{enquiry.endClient}</p>
+                  <p className="mt-1 text-sm">{enquiry.endClient}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">Address</p>
-                  <p className="mt-1">{customerDetails.address}</p>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Address
+                  </p>
+                  <p className="mt-1 text-sm">{customerDetails.address}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Billing Address
                   </p>
-                  <p className="mt-1">{customerDetails.billingAddress}</p>
+                  <p className="mt-1 text-sm">
+                    {customerDetails.billingAddress}
+                  </p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-500">
+                  <p className="text-sm font-medium text-muted-foreground">
                     Contact Persons
                   </p>
                   <div className="mt-1 space-y-2">
                     {customerDetails.contactPersons.map((person, index) => (
-                      <div key={index} className="flex items-center space-x-4">
-                        <span className="text-sm text-gray-700">
+                      <div key={index} className="flex items-center gap-4">
+                        <span className="text-sm text-foreground">
                           {person.name}
                         </span>
-                        <span className="text-sm text-gray-500">-</span>
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-muted-foreground">
+                          -
+                        </span>
+                        <span className="text-sm text-foreground">
                           {person.phone}
                         </span>
                       </div>
@@ -288,137 +347,124 @@ export default function EnquiryDetails() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 No customer details found.
               </p>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Deliverables Section */}
-        <div className="bg-white rounded-xl border-[1px] overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-3">
+        <Card>
+          <CardHeader>
             {/* scope of work ( deliverables name changed ) */}
-            <h3 className="text-lg font-medium text-gray-900">Scope of Work</h3>
-          </div>
-          <div className="px-6 py-4">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hours
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cost/Hour
-                  </th>
-                  <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
+            <CardTitle>Scope of Work</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Hours</TableHead>
+                  <TableHead>Cost/Hour</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {enquiry.deliverables.map((deliverable: Deliverable) => (
-                  <tr key={deliverable.id}>
-                    <td className="px-3 py-4 text-sm text-gray-900">
-                      {deliverable.name}
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-500">
+                  <TableRow key={deliverable.id}>
+                    <TableCell>{deliverable.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
                       {deliverable.hours}
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-500">
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
                       {enquiry.currency?.symbol} {deliverable.costPerHour}
-                    </td>
-                    <td className="px-3 py-4 text-sm text-gray-900 text-right">
+                    </TableCell>
+                    <TableCell className="text-right">
                       {enquiry.currency?.symbol} {deliverable.total}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-                <tr className="bg-gray-50">
-                  <td
-                    colSpan={3}
-                    className="px-3 py-4 text-sm font-medium text-gray-900 text-right"
-                  >
+              </TableBody>
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={3} className="text-right font-medium">
                     Grand Total
-                  </td>
-                  <td className="px-3 py-4 text-sm font-medium text-gray-900 text-right">
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
                     {enquiry.currency?.symbol}{" "}
                     {enquiry.deliverables.reduce(
                       (sum: number, d: Deliverable) => sum + d.total,
                       0
                     )}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </CardContent>
+        </Card>
 
         {/* Scope of Work Section */}
-        <div className="bg-white rounded-xl border-[1px] overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-3">
+        <Card>
+          <CardHeader>
             {/* Deliverables ( scope of work name changed ) */}
-            <h3 className="text-lg font-medium text-gray-900">Deliverables</h3>
-          </div>
-          <div className="px-6 py-4">
+            <CardTitle>Deliverables</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div
-              className="prose prose-slate max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700"
+              className="prose prose-slate max-w-none prose-headings:text-foreground prose-p:text-foreground prose-li:text-foreground"
               dangerouslySetInnerHTML={{ __html: enquiry.scopeOfWork }}
             />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Exclusions Section */}
-        <div className="bg-white rounded-xl border-[1px] overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Exclusions</h3>
-          </div>
-          <div className="px-6 py-4">
-            <ul className="list-disc pl-5">
+        <Card>
+          <CardHeader>
+            <CardTitle>Exclusions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-5 space-y-1">
               {enquiry.exclusions.map((exclusion, index) => (
-                <li key={index} className="text-gray-700">
+                <li key={index} className="text-sm text-foreground">
                   {exclusion}
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Charges Section */}
-        <div className="bg-white rounded-xl border-[1px] overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">Charges Included</h3>
-          </div>
-          <div className="px-6 py-4">
-            <ul className="list-disc pl-5">
+        <Card>
+          <CardHeader>
+            <CardTitle>Charges Included</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-5 space-y-1">
               {enquiry.charges.map((charge, index) => (
-                <li key={index} className="text-gray-700">
+                <li key={index} className="text-sm text-foreground">
                   {charge}
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Inputs Required Section */}
-        <div className="bg-white rounded-xl border-[1px] overflow-hidden">
-          <div className="border-b border-gray-200 px-6 py-3">
-            <h3 className="text-lg font-medium text-gray-900">
-              Inputs Required
-            </h3>
-          </div>
-          <div className="px-6 py-4">
-            <ul className="list-disc pl-5">
+        <Card>
+          <CardHeader>
+            <CardTitle>Inputs Required</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="list-disc pl-5 space-y-1">
               {enquiry.inputsRequired.map((input, index) => (
-                <li key={index} className="text-gray-700">
+                <li key={index} className="text-sm text-foreground">
                   {input}
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

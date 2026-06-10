@@ -3,6 +3,16 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface ChangeJoinDateModalProps {
   isOpen: boolean;
@@ -26,7 +36,7 @@ const ChangeJoinDateModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!joinDate.trim()) {
       toast.error('Please select a join date');
       return;
@@ -36,11 +46,11 @@ const ChangeJoinDateModal = ({
       setLoading(true);
       const userRef = doc(db, 'users', userId);
       const newJoinDate = new Date(joinDate).toISOString();
-      
+
       await updateDoc(userRef, {
         createdAt: newJoinDate
       });
-      
+
       onJoinDateChange(newJoinDate);
       toast.success('Join date updated successfully');
       onClose();
@@ -52,37 +62,35 @@ const ChangeJoinDateModal = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
-        <h2 className="text-xl font-bold mb-4">Change Join Date</h2>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Change Join Date</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              New Join Date
-            </label>
-            <input
+          <div className="mb-4 space-y-2">
+            <Label htmlFor="new-join-date">New Join Date</Label>
+            <Input
+              id="new-join-date"
               type="date"
               value={joinDate}
               onChange={(e) => setJoinDate(e.target.value)}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={loading}
             />
           </div>
-          <div className="flex justify-end gap-2">
-            <button
+          <DialogFooter>
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50"
               disabled={loading}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center min-w-[80px]"
+              className="min-w-[80px]"
               disabled={loading}
             >
               {loading ? (
@@ -90,11 +98,11 @@ const ChangeJoinDateModal = ({
               ) : (
                 'Change'
               )}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

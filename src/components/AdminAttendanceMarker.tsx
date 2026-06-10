@@ -1,6 +1,23 @@
 import { useState } from "react";
 import { useAttendanceStore, getLocalDateString } from "../store/attendanceStore";
 import toast from "react-hot-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface User {
   id: string;
@@ -39,79 +56,78 @@ export const AdminAttendanceMarker = ({
   };
 
   return (
-    <div className="fixed z-[100] inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg w-96 relative">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold mb-4">
-            Mark Attendance for Employee
-          </h2>
-        </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) setShowAttendanceMarker(false);
+      }}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Mark Attendance for Employee</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Select Employee
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="admin-attendance-employee">Select Employee</Label>
+            <Select
               value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
+              onValueChange={(value) => setSelectedUser(value)}
               required
-              className="w-full p-2 border rounded"
             >
-              <option value="">Select Employee</option>
-              {Object.values(users).map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.fullName}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="admin-attendance-employee" className="w-full">
+                <SelectValue placeholder="Select Employee" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(users).map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.fullName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Select Date
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="admin-attendance-date">Select Date</Label>
+            <Input
+              id="admin-attendance-date"
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               required
-              className="w-full p-2 border rounded"
               max={getLocalDateString()}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Attendance Type
-            </label>
-            <select
+          <div className="space-y-2">
+            <Label htmlFor="admin-attendance-type">Attendance Type</Label>
+            <Select
               value={attendanceType}
-              onChange={(e) => setAttendanceType(e.target.value as 'full' | 'half')}
+              onValueChange={(value) => setAttendanceType(value as 'full' | 'half')}
               required
-              className="w-full p-2 border rounded"
             >
-              <option value="full">Full Day</option>
-              <option value="half">Half Day</option>
-            </select>
+              <SelectTrigger id="admin-attendance-type" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="full">Full Day</SelectItem>
+                <SelectItem value="half">Half Day</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4">
-            <button
+          <DialogFooter className="pt-2">
+            <Button
               type="button"
-              className="px-4 py-2 text-gray-800 bg-transparent rounded border border-gray-500"
+              variant="outline"
               onClick={() => setShowAttendanceMarker(false)}
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
-            >
-              Mark Attendance
-            </button>
-          </div>
+            </Button>
+            <Button type="submit">Mark Attendance</Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };

@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { Project, useProjectStore, User } from "../store/projectStore";
 import { Task, useTaskStore } from "../store/taskStore";
 import toast from "react-hot-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -277,335 +287,279 @@ export default function TaskModal({
   };
 
   return (
-    <>
-      {isOpen ? (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
-            {/* Header - Fixed */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">
-                  {initialData ? "Edit Task" : "Add Task"}
-                </h2>
-                <button
-                  onClick={() => {
-                    SetaddOrPencilEditTofalse();
-                    onClose();
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          SetaddOrPencilEditTofalse();
+          onClose();
+        }
+      }}
+    >
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-md">
+        {/* Header - Fixed */}
+        <DialogHeader className="border-b p-6">
+          <DialogTitle>{initialData ? "Edit Task" : "Add Task"}</DialogTitle>
+        </DialogHeader>
+
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <form id="task-form" onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-1.5">
+              <Label htmlFor="task-name">Name</Label>
+              <Input
+                id="task-name"
+                type="text"
+                required
+                placeholder="Enter task name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
+              />
             </div>
 
-            {/* Content - Scrollable */}
-            <div className="p-6 overflow-y-auto flex-1">
-              <form
-                id="task-form"
-                onSubmit={handleSubmit}
-                className="space-y-6"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Enter task name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="task-description">Description</Label>
+              <Textarea
+                id="task-description"
+                placeholder="Enter task description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                rows={3}
+              />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Description
-                  </label>
-                  <textarea
-                    placeholder="Enter task description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  {/* <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Hours
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      placeholder="0.0"
-                      value={formData.hours || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          hours: e.target.value
-                            ? Number(e.target.value)
-                            : undefined,
-                        }))
-                      }
-                      className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div> */}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Hours{" "}
-                      {ParentTask && ParentTask.hours && (
-                        <span className="text-sm text-gray-500">
-                          (Available: {availableHours})
-                        </span>
-                      )}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      placeholder="0.0"
-                      max={
-                        ParentTask && ParentTask.hours
-                          ? availableHours + (formData.hours || 0)
-                          : undefined
-                      }
-                      value={formData.hours || ""}
-                      onChange={(e) => {
-  const value = e.target.value
-    ? Number(e.target.value)
-    : undefined;
-  setHourError(""); // Clear previous error
-
-  if (
-    ParentTask &&
-    ParentTask.hours &&
-    value &&
-    value > availableHours  || 0
-
-  ) {
-    let errorMsg=''
-    if (availableHours  >1){
-       errorMsg= `Only  ${availableHours } hours left ` ;
-    }else{
-        errorMsg = `Only  ${availableHours } hour left ` ;
-    }
-   
-    setHourError(errorMsg);
-    console.log("Hour validation error:", errorMsg);
-    toast.error(errorMsg);
-    return;
-  }
-
-  setFormData((prev) => ({
-    ...prev,
-    hours: value,
-  }));
-}}
-
-                      className={`mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
-                        hourError ? "border-red-500" : ""
-                      }`}
-                    />
-                    {hourError && (
-                      <span className="text-red-500 text-sm mt-1 block">
-                        {hourError}
-                      </span>
-                    )}
-                    {ParentTask && ParentTask.hours && availableHours === 0 && (
-                      <span className="text-red-500 text-sm flex justify-center text-center mt-2 border-2 border-red-500 p-1 rounded">
-                        No hours available! Reduce hours of other subtasks first
-                      </span>
-                    )}
-                    {ParentTask && ParentTask.hours && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Parent task has {ParentTask.hours} hours total
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Cost/Hour
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={formData.costPerHour || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          costPerHour: e.target.value
-                            ? Number(e.target.value)
-                            : undefined,
-                        }))
-                      }
-                      className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Assign To
-                  </label>
-                  <select
-                    multiple
-                    value={formData.assignedTo.map((user) => user.id)}
-                    onChange={handleAssignedToChange}
-                    className="mt-1 border-2 border-gray-300 p-2 block w-full rounded-md  focus:border-blue-500 focus:ring-blue-500"
-                    size={4}
-                  >
-                    {users.map((user: User) => (
-                      <option
-                        key={user.id}
-                        value={user.id}
-                        className="capitalize"
-                      >
-                        {user.fullName}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Hold Ctrl/Cmd to select multiple users
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Deadline
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={formData.deadline}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        deadline: e.target.value,
-                      }))
-                    }
-                    className="mt-1 p-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    max={
-                      ParentTask && ParentTask.deadline
-                        ? (ParentTask.deadline as string) // Ensure it's treated as a string
-                        : (project?.project_due_date as string) // Ensure it's treated as a string
-                    } // Set maximum date based on ParentTask or project due date
-                  />
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Percentage Allocation (Max: {availablePercentage}
-                    %)
-                  </label>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-500">
-                        Current: {formData.percentage}%
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        Available:{" "}
-                        {availablePercentage - formData.percentage < 0
-                          ? 0
-                          : availablePercentage - formData.percentage}
-                        %
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max={availablePercentage}
-                      value={formData.percentage}
-                      onChange={(e) => {
-                        const value = Math.min(
-                          parseInt(e.target.value),
-                          availablePercentage
-                        );
-                        setFormData((prev) => ({ ...prev, percentage: value }));
-                      }}
-                      className="w-full h-2 bg-gray-200 rounded-lg cursor-pointer"
-                    />
-                    <div className="relative w-full h-2 bg-gray-200 rounded-lg overflow-hidden">
-                      <div
-                        className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-150"
-                        style={{
-                          width: `${
-                            (formData.percentage / availablePercentage) * 100
-                          }%`,
-                        }}
-                      />
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500">
-                      <span>0%</span>
-                      <span>{Math.floor(availablePercentage / 2)}%</span>
-                      <span>{availablePercentage}%</span>
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max={availablePercentage + formData.percentage}
-                      value={formData.percentage}
-                      onChange={(e) => {
-                        const value = Math.min(
-                          parseInt(e.target.value) || 0,
-                          availablePercentage
-                        );
-                        setFormData((prev) => ({ ...prev, percentage: value }));
-                      }}
-                      className="w-20 p-1 text-sm border rounded text-center"
-                    />
-                  </div>
-                  {availablePercentage === 0 && (
-                    <span className="text-red-500 text-sm flex justify-center text-center mt-3 border-2 border-red-500 p-1 ">
-                      You cant allocate any more percentage! Reduce percentage
-                      of other tasks first
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="task-hours">
+                  Hours{" "}
+                  {ParentTask && ParentTask.hours && (
+                    <span className="text-sm font-normal text-muted-foreground">
+                      (Available: {availableHours})
                     </span>
                   )}
-                </div>
-              </form>
-            </div>
+                </Label>
+                <Input
+                  id="task-hours"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  placeholder="0.0"
+                  max={
+                    ParentTask && ParentTask.hours
+                      ? availableHours + (formData.hours || 0)
+                      : undefined
+                  }
+                  value={formData.hours || ""}
+                  onChange={(e) => {
+                    const value = e.target.value
+                      ? Number(e.target.value)
+                      : undefined;
+                    setHourError(""); // Clear previous error
 
-            {/* Footer - Fixed */}
-            <div className="p-6 border-t border-gray-200">
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    SetaddOrPencilEditTofalse();
-                    onClose();
+                    if (
+                      (ParentTask &&
+                        ParentTask.hours &&
+                        value &&
+                        value > availableHours) ||
+                      0
+                    ) {
+                      let errorMsg = "";
+                      if (availableHours > 1) {
+                        errorMsg = `Only  ${availableHours} hours left `;
+                      } else {
+                        errorMsg = `Only  ${availableHours} hour left `;
+                      }
+
+                      setHourError(errorMsg);
+                      console.log("Hour validation error:", errorMsg);
+                      toast.error(errorMsg);
+                      return;
+                    }
+
+                    setFormData((prev) => ({
+                      ...prev,
+                      hours: value,
+                    }));
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="task-form"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black/90 hover:bg-black/80"
-                >
-                  {initialData ? "Update" : "Create"}
-                </button>
+                  aria-invalid={!!hourError}
+                />
+                {hourError && (
+                  <span className="mt-1 block text-sm text-destructive">
+                    {hourError}
+                  </span>
+                )}
+                {ParentTask && ParentTask.hours && availableHours === 0 && (
+                  <span className="mt-2 flex justify-center rounded border-2 border-destructive p-1 text-center text-sm text-destructive">
+                    No hours available! Reduce hours of other subtasks first
+                  </span>
+                )}
+                {ParentTask && ParentTask.hours && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Parent task has {ParentTask.hours} hours total
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="task-cost-per-hour">Cost/Hour</Label>
+                <Input
+                  id="task-cost-per-hour"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.costPerHour || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      costPerHour: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    }))
+                  }
+                />
               </div>
             </div>
-          </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="task-assign-to">Assign To</Label>
+              <select
+                id="task-assign-to"
+                multiple
+                value={formData.assignedTo.map((user) => user.id)}
+                onChange={handleAssignedToChange}
+                className="block w-full rounded-md border border-input bg-transparent p-2 text-sm shadow-xs outline-hidden focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                size={4}
+              >
+                {users.map((user: User) => (
+                  <option key={user.id} value={user.id} className="capitalize">
+                    {user.fullName}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Hold Ctrl/Cmd to select multiple users
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="task-deadline">Deadline</Label>
+              <Input
+                id="task-deadline"
+                type="datetime-local"
+                value={formData.deadline}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    deadline: e.target.value,
+                  }))
+                }
+                max={
+                  ParentTask && ParentTask.deadline
+                    ? (ParentTask.deadline as string) // Ensure it's treated as a string
+                    : (project?.project_due_date as string) // Ensure it's treated as a string
+                } // Set maximum date based on ParentTask or project due date
+              />
+            </div>
+
+            <div className="mb-6">
+              <Label className="mb-2 block">
+                Percentage Allocation (Max: {availablePercentage}
+                %)
+              </Label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Current: {formData.percentage}%
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    Available:{" "}
+                    {availablePercentage - formData.percentage < 0
+                      ? 0
+                      : availablePercentage - formData.percentage}
+                    %
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max={availablePercentage}
+                  value={formData.percentage}
+                  onChange={(e) => {
+                    const value = Math.min(
+                      parseInt(e.target.value),
+                      availablePercentage
+                    );
+                    setFormData((prev) => ({ ...prev, percentage: value }));
+                  }}
+                  className="h-2 w-full cursor-pointer rounded-lg bg-muted"
+                />
+                <div className="relative h-2 w-full overflow-hidden rounded-lg bg-muted">
+                  <div
+                    className="absolute top-0 left-0 h-full bg-primary transition-all duration-150"
+                    style={{
+                      width: `${
+                        (formData.percentage / availablePercentage) * 100
+                      }%`,
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>0%</span>
+                  <span>{Math.floor(availablePercentage / 2)}%</span>
+                  <span>{availablePercentage}%</span>
+                </div>
+              </div>
+              <div className="mt-2">
+                <Input
+                  type="number"
+                  min="0"
+                  max={availablePercentage + formData.percentage}
+                  value={formData.percentage}
+                  onChange={(e) => {
+                    const value = Math.min(
+                      parseInt(e.target.value) || 0,
+                      availablePercentage
+                    );
+                    setFormData((prev) => ({ ...prev, percentage: value }));
+                  }}
+                  className="h-8 w-20 text-center text-sm"
+                />
+              </div>
+              {availablePercentage === 0 && (
+                <span className="mt-3 flex justify-center border-2 border-destructive p-1 text-center text-sm text-destructive">
+                  You cant allocate any more percentage! Reduce percentage of
+                  other tasks first
+                </span>
+              )}
+            </div>
+          </form>
         </div>
-      ) : null}
-    </>
+
+        {/* Footer - Fixed */}
+        <DialogFooter className="border-t p-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              SetaddOrPencilEditTofalse();
+              onClose();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" form="task-form">
+            {initialData ? "Update" : "Create"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -6,12 +6,33 @@ import { useWorkFromStore } from "../store/workfromhomestore";
 import { useOOOStore } from "../store/oooStore";
 import { doc, getDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { Loader2, ChevronDown } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import AttendanceCalendar from "@/components/AttendanceCalendar";
 import { AdminAttendanceMarker } from "@/components/AdminAttendanceMarker";
 import { useNotificationStore } from "../store/notificationStore";
 import { Holiday, useHolidayStore } from "../store/holidayStore";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface User {
   id: string;
@@ -492,7 +513,7 @@ export default function Attendance() {
   if (loading && records.length === 0) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -501,8 +522,10 @@ export default function Attendance() {
     <div className="p-6">
       <div className="flex sm:flex-row flex-col gap-3 justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Attendance Management</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-heading font-semibold">
+            Attendance Management
+          </h1>
+          <p className="text-muted-foreground mt-1">
             Total Days Present:{" "}
             {getTotalAttendance(selectedUser || user?.uid || "")}
           </p>
@@ -510,507 +533,448 @@ export default function Attendance() {
         <div className="flex gap-2 flex-wrap">
           {!isTodayAttendanceMarked() && (
             <div className="flex gap-2">
-              <select
+              <Select
                 value={attendanceType}
-                onChange={(e) =>
-                  setAttendanceType(e.target.value as "full" | "half")
+                onValueChange={(value) =>
+                  setAttendanceType(value as "full" | "half")
                 }
-                className="px-4 py-2 border rounded-md"
               >
-                <option value="full">Full Day</option>
-                <option value="half">Half Day</option>
-              </select>
-              <button
-                onClick={handleMarkAttendance}
-                className="px-4 py-2 text-white rounded-md bg-black/90 hover:bg-black/80"
-              >
+                <SelectTrigger className="w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full">Full Day</SelectItem>
+                  <SelectItem value="half">Half Day</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={handleMarkAttendance}>
                 Mark Today's Attendance
-              </button>
+              </Button>
             </div>
           )}
           {isAdmin && (
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setShowAttendanceMarker(true)}
-              className="px-4 py-2 text-white rounded-md bg-blue-600 hover:bg-blue-700"
             >
               Member attendance marker
-            </button>
+            </Button>
           )}
           {isAdmin && (
-            <button
+            <Button
+              variant="secondary"
               onClick={() => setShowHolidayMarker(true)}
-              className="px-4 py-2 text-white rounded-md bg-orange-500 hover:bg-orange-700"
             >
               Holiday Marker
-            </button>
+            </Button>
           )}
-          <button
+          <Button
+            variant="destructive"
             onClick={() => setShowLeaveModal(true)}
-            className="px-4 py-2 text-white rounded-md bg-red-600 hover:bg-red-700"
           >
             Request Leave
-          </button>
-          <button
-            onClick={() => setShowWorkFromModal(true)}
-            className="px-4 py-2 text-white rounded-md bg-green-600 hover:bg-green-700"
-          >
+          </Button>
+          <Button variant="outline" onClick={() => setShowWorkFromModal(true)}>
             Work From Home
-          </button>
-          <button
-            onClick={() => setShowOOOModal(true)}
-            className="px-4 py-2 text-white rounded-md bg-purple-600 hover:bg-purple-700"
-          >
+          </Button>
+          <Button variant="outline" onClick={() => setShowOOOModal(true)}>
             Out-of-Office
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Leave Request Modal */}
-      {showLeaveModal && (
-        <div className="fixed z-[100] inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Request Leave</h2>
-            <form onSubmit={handleRequestLeave}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={leaveForm.startDate}
-                  onChange={(e) =>
-                    setLeaveForm({
-                      ...leaveForm,
-                      startDate: e.target.value,
-                      endDate: showEndDateInput
-                        ? leaveForm.endDate
-                        : e.target.value,
-                    })
-                  }
-                  className="w-full p-2 border rounded"
+      <Dialog open={showLeaveModal} onOpenChange={setShowLeaveModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Leave</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRequestLeave} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="leave-start-date">Start Date</Label>
+              <Input
+                id="leave-start-date"
+                type="date"
+                required
+                value={leaveForm.startDate}
+                onChange={(e) =>
+                  setLeaveForm({
+                    ...leaveForm,
+                    startDate: e.target.value,
+                    endDate: showEndDateInput
+                      ? leaveForm.endDate
+                      : e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="leave-end-date-toggle"
+                  checked={showEndDateInput}
+                  onCheckedChange={(checked) => {
+                    const isChecked = checked === true;
+                    setShowEndDateInput(isChecked);
+                    if (!isChecked) {
+                      setLeaveForm({
+                        ...leaveForm,
+                        endDate: leaveForm.startDate,
+                      });
+                    }
+                  }}
                 />
+                <Label htmlFor="leave-end-date-toggle">
+                  Set different end date
+                </Label>
               </div>
-              <div className="mb-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={showEndDateInput}
-                    onChange={(e) => {
-                      setShowEndDateInput(e.target.checked);
-                      if (!e.target.checked) {
-                        setLeaveForm({
-                          ...leaveForm,
-                          endDate: leaveForm.startDate,
-                        });
-                      }
-                    }}
-                    className="rounded"
+              {showEndDateInput && (
+                <div className="space-y-2 pt-1">
+                  <Label htmlFor="leave-end-date">End Date</Label>
+                  <Input
+                    id="leave-end-date"
+                    type="date"
+                    value={leaveForm.endDate}
+                    onChange={(e) =>
+                      setLeaveForm({
+                        ...leaveForm,
+                        endDate: e.target.value,
+                      })
+                    }
+                    min={leaveForm.startDate}
                   />
-                  <span className="text-sm font-medium">
-                    Set different end date
-                  </span>
-                </div>
-                {showEndDateInput && (
-                  <>
-                    <label className="block text-sm font-medium mb-1 mt-2">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      value={leaveForm.endDate}
-                      onChange={(e) =>
-                        setLeaveForm({
-                          ...leaveForm,
-                          endDate: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border rounded"
-                      min={leaveForm.startDate}
-                    />
-                  </>
-                )}
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  Leave Type
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="leaveType"
-                      value="full"
-                      checked={leaveForm.leaveType === "full"}
-                      onChange={(e) =>
-                        setLeaveForm({
-                          ...leaveForm,
-                          leaveType: e.target.value as "full" | "half",
-                        })
-                      }
-                      className="mr-2"
-                    />
-                    <span className="text-sm">Full Day</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="leaveType"
-                      value="half"
-                      checked={leaveForm.leaveType === "half"}
-                      onChange={(e) =>
-                        setLeaveForm({
-                          ...leaveForm,
-                          leaveType: e.target.value as "full" | "half",
-                        })
-                      }
-                      className="mr-2"
-                    />
-                    <span className="text-sm">Half Day</span>
-                  </label>
-                </div>
-              </div>
-              {leaveForm.leaveType === "half" && (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-2">
-                    Leave Session
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="session"
-                        value="forenoon"
-                        checked={leaveForm.session === "forenoon"}
-                        onChange={(e) =>
-                          setLeaveForm({
-                            ...leaveForm,
-                            session: e.target.value as "forenoon" | "afternoon",
-                          })
-                        }
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Forenoon</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="session"
-                        value="afternoon"
-                        checked={leaveForm.session === "afternoon"}
-                        onChange={(e) =>
-                          setLeaveForm({
-                            ...leaveForm,
-                            session: e.target.value as "forenoon" | "afternoon",
-                          })
-                        }
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Afternoon</span>
-                    </label>
-                  </div>
                 </div>
               )}
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Reason</label>
-                <textarea
-                  required
-                  value={leaveForm.reason}
-                  onChange={(e) =>
+            </div>
+            <div className="space-y-2">
+              <Label>Leave Type</Label>
+              <RadioGroup
+                value={leaveForm.leaveType}
+                onValueChange={(value) =>
+                  setLeaveForm({
+                    ...leaveForm,
+                    leaveType: value as "full" | "half",
+                  })
+                }
+                className="flex gap-4"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="full" id="leave-type-full" />
+                  <Label htmlFor="leave-type-full" className="font-normal">
+                    Full Day
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="half" id="leave-type-half" />
+                  <Label htmlFor="leave-type-half" className="font-normal">
+                    Half Day
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            {leaveForm.leaveType === "half" && (
+              <div className="space-y-2">
+                <Label>Leave Session</Label>
+                <RadioGroup
+                  value={leaveForm.session}
+                  onValueChange={(value) =>
                     setLeaveForm({
                       ...leaveForm,
-                      reason: e.target.value,
+                      session: value as "forenoon" | "afternoon",
                     })
                   }
-                  placeholder="Please provide a reason for leave"
-                  className="w-full p-2 border rounded resize-none h-24"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowLeaveModal(false)}
-                  className="px-4 py-2 text-gray-600 border rounded"
+                  className="flex gap-4"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white bg-red-600 rounded"
-                >
-                  Submit
-                </button>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="forenoon" id="leave-session-forenoon" />
+                    <Label
+                      htmlFor="leave-session-forenoon"
+                      className="font-normal"
+                    >
+                      Forenoon
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <RadioGroupItem value="afternoon" id="leave-session-afternoon" />
+                    <Label
+                      htmlFor="leave-session-afternoon"
+                      className="font-normal"
+                    >
+                      Afternoon
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="leave-reason">Reason</Label>
+              <Textarea
+                id="leave-reason"
+                required
+                value={leaveForm.reason}
+                onChange={(e) =>
+                  setLeaveForm({
+                    ...leaveForm,
+                    reason: e.target.value,
+                  })
+                }
+                placeholder="Please provide a reason for leave"
+                className="resize-none h-24"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowLeaveModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="destructive">
+                Submit
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Work From Home Modal */}
-      {showWorkFromModal && (
-        <div className="fixed z-[100] inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Request Work From Home</h2>
-            <form onSubmit={handleRequestWorkFromHome}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={workFromForm.startDate}
-                  onChange={(e) =>
-                    setWorkFromForm({
-                      ...workFromForm,
-                      startDate: e.target.value,
-                      endDate: showEndDateInput
-                        ? workFromForm.endDate
-                        : e.target.value,
-                    })
-                  }
-                  className="w-full p-2 border rounded"
+      <Dialog open={showWorkFromModal} onOpenChange={setShowWorkFromModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Work From Home</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRequestWorkFromHome} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="wfh-start-date">Start Date</Label>
+              <Input
+                id="wfh-start-date"
+                type="date"
+                required
+                value={workFromForm.startDate}
+                onChange={(e) =>
+                  setWorkFromForm({
+                    ...workFromForm,
+                    startDate: e.target.value,
+                    endDate: showEndDateInput
+                      ? workFromForm.endDate
+                      : e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="wfh-end-date-toggle"
+                  checked={showEndDateInput}
+                  onCheckedChange={(checked) => {
+                    const isChecked = checked === true;
+                    setShowEndDateInput(isChecked);
+                    if (!isChecked) {
+                      setWorkFromForm({
+                        ...workFromForm,
+                        endDate: workFromForm.startDate,
+                      });
+                    }
+                  }}
                 />
+                <Label htmlFor="wfh-end-date-toggle">
+                  Set different end date
+                </Label>
               </div>
-              <div className="mb-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={showEndDateInput}
-                    onChange={(e) => {
-                      setShowEndDateInput(e.target.checked);
-                      if (!e.target.checked) {
-                        setWorkFromForm({
-                          ...workFromForm,
-                          endDate: workFromForm.startDate,
-                        });
-                      }
-                    }}
-                    className="rounded"
+              {showEndDateInput && (
+                <div className="space-y-2 pt-1">
+                  <Label htmlFor="wfh-end-date">End Date</Label>
+                  <Input
+                    id="wfh-end-date"
+                    type="date"
+                    value={workFromForm.endDate}
+                    onChange={(e) =>
+                      setWorkFromForm({
+                        ...workFromForm,
+                        endDate: e.target.value,
+                      })
+                    }
+                    min={workFromForm.startDate}
                   />
-                  <span className="text-sm font-medium">
-                    Set different end date
-                  </span>
                 </div>
-                {showEndDateInput && (
-                  <>
-                    <label className="block text-sm font-medium mb-1 mt-2">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      value={workFromForm.endDate}
-                      onChange={(e) =>
-                        setWorkFromForm({
-                          ...workFromForm,
-                          endDate: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border rounded"
-                      min={workFromForm.startDate}
-                    />
-                  </>
-                )}
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Reason</label>
-                <textarea
-                  required
-                  value={workFromForm.reason}
-                  onChange={(e) =>
-                    setWorkFromForm({
-                      ...workFromForm,
-                      reason: e.target.value,
-                    })
-                  }
-                  placeholder="Please provide a reason for working from home"
-                  className="w-full p-2 border rounded resize-none h-24"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowWorkFromModal(false)}
-                  className="px-4 py-2 text-gray-600 border rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white bg-green-600 rounded"
-                >
-                  Submit
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="wfh-reason">Reason</Label>
+              <Textarea
+                id="wfh-reason"
+                required
+                value={workFromForm.reason}
+                onChange={(e) =>
+                  setWorkFromForm({
+                    ...workFromForm,
+                    reason: e.target.value,
+                  })
+                }
+                placeholder="Please provide a reason for working from home"
+                className="resize-none h-24"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowWorkFromModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Submit</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Out-of-Office Modal */}
-      {showOOOModal && (
-        <div className="fixed z-[100] inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Request Out-of-Office</h2>
-            <form onSubmit={handleRequestOOO}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={oooForm.startDate}
-                  onChange={(e) =>
-                    setOOOForm({
-                      ...oooForm,
-                      startDate: e.target.value,
-                      endDate: showEndDateInput
-                        ? oooForm.endDate
-                        : e.target.value,
-                    })
-                  }
-                  className="w-full p-2 border rounded"
+      <Dialog open={showOOOModal} onOpenChange={setShowOOOModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Out-of-Office</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRequestOOO} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ooo-start-date">Start Date</Label>
+              <Input
+                id="ooo-start-date"
+                type="date"
+                required
+                value={oooForm.startDate}
+                onChange={(e) =>
+                  setOOOForm({
+                    ...oooForm,
+                    startDate: e.target.value,
+                    endDate: showEndDateInput
+                      ? oooForm.endDate
+                      : e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="ooo-end-date-toggle"
+                  checked={showEndDateInput}
+                  onCheckedChange={(checked) => {
+                    const isChecked = checked === true;
+                    setShowEndDateInput(isChecked);
+                    if (!isChecked) {
+                      setOOOForm({
+                        ...oooForm,
+                        endDate: oooForm.startDate,
+                      });
+                    }
+                  }}
                 />
+                <Label htmlFor="ooo-end-date-toggle">
+                  Set different end date
+                </Label>
               </div>
-              <div className="mb-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={showEndDateInput}
-                    onChange={(e) => {
-                      setShowEndDateInput(e.target.checked);
-                      if (!e.target.checked) {
-                        setOOOForm({
-                          ...oooForm,
-                          endDate: oooForm.startDate,
-                        });
-                      }
-                    }}
-                    className="rounded"
+              {showEndDateInput && (
+                <div className="space-y-2 pt-1">
+                  <Label htmlFor="ooo-end-date">End Date</Label>
+                  <Input
+                    id="ooo-end-date"
+                    type="date"
+                    value={oooForm.endDate}
+                    onChange={(e) =>
+                      setOOOForm({
+                        ...oooForm,
+                        endDate: e.target.value,
+                      })
+                    }
+                    min={oooForm.startDate}
                   />
-                  <span className="text-sm font-medium">
-                    Set different end date
-                  </span>
                 </div>
-                {showEndDateInput && (
-                  <>
-                    <label className="block text-sm font-medium mb-1 mt-2">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      value={oooForm.endDate}
-                      onChange={(e) =>
-                        setOOOForm({
-                          ...oooForm,
-                          endDate: e.target.value,
-                        })
-                      }
-                      className="w-full p-2 border rounded"
-                      min={oooForm.startDate}
-                    />
-                  </>
-                )}
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Reason</label>
-                <textarea
-                  required
-                  value={oooForm.reason}
-                  onChange={(e) =>
-                    setOOOForm({
-                      ...oooForm,
-                      reason: e.target.value,
-                    })
-                  }
-                  placeholder="Please provide a reason for Out-of-Office"
-                  className="w-full p-2 border rounded resize-none h-24"
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowOOOModal(false)}
-                  className="px-4 py-2 text-gray-600 border rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white bg-purple-600 rounded"
-                >
-                  Submit
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ooo-reason">Reason</Label>
+              <Textarea
+                id="ooo-reason"
+                required
+                value={oooForm.reason}
+                onChange={(e) =>
+                  setOOOForm({
+                    ...oooForm,
+                    reason: e.target.value,
+                  })
+                }
+                placeholder="Please provide a reason for Out-of-Office"
+                className="resize-none h-24"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowOOOModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Submit</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="px-1 sm:px-[10%] mt-10">
         {isAdmin && (
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Employee
-            </label>
+          <div className="mb-6 space-y-2">
+            <Label>Select Employee</Label>
             <div className="relative">
-              <button
-                onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
-                className="mt-1 relative capitalize py-3 px-4 w-full text-left rounded-lg cursor-pointer bg-white border-[1px] border-gray-200 focus:outline-none focus:border-black hover:bg-gray-50 transition-colors flex justify-between items-center"
+              <Select
+                value={selectedUser ?? "none"}
+                onValueChange={(value) =>
+                  setSelectedUser(value === "none" ? null : value)
+                }
+                open={showEmployeeDropdown}
+                onOpenChange={setShowEmployeeDropdown}
               >
-                <div className="flex items-center gap-2">
-                  <span>
-                    {selectedUser
-                      ? users[selectedUser]?.fullName
-                      : "Select employee..."}
-                  </span>
-                  {selectedUser && hasPendingRequests(selectedUser) && (
-                    <span className="h-2 w-2 bg-red-600 rounded-full animate-pulse"></span>
-                  )}
-                </div>
-                <ChevronDown
-                  className={`h-5 w-5 transition-transform ${showEmployeeDropdown ? "rotate-180" : ""
-                    }`}
-                />
-                {isAnyRequestPending() ? (
-                  <span className="h-3 w-3 bg-red-600 rounded-full animate-pulse absolute top-0 right-0 translate-x-1 -translate-y-1"></span>
-                ) : null}
-              </button>
-
-              {showEmployeeDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
-                  <div
-                    className="p-2 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => {
-                      setSelectedUser(null);
-                      setShowEmployeeDropdown(false);
-                    }}
-                  >
-                    Select employee...
-                  </div>
+                <SelectTrigger className="w-full capitalize">
+                  <SelectValue placeholder="Select employee...">
+                    <span className="flex items-center gap-2">
+                      <span>
+                        {selectedUser
+                          ? users[selectedUser]?.fullName
+                          : "Select employee..."}
+                      </span>
+                      {selectedUser && hasPendingRequests(selectedUser) && (
+                        <span className="h-2 w-2 bg-red-600 rounded-full animate-pulse" />
+                      )}
+                    </span>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Select employee...</SelectItem>
                   {Object.values(users).map((employee) => (
-                    <div
+                    <SelectItem
                       key={employee.id}
-                      className="p-2 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
-                      onClick={() => {
-                        setSelectedUser(employee.id);
-                        setShowEmployeeDropdown(false);
-                      }}
+                      value={employee.id}
+                      className="capitalize"
                     >
-                      <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-2">
                         <span className="font-medium">{employee.fullName}</span>
-                        <span className="text-gray-500">
+                        <span className="text-muted-foreground">
                           - {getTotalAttendance(employee.id)} days present
                         </span>
                         {hasPendingRequests(employee.id) && (
-                          <span className="h-2 w-2 bg-red-600 rounded-full animate-pulse"></span>
+                          <span className="h-2 w-2 bg-red-600 rounded-full animate-pulse" />
                         )}
-                      </div>
-                    </div>
+                      </span>
+                    </SelectItem>
                   ))}
-                </div>
-              )}
+                </SelectContent>
+              </Select>
+              {isAnyRequestPending() ? (
+                <span className="h-3 w-3 bg-red-600 rounded-full animate-pulse absolute top-0 right-0 translate-x-1 -translate-y-1 pointer-events-none" />
+              ) : null}
             </div>
           </div>
         )}
@@ -1031,116 +995,112 @@ export default function Attendance() {
       )}
 
       {/* Holiday Marker Modal */}
-      {showHolidayMarker && (
-        <div className="fixed z-[100] inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-4">Manage Holidays</h2>
-            <form onSubmit={handleHolidaySubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Holiday Name
-                </label>
-                <input
-                  type="text"
-                  value={holidayName}
-                  onChange={(e) => setHolidayName(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  required
+      <Dialog open={showHolidayMarker} onOpenChange={setShowHolidayMarker}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage Holidays</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleHolidaySubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="holiday-name">Holiday Name</Label>
+              <Input
+                id="holiday-name"
+                type="text"
+                value={holidayName}
+                onChange={(e) => setHolidayName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="holiday-start-date">Start Date</Label>
+              <Input
+                id="holiday-start-date"
+                type="date"
+                value={holidayStartDate}
+                onChange={(e) => setHolidayStartDate(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="holiday-end-date-toggle"
+                  checked={showEndDateInput}
+                  onCheckedChange={(checked) =>
+                    setShowEndDateInput(checked === true)
+                  }
                 />
+                <Label htmlFor="holiday-end-date-toggle">
+                  Set different end date
+                </Label>
               </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={holidayStartDate}
-                  onChange={(e) => setHolidayStartDate(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={showEndDateInput}
-                    onChange={(e) => setShowEndDateInput(e.target.checked)}
-                    className="rounded"
+              {showEndDateInput && (
+                <div className="space-y-2 pt-1">
+                  <Label htmlFor="holiday-end-date">End Date</Label>
+                  <Input
+                    id="holiday-end-date"
+                    type="date"
+                    value={holidayEndDate}
+                    onChange={(e) => setHolidayEndDate(e.target.value)}
+                    required
                   />
-                  <span className="text-sm font-medium">
-                    Set different end date
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowHolidayMarker(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">
+                {selectedHolidayId ? "Update Holiday" : "Add Holiday"}
+              </Button>
+            </DialogFooter>
+          </form>
+
+          <Separator />
+
+          <h3 className="text-base font-semibold">Existing Holidays</h3>
+          <ul className="space-y-2">
+            {holidays.map((holiday) => (
+              <li
+                key={holiday.id}
+                className="flex justify-between items-center"
+              >
+                <div className="flex flex-col">
+                  <span className="font-medium">
+                    {holiday.name.length > 20
+                      ? `${holiday.name.slice(0, 20)}...`
+                      : holiday.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {holiday.startDate} to {holiday.endDate}
                   </span>
                 </div>
-                {showEndDateInput && (
-                  <>
-                    <label className="block text-sm font-medium mb-1 mt-2">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      value={holidayEndDate}
-                      onChange={(e) => setHolidayEndDate(e.target.value)}
-                      className="w-full p-2 border rounded"
-                      required
-                    />
-                  </>
-                )}
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowHolidayMarker(false)}
-                  className="px-4 py-2 text-gray-600 border rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-white bg-blue-600 rounded"
-                >
-                  {selectedHolidayId ? "Update Holiday" : "Add Holiday"}
-                </button>
-              </div>
-            </form>
-
-            <h3 className="text-lg font-bold mt-4">Existing Holidays</h3>
-            <ul>
-              {holidays.map((holiday) => (
-                <li
-                  key={holiday.id}
-                  className="flex justify-between items-center"
-                >
-                  <div className="flex flex-col">
-                    <span className="fold-bold">
-                      {holiday.name.length > 20
-                        ? `${holiday.name.slice(0, 20)}...`
-                        : holiday.name}
-                    </span>
-                    <span className="text-xs">
-                      {holiday.startDate} to {holiday.endDate}
-                    </span>
-                  </div>
-                  <div>
-                    <button
-                      onClick={() => handleEditHoliday(holiday)}
-                      className="text-blue-500"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteHoliday(holiday.id)}
-                      className="text-red-500 ml-2"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditHoliday(holiday)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteHoliday(holiday.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

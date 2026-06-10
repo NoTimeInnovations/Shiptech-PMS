@@ -4,6 +4,16 @@ import { db } from '../lib/firebase';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface ChangeDesignationModalProps {
   isOpen: boolean;
@@ -30,8 +40,8 @@ const ChangeDesignationModal = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    
+
+
     if (!designation.trim()) {
       toast.error('Please enter a designation');
       return;
@@ -49,9 +59,9 @@ const ChangeDesignationModal = ({
       await  updateUserData(userEmail,designation)
       onDesignationChange(designation);
       toast.success('Designation updated successfully');
-       
-  
-      
+
+
+
       onClose();
     } catch (error) {
       console.error('Error updating designation:', error);
@@ -61,38 +71,36 @@ const ChangeDesignationModal = ({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
-        <h2 className="text-xl font-bold mb-4">Change Designation</h2>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Change Designation</DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              New Designation
-            </label>
-            <input
+          <div className="mb-4 space-y-2">
+            <Label htmlFor="new-designation">New Designation</Label>
+            <Input
+              id="new-designation"
               type="text"
               value={designation}
               onChange={(e) => setDesignation(e.target.value)}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter new designation"
               disabled={loading}
             />
           </div>
-          <div className="flex justify-end gap-2">
-            <button
+          <DialogFooter>
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 border rounded-md hover:bg-gray-50"
               disabled={loading}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center min-w-[80px]"
+              className="min-w-[80px]"
               disabled={loading}
             >
               {loading ? (
@@ -100,11 +108,11 @@ const ChangeDesignationModal = ({
               ) : (
                 'Change'
               )}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
